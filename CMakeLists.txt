@@ -117,8 +117,9 @@ endif(BUILD_SHARED_LIBS)
 include(GNUInstallDirs)
 include_directories(sax/include)
 add_subdirectory(sax)
+add_subdirectory(zsbtree)
 add_library(leveldb "")
-target_link_libraries(leveldb sax)
+target_link_libraries(leveldb sax zsbtree)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"

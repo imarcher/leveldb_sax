@@ -308,7 +308,7 @@ gtest_force_shared_crt:BOOL=ON
 leveldb_BINARY_DIR:STATIC=/home/hh/a/leveldb-main/cmake-build-debug
 
 //Dependencies for the target
-leveldb_LIB_DEPENDS:STATIC=general;sax;
+leveldb_LIB_DEPENDS:STATIC=general;sax;general;zsbtree;
 
 //Value Computed by CMake
 leveldb_SOURCE_DIR:STATIC=/home/hh/a/leveldb-main
@@ -318,6 +318,12 @@ sax_BINARY_DIR:STATIC=/home/hh/a/leveldb-main/cmake-build-debug/sax
 
 //Value Computed by CMake
 sax_SOURCE_DIR:STATIC=/home/hh/a/leveldb-main/sax
+
+//Value Computed by CMake
+zsbtree_BINARY_DIR:STATIC=/home/hh/a/leveldb-main/cmake-build-debug/zsbtree
+
+//Value Computed by CMake
+zsbtree_SOURCE_DIR:STATIC=/home/hh/a/leveldb-main/zsbtree
 
 
 ########################
@@ -472,7 +478,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=2
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=3
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP

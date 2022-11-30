@@ -162,6 +162,19 @@ sax/fast:
 	$(MAKE) -f sax/CMakeFiles/sax.dir/build.make sax/CMakeFiles/sax.dir/build
 .PHONY : sax/fast
 
+#=============================================================================
+# Target rules for targets named zsbtree
+
+# Build rule for target.
+zsbtree: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 zsbtree
+.PHONY : zsbtree
+
+# fast build rule for target.
+zsbtree/fast:
+	$(MAKE) -f zsbtree/CMakeFiles/zsbtree.dir/build.make zsbtree/CMakeFiles/zsbtree.dir/build
+.PHONY : zsbtree/fast
+
 db/builder.o: db/builder.cc.o
 
 .PHONY : db/builder.o
@@ -1227,6 +1240,7 @@ help:
 	@echo "... leveldb"
 	@echo "... main"
 	@echo "... sax"
+	@echo "... zsbtree"
 	@echo "... db/builder.o"
 	@echo "... db/builder.i"
 	@echo "... db/builder.s"

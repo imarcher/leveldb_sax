@@ -5,7 +5,7 @@
 		<Option title="sax"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\port\;CMake Files\sax\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\port\;CMake Files\sax\;CMake Files\zsbtree\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/hh/a/leveldb-main/cmake-build-debug/sax"/>
@@ -135,6 +135,9 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/sax/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\sax\"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\zsbtree\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

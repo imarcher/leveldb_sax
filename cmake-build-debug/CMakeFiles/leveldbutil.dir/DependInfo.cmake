@@ -20,6 +20,7 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
 set(CMAKE_TARGET_LINKED_INFO_FILES
   "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/DependInfo.cmake"
   "/home/hh/a/leveldb-main/cmake-build-debug/sax/CMakeFiles/sax.dir/DependInfo.cmake"
+  "/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/CMakeFiles/zsbtree.dir/DependInfo.cmake"
   )
 
 # Fortran module output directory.

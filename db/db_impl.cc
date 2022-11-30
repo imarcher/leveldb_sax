@@ -195,7 +195,7 @@ Status DBImpl::NewDB() {
     log::Writer log(file);
     std::string record;
     new_db.EncodeTo(&record);
-    s = log.AddRecord(record);
+    s = log.AddRecord(record, nullptr);
     if (s.ok()) {
       s = file->Sync();
     }
@@ -1228,6 +1228,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     {
       mutex_.Unlock();
       uint64_t fileOffset = 0;//位置，就是p
+      //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
       status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
       bool sync_error = false;
       if (status.ok() && options.sync) {
@@ -1237,7 +1238,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
         }
       }
       if (status.ok()) {
-        status = WriteBatchInternal::InsertInto(write_batch, mem_);
+        status = WriteBatchInternal::InsertInto(write_batch, mem_, fileOffset);
       }
       mutex_.Lock();
       if (sync_error) {
@@ -1285,10 +1286,11 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
   // Allow the group to grow up to a maximum size, but if the
   // original write is small, limit the growth so we do not slow
   // down the small write too much.
-  size_t max_size = 1 << 20;
-  if (size <= (128 << 10)) {
-    max_size = size + (128 << 10);
-  }
+  size_t max_size = 35850;
+//  size_t max_size = 1 << 20;
+//  if (size <= (128 << 10)) {
+//    max_size = size + (128 << 10);
+//  }
 
   *last_writer = first;
   std::deque<Writer*>::iterator iter = writers_.begin();

@@ -5,7 +5,7 @@
 		<Option title="leveldb"/>
 		<Option makefile_is_custom="1"/>
 		<Option compiler="gcc"/>
-		<Option virtualFolders="CMake Files\;CMake Files\port\;CMake Files\sax\;"/>
+		<Option virtualFolders="CMake Files\;CMake Files\port\;CMake Files\sax\;CMake Files\zsbtree\;"/>
 		<Build>
 			<Target title="all">
 				<Option working_dir="/home/hh/a/leveldb-main/cmake-build-debug"/>
@@ -245,6 +245,60 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/sax/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="zsbtree">
+				<Option output="/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/libzsbtree.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/hh/a/leveldb-main/cmake-build-debug/zsbtree"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/hh/a/leveldb-main/cmake-build-debug/include"/>
+					<Add directory="/home/hh/a/leveldb-main/."/>
+					<Add directory="/home/hh/a/leveldb-main/sax/include"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../sax/include"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../util"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 zsbtree"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="zsbtree/fast">
+				<Option output="/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/libzsbtree.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/hh/a/leveldb-main/cmake-build-debug/zsbtree"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/hh/a/leveldb-main/cmake-build-debug/include"/>
+					<Add directory="/home/hh/a/leveldb-main/."/>
+					<Add directory="/home/hh/a/leveldb-main/sax/include"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../sax/include"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../util"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 zsbtree/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/hh/a/leveldb-main/cmake-build-debug/zsbtree/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 		</Build>
 		<Unit filename="/home/hh/a/leveldb-main/cmake-build-debug/include/port/port_config.h">
 			<Option target="leveldb"/>
@@ -461,9 +515,11 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/arena.cc">
 			<Option target="leveldb"/>
+			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/arena.h">
 			<Option target="leveldb"/>
+			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/bloom.cc">
 			<Option target="leveldb"/>
@@ -525,6 +581,60 @@
 		<Unit filename="/home/hh/a/leveldb-main/util/status.cc">
 			<Option target="leveldb"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/Cmp.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/Cmp.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/Leaf.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/Leaf.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/LeafKey.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/LeafKey.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeaf.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeaf.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeafKey.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeafKey.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Build.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Build.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Insert.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Insert.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_LeafBuild.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_LeafBuild.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_NonLeafBuild.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_NonLeafBuild.h">
+			<Option target="zsbtree"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
@@ -533,6 +643,9 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/sax/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\sax\"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\zsbtree\"/>
 		</Unit>
 	</Project>
 </CodeBlocks_project_file>

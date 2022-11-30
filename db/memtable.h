@@ -11,6 +11,7 @@
 #include "db/skiplist.h"
 #include "leveldb/db.h"
 #include "util/arena.h"
+#include "zsbtree/zsbtree_Build.h"
 
 namespace leveldb {
 
@@ -53,8 +54,7 @@ class MemTable {
   // Add an entry into memtable that maps key to value at the
   // specified sequence number and with the specified type.
   // Typically value will be empty if type==kTypeDeletion.
-  void Add(SequenceNumber seq, ValueType type, const Slice& key,
-           const Slice& value);
+  void Add(SequenceNumber seq, saxt saxt_, uint64_t fileOffset);
 
   // If memtable contains a value for key, store it in *value and return true.
   // If memtable contains a deletion for key, store a NotFound() error

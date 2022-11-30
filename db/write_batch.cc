@@ -39,7 +39,7 @@ void WriteBatch::Clear() {
 
 size_t WriteBatch::ApproximateSize() const { return rep_.size(); }
 
-Status WriteBatch::Iterate(Handler* handler) const {
+Status WriteBatch::Iterate(Handler* handler, uint64_t fileOffset) const {
   Slice input(rep_);
   if (input.size() < kHeader) {
     return Status::Corruption("malformed WriteBatch (too small)");
@@ -47,13 +47,16 @@ Status WriteBatch::Iterate(Handler* handler) const {
 
   input.remove_prefix(kHeader);
   Slice key, value;
-  int found = 0;
+  //从0开始
+  int found = -1;
   while (!input.empty()) {
     found++;
-    char tag = input[0];
-    input.remove_prefix(1);
     if (input.size() >= putKey_size) {
-      handler->Put(input.data());
+      //把前8位改了
+      *(unsigned char*)(&fileOffset) = found;
+      //我们添加进table
+      handler->Put((saxt)(input.data()+tsKey_size), fileOffset);
+      input.remove_prefix(putKey_size);
     } else {
       return Status::Corruption("bad WriteBatch Put");
     }
@@ -84,7 +87,7 @@ void WriteBatchInternal::SetSequence(WriteBatch* b, SequenceNumber seq) {
 
 void WriteBatch::Put(const putKey& key) {
   WriteBatchInternal::SetCount(this, WriteBatchInternal::Count(this) + 1);
-  rep_.append((char*)&key, 8);
+  rep_.append((char*)&key, putKey_size);
 }
 
 void WriteBatch::Delete(const Slice& key) {
@@ -103,8 +106,8 @@ class MemTableInserter : public WriteBatch::Handler {
   SequenceNumber sequence_;
   MemTable* mem_;
 
-  void Put(const putKey& key) override {
-    mem_->Add(sequence_, key);
+  void Put(saxt saxt_, uint64_t fileOffset) override {
+    mem_->Add(sequence_, saxt_, fileOffset);
     sequence_++;
   }
   void Delete(const Slice& key) override {
@@ -114,11 +117,11 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable* memtable) {
+Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable* memtable, uint64_t fileOffset) {
   MemTableInserter inserter;
   inserter.sequence_ = WriteBatchInternal::Sequence(b);
   inserter.mem_ = memtable;
-  return b->Iterate(&inserter);
+  return b->Iterate(&inserter, fileOffset);
 }
 
 void WriteBatchInternal::SetContents(WriteBatch* b, const Slice& contents) {

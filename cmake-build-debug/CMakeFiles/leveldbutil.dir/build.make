@@ -81,6 +81,7 @@ leveldbutil: CMakeFiles/leveldbutil.dir/db/leveldbutil.cc.o
 leveldbutil: CMakeFiles/leveldbutil.dir/build.make
 leveldbutil: libleveldb.a
 leveldbutil: sax/libsax.a
+leveldbutil: zsbtree/libzsbtree.a
 leveldbutil: CMakeFiles/leveldbutil.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable leveldbutil"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/leveldbutil.dir/link.txt --verbose=$(VERBOSE)

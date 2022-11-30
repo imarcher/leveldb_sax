@@ -7,14 +7,14 @@
 //
 
 
-#include "configall.h"
+
 #include "bitset"
 #include "config.h"
 #ifndef isax_globals_h
 #define isax_globals_h
 
 ///// TYPES /////
-
+#define out(a) std::cout<<a<<std::endl
 //这里基数256变为512则用short
 //typedef unsigned short sax_type;
 typedef unsigned char sax_type;
@@ -62,7 +62,7 @@ typedef struct {
   ts_time tsTime;
   saxt_type asaxt[Bit_cardinality];
 } putKey;
-
+static size_t tsKey_size = sizeof(tsKey);
 static size_t putKey_size = sizeof(putKey);
 
 

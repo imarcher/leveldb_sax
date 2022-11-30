@@ -46,6 +46,7 @@ set(CMAKE_MAKEFILE_DEPENDS
   "CMakeFiles/3.16.5/CMakeSystem.cmake"
   "../port/port_config.h.in"
   "../sax/CMakeLists.txt"
+  "../zsbtree/CMakeLists.txt"
   )
 
 # The corresponding makefile is:
@@ -59,6 +60,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
   "include/port/port_config.h"
   "CMakeFiles/CMakeDirectoryInformation.cmake"
   "sax/CMakeFiles/CMakeDirectoryInformation.cmake"
+  "zsbtree/CMakeFiles/CMakeDirectoryInformation.cmake"
   )
 
 # Dependency information for all targets:
@@ -67,4 +69,5 @@ set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/leveldb.dir/DependInfo.cmake"
   "sax/CMakeFiles/main.dir/DependInfo.cmake"
   "sax/CMakeFiles/sax.dir/DependInfo.cmake"
+  "zsbtree/CMakeFiles/zsbtree.dir/DependInfo.cmake"
   )
