@@ -11,7 +11,7 @@
 #include "db/skiplist.h"
 #include "leveldb/db.h"
 #include "util/arena.h"
-#include "zsbtree/zsbtree_Build.h"
+#include "zsbtree/zsbtree_table.h"
 
 namespace leveldb {
 
@@ -66,19 +66,25 @@ class MemTable {
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;
 
-  struct KeyComparator {
-    const InternalKeyComparator comparator;
-    explicit KeyComparator(const InternalKeyComparator& c) : comparator(c) {}
-    int operator()(const char* a, const char* b) const;
-  };
+//  struct KeyComparator {
+//    const InternalKeyComparator comparator;
+//    explicit KeyComparator(const InternalKeyComparator& c) : comparator(c) {}
+//    int operator()(const char* a, const char* b) const;
+//  };
 
-  typedef SkipList<const char*, KeyComparator> Table;
+//  typedef SkipList<const char*, KeyComparator> Table;
+
+
 
   ~MemTable();  // Private since only Unref() should be used to delete it
 
-  KeyComparator comparator_;
+  //add的时候用
+  LeafKey tmpLeafKey;
+//  KeyComparator comparator_;
   int refs_;
   Arena arena_;
+  typedef zsbtree_table Table;
+  //根结点
   Table table_;
 };
 

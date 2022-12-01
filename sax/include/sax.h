@@ -8,7 +8,7 @@
 
 #ifndef isaxlib_sax_h
 #define isaxlib_sax_h
-#include "configall.h"
+
 #include "config.h"
 #include "globals.h"
 #include "ts.h"

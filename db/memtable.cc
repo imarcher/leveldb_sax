@@ -74,10 +74,9 @@ class MemTableIterator : public Iterator {
 Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 
 void MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
-  auto* buf = (LeafKey*)arena_.Allocate(leaf_key_size);
-  buf->setAsaxt(saxt_);
-  buf->p = fileOffset;
-  table_.Insert(buf);
+  tmpLeafKey.setAsaxt(saxt_);
+  tmpLeafKey.p = (void *)fileOffset;
+  table_.Insert(tmpLeafKey);
 }
 
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {

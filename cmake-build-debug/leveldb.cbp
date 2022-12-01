@@ -635,6 +635,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_NonLeafBuild.h">
 			<Option target="zsbtree"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_table.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_table.h">
+			<Option target="zsbtree"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
 		</Unit>
