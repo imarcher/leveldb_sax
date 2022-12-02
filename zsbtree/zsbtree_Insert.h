@@ -25,7 +25,7 @@ inline int whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey, cod co_d){
 }
 
 
-void l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool isleaf) {
+bool l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool isleaf) {
     nonLeafKey.setLsaxt(leafKey.asaxt);
     nonLeafKey.co_d = get_co_d_from_saxt(nonLeafKey.lsaxt, nonLeafKey.rsaxt, co_d);
     if (isleaf) {
@@ -34,16 +34,16 @@ void l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
         leaf.co_d = nonLeafKey.co_d;
         leaf.add(leafKey);
         leaf.num++;
-
+        return leaf.num != Leaf_rebuildnum;
     } else {
         NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
         nonLeaf.setLsaxt(leafKey.asaxt);
         nonLeaf.co_d = nonLeafKey.co_d;
-        l_Insert_NonLeaf(nonLeaf.nonLeafKeys[0], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
+        return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[0], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
     }
 }
 
-void r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool isleaf) {
+bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool isleaf) {
     nonLeafKey.setRsaxt(leafKey.asaxt);
     nonLeafKey.co_d = get_co_d_from_saxt(nonLeafKey.lsaxt, nonLeafKey.rsaxt, co_d);
     if (isleaf) {
@@ -52,25 +52,25 @@ void r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
         leaf.co_d = nonLeafKey.co_d;
         leaf.add(leafKey);
         leaf.num++;
-
+        return leaf.num != Leaf_rebuildnum;
     } else {
         NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
         nonLeaf.setRsaxt(leafKey.asaxt);
         nonLeaf.co_d = nonLeafKey.co_d;
-        l_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
+        return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
     }
 }
 
 
-inline void leaf_Insert(Leaf &leaf, LeafKey &leafKey) {
+inline bool leaf_Insert(Leaf &leaf, LeafKey &leafKey) {
     leaf.add(leafKey);
     leaf.num++;
-
+    return leaf.num != Leaf_rebuildnum;
 }
 
 
 // 在nonLeaf的范围里, 才调用
-void nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
+bool nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
 
     int l=0;
     int r=nonLeaf.num-1;
@@ -82,8 +82,8 @@ void nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
     int pos = whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafKey.asaxt, nonLeaf.co_d);
     if (pos==0) {
         //里面 直接插入
-        if(nonLeaf.isleaf) leaf_Insert(*(Leaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
-        else nonLeaf_Insert(*(NonLeaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
+        if(nonLeaf.isleaf) return leaf_Insert(*(Leaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
+        else return nonLeaf_Insert(*(NonLeaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
     } else if (pos==-1){
         //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
         cod preco_d = nonLeaf.nonLeafKeys[l-1].co_d;
@@ -94,15 +94,15 @@ void nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
         cod co_d2 = get_co_d_from_saxt(leafKey.asaxt, nextrsaxt, nonLeaf.co_d);
         if ((preco_d - co_d1) < (nextco_d - co_d2)) {
             // 跟前面
-            r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l-1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+            return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l-1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
         } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
             //跟后面
-            l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+            return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
         } else {
             if (co_d1 <= co_d2) {
-                r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l-1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+                return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l-1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
             } else {
-                l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+                return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
             }
         }
 
@@ -116,30 +116,31 @@ void nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
         cod co_d2 = get_co_d_from_saxt(leafKey.asaxt, nextrsaxt, nonLeaf.co_d);
         if ((preco_d - co_d1) < (nextco_d - co_d2)) {
             // 跟前面
-            r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+            return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
         } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
             //跟后面
-            l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l+1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+            return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l+1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
         } else {
             if (co_d1 <= co_d2) {
-                r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+                return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[l], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
             } else {
-                l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l+1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
+                return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[l+1], leafKey, nonLeaf.co_d, nonLeaf.isleaf);
             }
         }
     }
+
 }
 
-// 从根节点插入，设叶节点无限大
-void root_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
+// 从根节点插入，设叶节点无限大 , 返回true ,叶结点放得下，false，要重组了
+bool root_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
     int pos = whereofKey(nonLeaf.lsaxt, nonLeaf.rsaxt, leafKey.asaxt, 0);
-    if (pos==0) nonLeaf_Insert(nonLeaf, leafKey);
+    if (pos==0) return nonLeaf_Insert(nonLeaf, leafKey);
     else if (pos==-1) {
         cod co_d = get_co_d_from_saxt(leafKey.asaxt, nonLeaf.nonLeafKeys[0].rsaxt);
-        l_Insert_NonLeaf(nonLeaf.nonLeafKeys[0], leafKey, co_d, nonLeaf.isleaf);
+        return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[0], leafKey, co_d, nonLeaf.isleaf);
     } else {
         cod co_d = get_co_d_from_saxt(nonLeaf.nonLeafKeys[nonLeaf.num-1].lsaxt, leafKey.asaxt);
-        r_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1] ,leafKey, co_d, nonLeaf.isleaf);
+        return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1] ,leafKey, co_d, nonLeaf.isleaf);
     }
 }
 

@@ -172,6 +172,8 @@ target_sources(leveldb
     "table/table.cc"
     "table/two_level_iterator.cc"
     "table/two_level_iterator.h"
+    "newVector.cc"
+    "newVector.h"
     "util/arena.cc"
     "util/arena.h"
     "util/bloom.cc"

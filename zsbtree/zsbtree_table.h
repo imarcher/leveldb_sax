@@ -16,7 +16,8 @@ class zsbtree_table {
  public:
   explicit zsbtree_table(Arena* const arena_);
 
-  void Insert(LeafKey& leafKey);
+  //false 重组
+  bool Insert(LeafKey& leafKey);
 
  private:
   Arena* const arena_;

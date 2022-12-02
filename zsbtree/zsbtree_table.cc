@@ -14,8 +14,8 @@ namespace leveldb{
 zsbtree_table::zsbtree_table(Arena* const arena_) : arena_(arena_) {}
 
 
-void zsbtree_table::Insert(LeafKey& leafKey) {
-  root_Insert(*root, leafKey);
+bool zsbtree_table::Insert(LeafKey& leafKey) {
+  return root_Insert(*root, leafKey);
 }
 
 

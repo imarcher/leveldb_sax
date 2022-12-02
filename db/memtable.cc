@@ -76,6 +76,7 @@ Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 void MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
   tmpLeafKey.setAsaxt(saxt_);
   tmpLeafKey.p = (void *)fileOffset;
+  //这里待改，返回false重组
   table_.Insert(tmpLeafKey);
 }
 

@@ -46,7 +46,6 @@ Status WriteBatch::Iterate(Handler* handler, uint64_t fileOffset) const {
   }
 
   input.remove_prefix(kHeader);
-  Slice key, value;
   //从0开始
   int found = -1;
   while (!input.empty()) {

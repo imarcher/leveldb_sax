@@ -26,7 +26,7 @@ public:
     saxt_type lsaxt[Bit_cardinality];
     saxt_type rsaxt[Bit_cardinality];
     //叶结点中的key元组
-    LeafKey leafKeys[Leaf_maxnum];
+    LeafKey leafKeys[Leaf_rebuildnum];
 };
 
 

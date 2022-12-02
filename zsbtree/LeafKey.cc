@@ -17,11 +17,7 @@ LeafKey::LeafKey() {
 
 }
 
-
-
-
-
-
-
-
-
+LeafKey::LeafKey(saxt saxt_, void* p) {
+    memcpy(asaxt, saxt_, saxt_size);
+    this->p = p;
+}

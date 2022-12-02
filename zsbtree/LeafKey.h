@@ -12,11 +12,12 @@ public:
 
     LeafKey();
     LeafKey(saxt saxt_);
+    LeafKey(saxt saxt_, void* p);
 
     void setAsaxt(saxt saxt_);
 
     saxt_type asaxt[Bit_cardinality];
-    void *p;
+    void* p;
 };
 
 

@@ -1193,6 +1193,35 @@ Status DBImpl::Put(const WriteOptions& o, const putKey& key) {
   return DB::Put(o, key);
 }
 
+Status DBImpl::Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) {
+
+  Status status;
+  //首先是写log，256一组来写。
+  uint64_t fileOffset = 0;//位置，就是p
+  //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
+  const string& s = WriteBatchInternal::Contents(updates);
+  status = log_->AddRecord(s, &fileOffset);
+  if (status.ok()) {
+    Slice input(s);
+    input.remove_prefix(12+tsKey_size);
+    //添加vector
+    for(int i=0;i<updatesNum;i++){
+      *(unsigned char*)(&fileOffset) = i;
+      leafKeys.emplace_back((saxt)input.data(), (void*)fileOffset);
+      input.remove_prefix(putKey_size);
+    }
+  }
+  return status;
+}
+
+Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKeys) {
+  Status status;
+  leaf_method::buildtree(leafKeys, nonLeafKeys);
+  return status;
+}
+
+
+
 Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
   return DB::Delete(options, key);
 }
@@ -1467,6 +1496,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   v->Unref();
 }
 
+
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish
 Status DB::Put(const WriteOptions& opt, const putKey &key) {
@@ -1474,6 +1504,7 @@ Status DB::Put(const WriteOptions& opt, const putKey &key) {
   batch.Put(key);
   return Write(opt, &batch);
 }
+
 
 Status DB::Delete(const WriteOptions& opt, const Slice& key) {
   WriteBatch batch;

@@ -41,16 +41,18 @@ typedef unsigned char cod;
 #define Leaf_minnum 32
 
 
+//超过这个重构叶结点
+static const int Leaf_rebuildnum = Leaf_maxnum * 1.2;
 
 //static int cardinality = 256;
 //static int bit_cardinality = 8;
 //static int segments = 8;
 
-static int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
+static const int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
 
-static size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
-static size_t leaf_key_size = saxt_size + sizeof(void *);
-static size_t nonleaf_key_size = sizeof(unsigned char) + saxt_size*2 + sizeof(void *);
+static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
+static const size_t leaf_key_size = saxt_size + sizeof(void *);
+static const size_t nonleaf_key_size = sizeof(unsigned char) + saxt_size*2 + sizeof(void *);
 
 typedef struct {
   ts_type ts[Ts_length];
@@ -62,8 +64,8 @@ typedef struct {
   ts_time tsTime;
   saxt_type asaxt[Bit_cardinality];
 } putKey;
-static size_t tsKey_size = sizeof(tsKey);
-static size_t putKey_size = sizeof(putKey);
+static const size_t tsKey_size = sizeof(tsKey);
+static const size_t putKey_size = sizeof(putKey);
 
 
 

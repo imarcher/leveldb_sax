@@ -12,6 +12,7 @@
 #include "leveldb/iterator.h"
 #include "leveldb/options.h"
 #include "globals.h"
+#include "zsbtree/zsbtree_table.h"
 
 namespace leveldb {
 
@@ -65,6 +66,11 @@ class LEVELDB_EXPORT DB {
   // and a non-OK status on error.
   // Note: consider setting options.sync = true.
   virtual Status Put(const WriteOptions& options, const putKey& key) = 0;
+
+  //初始化 给putKey的一个数组
+  virtual Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) = 0;
+
+  virtual Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) = 0;
 
   // Remove the database entry (if any) for "key".  Returns OK on
   // success, and a non-OK status on error.  It is not an error if "key"

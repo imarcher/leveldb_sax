@@ -38,6 +38,8 @@ class DBImpl : public DB {
 
   // Implementations of the DB interface
   Status Put(const WriteOptions&, const putKey& key) override;
+  Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) override;
+  Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates) override;
   Status Get(const ReadOptions& options, const Slice& key,
