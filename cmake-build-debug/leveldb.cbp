@@ -566,6 +566,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/util/mutexlock.h">
 			<Option target="leveldb"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/util/newVector.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/util/newVector.h">
+			<Option target="leveldb"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/no_destructor.h">
 			<Option target="leveldb"/>
 		</Unit>

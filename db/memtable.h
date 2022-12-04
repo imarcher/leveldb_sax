@@ -22,7 +22,7 @@ class MemTable {
  public:
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
-  explicit MemTable(const InternalKeyComparator& comparator);
+  MemTable();
 
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
@@ -82,7 +82,9 @@ class MemTable {
   LeafKey tmpLeafKey;
 //  KeyComparator comparator_;
   int refs_;
-  Arena arena_;
+
+ public:
+//  Arena arena_;
   typedef zsbtree_table Table;
   //根结点
   Table table_;

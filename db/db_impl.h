@@ -40,6 +40,7 @@ class DBImpl : public DB {
   Status Put(const WriteOptions&, const putKey& key) override;
   Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) override;
   Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
+  Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates) override;
   Status Get(const ReadOptions& options, const Slice& key,
@@ -132,7 +133,8 @@ class DBImpl : public DB {
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status MakeRoomForWrite(bool force /* compact even if there is room? */)
+  Status MakeRoomForWrite(bool force /* compact even if there is room? */
+      , int memId)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -173,10 +175,22 @@ class DBImpl : public DB {
   FileLock* db_lock_;
 
   // State below is protected by mutex_
+//  port::Mutex mutex_;
+//  std::atomic<bool> shutting_down_;
+//  port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
+//  MemTable* mem_;
+//  MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
+//  std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
+//  WritableFile* logfile_;
+//  uint64_t logfile_number_ GUARDED_BY(mutex_);
+//  log::Writer* log_;
+//  uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
   port::Mutex mutex_;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
-  MemTable* mem_;
+  vector<port::Mutex> write_mutex;
+  vector<MemTable*> mems;
+  vector<int> memNum;
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;

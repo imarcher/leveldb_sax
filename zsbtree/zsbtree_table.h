@@ -14,13 +14,13 @@ namespace leveldb {
 
 class zsbtree_table {
  public:
-  explicit zsbtree_table(Arena* const arena_);
 
   //false 重组
   bool Insert(LeafKey& leafKey);
 
+  void BuildTree(newVector<NonLeafKey>& nonLeafKeys);
+
  private:
-  Arena* const arena_;
   NonLeaf* root;
 };
 

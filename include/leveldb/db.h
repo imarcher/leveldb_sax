@@ -67,10 +67,12 @@ class LEVELDB_EXPORT DB {
   // Note: consider setting options.sync = true.
   virtual Status Put(const WriteOptions& options, const putKey& key) = 0;
 
-  //初始化 给putKey的一个数组
+  //初始化 给putKey的一个数组，最多256个，写入log然后返回leafkeys
   virtual Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) = 0;
-
+  //初始化 给叶子划分为非叶子
   virtual Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) = 0;
+  //初始化 按叶子结点划分Dranges, 输入划分后的结果和初始化序列的数量
+  virtual Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) = 0;
 
   // Remove the database entry (if any) for "key".  Returns OK on
   // success, and a non-OK status on error.  It is not an error if "key"

@@ -11,7 +11,7 @@
 namespace leveldb{
 
 
-zsbtree_table::zsbtree_table(Arena* const arena_) : arena_(arena_) {}
+
 
 
 bool zsbtree_table::Insert(LeafKey& leafKey) {
@@ -19,7 +19,17 @@ bool zsbtree_table::Insert(LeafKey& leafKey) {
 }
 
 
-};
+void zsbtree_table::BuildTree(newVector<NonLeafKey>& nonLeafKeys) {
+  root = build_tree_from_nonleaf(nonLeafKeys);
+}
+
+
+
+
+
+
+}
+
 
 
 

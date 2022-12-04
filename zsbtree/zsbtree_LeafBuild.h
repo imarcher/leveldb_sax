@@ -7,7 +7,8 @@
 
 
 #include <globals.h>
-#include "arena.h"
+#include "util/arena.h"
+#include "util/newVector.h"
 #include "vector"
 #include "sax.h"
 #include "Leaf.h"
@@ -27,12 +28,12 @@ namespace leaf_method {
     } method2_node;
 
 
-    inline saxt get_saxt_i(vector<LeafKey> &leafKeys, int i){
-        return leafKeys.at(i).asaxt;
+    inline saxt get_saxt_i(newVector<LeafKey> &leafKeys, int i){
+        return leafKeys[i].asaxt;
     }
 
 //构造leaf和索引点
-    inline void build_leaf_and_nonleafkey(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
+    inline void build_leaf_and_nonleafkey(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                                           int num, cod co_d, saxt lsaxt, saxt rsaxt) {
         //构造leaf
         Leaf *leaf = new Leaf(num, co_d, lsaxt, rsaxt, leafKeys.data()+id);
@@ -41,25 +42,25 @@ namespace leaf_method {
     }
 
 //构造leaf和索引点,从中间平分
-    inline void build_leaf_and_nonleafkey_two(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
+    inline void build_leaf_and_nonleafkey_two(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                                               int num, cod co_d, saxt lsaxt, saxt rsaxt) {
         int tmpnum1 = num / 2;
         int tmpnum2 = num - tmpnum1;
         //构造leaf
-        saxt tmpsaxt = leafKeys.at(id+tmpnum1-1).asaxt;
+        saxt tmpsaxt = leafKeys[id+tmpnum1-1].asaxt;
         Leaf *leaf = new Leaf(tmpnum1, get_co_d_from_saxt(lsaxt, tmpsaxt, co_d), lsaxt, tmpsaxt, leafKeys.data()+id);
         //构造nonleaf索引点
         nonLeafKeys.emplace_back(tmpnum1, leaf->co_d, lsaxt, tmpsaxt, leaf);
         //第二个叶
         //构造leaf
-        tmpsaxt = leafKeys.at(id+tmpnum1).asaxt;
+        tmpsaxt = leafKeys[id+tmpnum1].asaxt;
         leaf = new Leaf(tmpnum2, get_co_d_from_saxt(tmpsaxt, rsaxt, co_d), tmpsaxt, rsaxt, leafKeys.data()+id+tmpnum1);
         //构造nonleaf索引点
         nonLeafKeys.emplace_back(tmpnum2, leaf->co_d, tmpsaxt, rsaxt, leaf);
     }
 
 //给一个叶子结点加一些key
-    inline void add_nonleafkey(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
+    inline void add_nonleafkey(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                                int num, cod co_d, saxt rsaxt) {
         NonLeafKey *nonLeafKey = nonLeafKeys.data()+nonLeafKeys.size()-1;
         Leaf *leaf = (Leaf *)(nonLeafKey->p);
@@ -72,7 +73,7 @@ namespace leaf_method {
     }
 
 //给一个叶子结点加一些key,到大于n了，平分
-    inline void split_nonleafkey(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id, int allnum,
+    inline void split_nonleafkey(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id, int allnum,
                                  int num, cod co_d, saxt rsaxt) {
 
         NonLeafKey *nonLeafKey = nonLeafKeys.data()+nonLeafKeys.size()-1;
@@ -95,7 +96,7 @@ namespace leaf_method {
     }
 
 //在method2中，遇到大于n的，分一下
-    inline int getbestmid(vector<LeafKey> &leafKeys, int n, int m, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
+    inline int getbestmid(newVector<LeafKey> &leafKeys, int n, int m, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
         int best_mid_id = id+num/2-1;
         int best_cod = d1+d1;
         for (int mid_id = id+m-1;mid_id<id+num-m;mid_id++){
@@ -115,7 +116,7 @@ namespace leaf_method {
 
 //待考虑几个平分时分节点有很多d=8的情况
 //批量构建while循环内, 2n个
-    int buildtree_window(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys) {
+    int buildtree_window(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys) {
         int n = Leaf_maxnum;
         int m = Leaf_minnum;
         int end = 2 * n - 1;
@@ -415,7 +416,7 @@ namespace leaf_method {
     }
 
 
-    void buildtree_window_last(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int allnum) {
+    void buildtree_window_last(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int allnum) {
         int n = Leaf_maxnum;
         int m = Leaf_minnum;
         int end = allnum - 1;
@@ -756,7 +757,7 @@ namespace leaf_method {
     }
 
 //批量构建树，后面是两个流
-    void buildtree(vector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys) {
+    void buildtree(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys) {
 
         //左闭右开
         int l = 0;
@@ -764,8 +765,7 @@ namespace leaf_method {
         int todoid = 0;
         while (r<leafKeys.size()) {
             //复制了一片
-            vector<LeafKey> leafKey_window(leafKeys.begin()+l, leafKeys.begin()+r);
-
+            newVector<LeafKey> leafKey_window(leafKeys, l, r);
             todoid = buildtree_window(leafKey_window, nonLeafKeys);
             l += todoid;
             r += todoid;
@@ -778,7 +778,7 @@ namespace leaf_method {
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, l, num, get_co_d_from_saxt(lsaxt, rsaxt), lsaxt, rsaxt);
         } else if (num > Leaf_maxnum) {
             //复制了一片
-            vector<LeafKey> leafKey_window(leafKeys.begin()+l, leafKeys.end());
+            newVector<LeafKey> leafKey_window(leafKeys, l, leafKeys.size());
             buildtree_window_last(leafKey_window, nonLeafKeys, num);
         }
 

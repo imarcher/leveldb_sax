@@ -35,6 +35,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/util/filter_policy.cc.o"
   "CMakeFiles/leveldb.dir/util/hash.cc.o"
   "CMakeFiles/leveldb.dir/util/logging.cc.o"
+  "CMakeFiles/leveldb.dir/util/newVector.cc.o"
   "CMakeFiles/leveldb.dir/util/options.cc.o"
   "CMakeFiles/leveldb.dir/util/status.cc.o"
   "libleveldb.a"

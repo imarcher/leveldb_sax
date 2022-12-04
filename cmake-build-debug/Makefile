@@ -1174,6 +1174,33 @@ util/logging.cc.s:
 	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/util/logging.cc.s
 .PHONY : util/logging.cc.s
 
+util/newVector.o: util/newVector.cc.o
+
+.PHONY : util/newVector.o
+
+# target to build an object file
+util/newVector.cc.o:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/util/newVector.cc.o
+.PHONY : util/newVector.cc.o
+
+util/newVector.i: util/newVector.cc.i
+
+.PHONY : util/newVector.i
+
+# target to preprocess a source file
+util/newVector.cc.i:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/util/newVector.cc.i
+.PHONY : util/newVector.cc.i
+
+util/newVector.s: util/newVector.cc.s
+
+.PHONY : util/newVector.s
+
+# target to generate assembly for a file
+util/newVector.cc.s:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/util/newVector.cc.s
+.PHONY : util/newVector.cc.s
+
 util/options.o: util/options.cc.o
 
 .PHONY : util/options.o
@@ -1352,6 +1379,9 @@ help:
 	@echo "... util/logging.o"
 	@echo "... util/logging.i"
 	@echo "... util/logging.s"
+	@echo "... util/newVector.o"
+	@echo "... util/newVector.i"
+	@echo "... util/newVector.s"
 	@echo "... util/options.o"
 	@echo "... util/options.i"
 	@echo "... util/options.s"

@@ -41,6 +41,10 @@ typedef unsigned char cod;
 #define Leaf_minnum 32
 
 
+
+//一个memtable存的数量
+#define Table_maxnum 100000
+
 //超过这个重构叶结点
 static const int Leaf_rebuildnum = Leaf_maxnum * 1.2;
 

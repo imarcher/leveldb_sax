@@ -8,17 +8,19 @@
 #include "zsbtree_LeafBuild.h"
 #include "zsbtree_NonLeafBuild.h"
 
-NonLeaf* build_tree(vector<LeafKey> &leafKeys) {
-    vector<NonLeafKey> nonleafKeys;
-    leaf_method::buildtree(leafKeys, nonleafKeys);
-    vector<NonLeafKey> &nonleafKeys_in = nonleafKeys;
+NonLeaf* build_tree(newVector<LeafKey> &leafKeys) {
+    vector<NonLeafKey> nonLeafKeys;
+    leaf_method::buildtree(leafKeys, nonLeafKeys);
+    vector<NonLeafKey>& nonleafKeys_out = nonLeafKeys;
+
     bool isleaf = true;
-    while (nonleafKeys.size()>Leaf_maxnum) {
+    while (nonLeafKeys.size()>Leaf_maxnum) {
+        newVector<NonLeafKey> nonleafKeys_in(nonleafKeys_out);
         //创建下一层
-        vector<NonLeafKey> nonleafKeys_out;
+        vector<NonLeafKey> newNonleafKeys_out;
+        nonleafKeys_out = newNonleafKeys_out;
         nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf);
         if (isleaf) isleaf = false;
-        nonleafKeys_in = nonleafKeys_out;
 //        for (int i=0;i<10;i++) {
 //            out("l");
 //            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->lsaxt);
@@ -26,11 +28,55 @@ NonLeaf* build_tree(vector<LeafKey> &leafKeys) {
 //            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->rsaxt);
 //        }
     }
-    saxt lsaxt = nonleafKeys_in.at(0).lsaxt;
-    saxt rsaxt = nonleafKeys_in.back().rsaxt;
+    saxt lsaxt = nonleafKeys_out[0].lsaxt;
+    saxt rsaxt = nonleafKeys_out.back().rsaxt;
     cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
-    return new NonLeaf(nonleafKeys_in.size(), co_d, isleaf, lsaxt, rsaxt, nonleafKeys_in.data());
+    return new NonLeaf(nonleafKeys_out.size(), co_d, isleaf, lsaxt, rsaxt, nonleafKeys_out.data());
 }
+
+NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
+
+
+  vector<NonLeafKey>& nonleafKeys_out = nonLeafKeys.v;
+
+  bool isleaf = true;
+  while (nonLeafKeys.size()>Leaf_maxnum) {
+    if (isleaf) {
+      vector<NonLeafKey> newNonleafKeys_out;
+      nonleafKeys_out = newNonleafKeys_out;
+      nonleaf_method::buildtree(nonLeafKeys, nonleafKeys_out, isleaf);
+      isleaf = false;
+    } else {
+      newVector<NonLeafKey> nonleafKeys_in(nonleafKeys_out);
+      //创建下一层
+      vector<NonLeafKey> newNonleafKeys_out;
+      nonleafKeys_out = newNonleafKeys_out;
+      nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf);
+    }
+//        for (int i=0;i<10;i++) {
+//            out("l");
+//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->lsaxt);
+//            out("r");
+//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->rsaxt);
+//        }
+  }
+  if (isleaf) {
+    saxt lsaxt = nonLeafKeys[0].lsaxt;
+    saxt rsaxt = nonLeafKeys.back().rsaxt;
+    cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
+    return new NonLeaf(nonLeafKeys.size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys.data());
+  } else {
+    saxt lsaxt = nonleafKeys_out[0].lsaxt;
+    saxt rsaxt = nonleafKeys_out.back().rsaxt;
+    cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
+    return new NonLeaf(nonleafKeys_out.size(), co_d, isleaf, lsaxt, rsaxt, nonleafKeys_out.data());
+  }
+}
+
+
+
+
+
 
 
 #endif //TODOZSBTREE_ZSBTREE_BUILD_H

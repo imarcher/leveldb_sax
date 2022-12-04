@@ -369,9 +369,22 @@ CMakeFiles/leveldb.dir/table/two_level_iterator.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/leveldb.dir/table/two_level_iterator.cc.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/hh/a/leveldb-main/table/two_level_iterator.cc -o CMakeFiles/leveldb.dir/table/two_level_iterator.cc.s
 
+CMakeFiles/leveldb.dir/util/newVector.cc.o: CMakeFiles/leveldb.dir/flags.make
+CMakeFiles/leveldb.dir/util/newVector.cc.o: ../util/newVector.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/leveldb.dir/util/newVector.cc.o"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/newVector.cc.o -c /home/hh/a/leveldb-main/util/newVector.cc
+
+CMakeFiles/leveldb.dir/util/newVector.cc.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/leveldb.dir/util/newVector.cc.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/hh/a/leveldb-main/util/newVector.cc > CMakeFiles/leveldb.dir/util/newVector.cc.i
+
+CMakeFiles/leveldb.dir/util/newVector.cc.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/leveldb.dir/util/newVector.cc.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/hh/a/leveldb-main/util/newVector.cc -o CMakeFiles/leveldb.dir/util/newVector.cc.s
+
 CMakeFiles/leveldb.dir/util/arena.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/arena.cc.o: ../util/arena.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/leveldb.dir/util/arena.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/leveldb.dir/util/arena.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/arena.cc.o -c /home/hh/a/leveldb-main/util/arena.cc
 
 CMakeFiles/leveldb.dir/util/arena.cc.i: cmake_force
@@ -384,7 +397,7 @@ CMakeFiles/leveldb.dir/util/arena.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/bloom.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/bloom.cc.o: ../util/bloom.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/leveldb.dir/util/bloom.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/leveldb.dir/util/bloom.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/bloom.cc.o -c /home/hh/a/leveldb-main/util/bloom.cc
 
 CMakeFiles/leveldb.dir/util/bloom.cc.i: cmake_force
@@ -397,7 +410,7 @@ CMakeFiles/leveldb.dir/util/bloom.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/cache.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/cache.cc.o: ../util/cache.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/leveldb.dir/util/cache.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/leveldb.dir/util/cache.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/cache.cc.o -c /home/hh/a/leveldb-main/util/cache.cc
 
 CMakeFiles/leveldb.dir/util/cache.cc.i: cmake_force
@@ -410,7 +423,7 @@ CMakeFiles/leveldb.dir/util/cache.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/coding.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/coding.cc.o: ../util/coding.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/leveldb.dir/util/coding.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/leveldb.dir/util/coding.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/coding.cc.o -c /home/hh/a/leveldb-main/util/coding.cc
 
 CMakeFiles/leveldb.dir/util/coding.cc.i: cmake_force
@@ -423,7 +436,7 @@ CMakeFiles/leveldb.dir/util/coding.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/comparator.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/comparator.cc.o: ../util/comparator.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/leveldb.dir/util/comparator.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/leveldb.dir/util/comparator.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/comparator.cc.o -c /home/hh/a/leveldb-main/util/comparator.cc
 
 CMakeFiles/leveldb.dir/util/comparator.cc.i: cmake_force
@@ -436,7 +449,7 @@ CMakeFiles/leveldb.dir/util/comparator.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/crc32c.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/crc32c.cc.o: ../util/crc32c.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/leveldb.dir/util/crc32c.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/leveldb.dir/util/crc32c.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/crc32c.cc.o -c /home/hh/a/leveldb-main/util/crc32c.cc
 
 CMakeFiles/leveldb.dir/util/crc32c.cc.i: cmake_force
@@ -449,7 +462,7 @@ CMakeFiles/leveldb.dir/util/crc32c.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/env.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/env.cc.o: ../util/env.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/leveldb.dir/util/env.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object CMakeFiles/leveldb.dir/util/env.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/env.cc.o -c /home/hh/a/leveldb-main/util/env.cc
 
 CMakeFiles/leveldb.dir/util/env.cc.i: cmake_force
@@ -462,7 +475,7 @@ CMakeFiles/leveldb.dir/util/env.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/filter_policy.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/filter_policy.cc.o: ../util/filter_policy.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Building CXX object CMakeFiles/leveldb.dir/util/filter_policy.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/leveldb.dir/util/filter_policy.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/filter_policy.cc.o -c /home/hh/a/leveldb-main/util/filter_policy.cc
 
 CMakeFiles/leveldb.dir/util/filter_policy.cc.i: cmake_force
@@ -475,7 +488,7 @@ CMakeFiles/leveldb.dir/util/filter_policy.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/hash.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/hash.cc.o: ../util/hash.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_33) "Building CXX object CMakeFiles/leveldb.dir/util/hash.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/leveldb.dir/util/hash.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/hash.cc.o -c /home/hh/a/leveldb-main/util/hash.cc
 
 CMakeFiles/leveldb.dir/util/hash.cc.i: cmake_force
@@ -488,7 +501,7 @@ CMakeFiles/leveldb.dir/util/hash.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/logging.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/logging.cc.o: ../util/logging.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_34) "Building CXX object CMakeFiles/leveldb.dir/util/logging.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/leveldb.dir/util/logging.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/logging.cc.o -c /home/hh/a/leveldb-main/util/logging.cc
 
 CMakeFiles/leveldb.dir/util/logging.cc.i: cmake_force
@@ -501,7 +514,7 @@ CMakeFiles/leveldb.dir/util/logging.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/options.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/options.cc.o: ../util/options.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_35) "Building CXX object CMakeFiles/leveldb.dir/util/options.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/leveldb.dir/util/options.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/options.cc.o -c /home/hh/a/leveldb-main/util/options.cc
 
 CMakeFiles/leveldb.dir/util/options.cc.i: cmake_force
@@ -514,7 +527,7 @@ CMakeFiles/leveldb.dir/util/options.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/status.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/status.cc.o: ../util/status.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_36) "Building CXX object CMakeFiles/leveldb.dir/util/status.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/leveldb.dir/util/status.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/status.cc.o -c /home/hh/a/leveldb-main/util/status.cc
 
 CMakeFiles/leveldb.dir/util/status.cc.i: cmake_force
@@ -527,7 +540,7 @@ CMakeFiles/leveldb.dir/util/status.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/util/env_posix.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/util/env_posix.cc.o: ../util/env_posix.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_37) "Building CXX object CMakeFiles/leveldb.dir/util/env_posix.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/leveldb.dir/util/env_posix.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/util/env_posix.cc.o -c /home/hh/a/leveldb-main/util/env_posix.cc
 
 CMakeFiles/leveldb.dir/util/env_posix.cc.i: cmake_force
@@ -540,7 +553,7 @@ CMakeFiles/leveldb.dir/util/env_posix.cc.s: cmake_force
 
 CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o: CMakeFiles/leveldb.dir/flags.make
 CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o: ../helpers/memenv/memenv.cc
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_38) "Building CXX object CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Building CXX object CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o"
 	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o -c /home/hh/a/leveldb-main/helpers/memenv/memenv.cc
 
 CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.i: cmake_force
@@ -577,6 +590,7 @@ leveldb_OBJECTS = \
 "CMakeFiles/leveldb.dir/table/table_builder.cc.o" \
 "CMakeFiles/leveldb.dir/table/table.cc.o" \
 "CMakeFiles/leveldb.dir/table/two_level_iterator.cc.o" \
+"CMakeFiles/leveldb.dir/util/newVector.cc.o" \
 "CMakeFiles/leveldb.dir/util/arena.cc.o" \
 "CMakeFiles/leveldb.dir/util/bloom.cc.o" \
 "CMakeFiles/leveldb.dir/util/cache.cc.o" \
@@ -619,6 +633,7 @@ libleveldb.a: CMakeFiles/leveldb.dir/table/merger.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/table/table_builder.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/table/table.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/table/two_level_iterator.cc.o
+libleveldb.a: CMakeFiles/leveldb.dir/util/newVector.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/util/arena.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/util/bloom.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/util/cache.cc.o
@@ -635,7 +650,7 @@ libleveldb.a: CMakeFiles/leveldb.dir/util/env_posix.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o
 libleveldb.a: CMakeFiles/leveldb.dir/build.make
 libleveldb.a: CMakeFiles/leveldb.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_39) "Linking CXX static library libleveldb.a"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_40) "Linking CXX static library libleveldb.a"
 	$(CMAKE_COMMAND) -P CMakeFiles/leveldb.dir/cmake_clean_target.cmake
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/leveldb.dir/link.txt --verbose=$(VERBOSE)
 

@@ -1216,10 +1216,34 @@ Status DBImpl::Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesN
 
 Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKeys) {
   Status status;
-  leaf_method::buildtree(leafKeys, nonLeafKeys);
+  newVector<LeafKey> leafKeys_(leafKeys);
+  leaf_method::buildtree(leafKeys_, nonLeafKeys);
   return status;
 }
 
+Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
+  Status status;
+  int drangesNum = (leafKeysNum - 1) / Table_maxnum + 1;
+  //这个range的总数。
+  int averageNum = leafKeysNum / drangesNum;
+  //贪心 返回起始位置
+
+  for (int i = 0, j = 0; i < averageNum; ++i) {
+    int start = j;
+    write_mutex.emplace_back();
+    int sum = 0;
+    while (sum < averageNum && j < nonLeafKeys.size()){
+      sum = nonLeafKeys[j++].num;
+    }
+    memNum.push_back(sum);
+    newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
+    MemTable* newMem = new MemTable();
+    newMem->table_.BuildTree(drangeNonLeafKeys);
+    mems.push_back(newMem);
+  }
+
+  return status;
+}
 
 
 Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
@@ -1354,7 +1378,7 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
-Status DBImpl::MakeRoomForWrite(bool force) {
+Status DBImpl::MakeRoomForWrite(bool force, int memId) {
   mutex_.AssertHeld();
   assert(!writers_.empty());
   bool allow_delay = !force;
@@ -1377,7 +1401,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       allow_delay = false;  // Do not delay a single write more than once
       mutex_.Lock();
     } else if (!force &&
-               (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
+               (mems.at(memId)->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable
       break;
     } else if (imm_ != nullptr) {
@@ -1405,10 +1429,10 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       logfile_ = lfile;
       logfile_number_ = new_log_number;
       log_ = new log::Writer(lfile);
-      imm_ = mem_;
+      imm_ = mems.at(memId);
       has_imm_.store(true, std::memory_order_release);
-      mem_ = new MemTable(internal_comparator_);
-      mem_->Ref();
+      mems.at(memId) = new MemTable(internal_comparator_);
+      mems.at(memId)->Ref();
       force = false;  // Do not force another compaction if have room
       MaybeScheduleCompaction();
     }

@@ -40,6 +40,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/hh/a/leveldb-main/util/filter_policy.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/filter_policy.cc.o"
   "/home/hh/a/leveldb-main/util/hash.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/hash.cc.o"
   "/home/hh/a/leveldb-main/util/logging.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/logging.cc.o"
+  "/home/hh/a/leveldb-main/util/newVector.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/newVector.cc.o"
   "/home/hh/a/leveldb-main/util/options.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/options.cc.o"
   "/home/hh/a/leveldb-main/util/status.cc" "/home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir/util/status.cc.o"
   )
