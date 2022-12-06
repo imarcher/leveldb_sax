@@ -40,17 +40,6 @@ Leaf::Leaf() {
 
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+void Leaf::sort() {
+  std::sort(leafKeys, leafKeys + num, LeafKey_cmp);
+}

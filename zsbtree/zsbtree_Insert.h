@@ -9,7 +9,7 @@
 
 
 #include <globals.h>
-#include "arena.h"
+
 #include "vector"
 #include "sax.h"
 #include "Leaf.h"
@@ -21,7 +21,7 @@
 inline int whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey, cod co_d){
     if (saxt_cmp(leafKey, rsaxt, co_d) && saxt_cmp(lsaxt, leafKey, co_d)) return 0;
     if (saxt_cmp(leafKey, lsaxt, co_d)) return -1;
-    if (saxt_cmp(rsaxt, leafKey, co_d)) return 1;
+    return 1;
 }
 
 
@@ -143,6 +143,8 @@ bool root_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
         return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1] ,leafKey, co_d, nonLeaf.isleaf);
     }
 }
+
+
 
 
 

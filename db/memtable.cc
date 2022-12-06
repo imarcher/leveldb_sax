@@ -74,11 +74,11 @@ class MemTableIterator : public Iterator {
 
 Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 
-void MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
+bool MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
   tmpLeafKey.setAsaxt(saxt_);
   tmpLeafKey.p = (void *)fileOffset;
   //这里待改，返回false重组
-  table_.Insert(tmpLeafKey);
+  return table_.Insert(tmpLeafKey);
 }
 
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
@@ -115,6 +115,12 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
     }
   }
   return false;
+}
+saxt MemTable::Getlsaxt() { return table_.root->lsaxt; }
+saxt MemTable::Getrsaxt() { return table_.root->rsaxt; }
+cod MemTable::Getcod() { return table_.root->co_d; }
+void MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
+  table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
 }
 
 }  // namespace leveldb

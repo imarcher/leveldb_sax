@@ -39,7 +39,7 @@ void WriteBatch::Clear() {
 
 size_t WriteBatch::ApproximateSize() const { return rep_.size(); }
 
-Status WriteBatch::Iterate(Handler* handler, uint64_t fileOffset) const {
+Status WriteBatch::Iterate(Handler* handler, int memNum, uint64_t fileOffset) const {
   Slice input(rep_);
   if (input.size() < kHeader) {
     return Status::Corruption("malformed WriteBatch (too small)");
@@ -53,14 +53,18 @@ Status WriteBatch::Iterate(Handler* handler, uint64_t fileOffset) const {
     if (input.size() >= putKey_size) {
       //把前8位改了
       *(unsigned char*)(&fileOffset) = found;
-      //我们添加进table
-      handler->Put((saxt)(input.data()+tsKey_size), fileOffset);
+      //我们添加进table 如果满了，重组
+      if (!handler->Put((saxt)(input.data()+tsKey_size), fileOffset)) {
+        int Nt = memNum + found + 1;
+        int nt = Nt * Leaf_maxnum / Table_maxnum;
+        handler->Rebalance(nt, nt/2, Nt);
+      }
       input.remove_prefix(putKey_size);
     } else {
       return Status::Corruption("bad WriteBatch Put");
     }
-    break;
   }
+  found++;
   if (found != WriteBatchInternal::Count(this)) {
     return Status::Corruption("WriteBatch has wrong count");
   } else {
@@ -105,10 +109,18 @@ class MemTableInserter : public WriteBatch::Handler {
   SequenceNumber sequence_;
   MemTable* mem_;
 
-  void Put(saxt saxt_, uint64_t fileOffset) override {
-    mem_->Add(sequence_, saxt_, fileOffset);
-    sequence_++;
+
+  bool Put(saxt saxt_, uint64_t fileOffset) override {
+    return mem_->Add(sequence_++, saxt_, fileOffset);
   }
+
+
+  void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) override {
+    mem_->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
+  }
+
+
+
   void Delete(const Slice& key) override {
     mem_->Add(sequence_, kTypeDeletion, key, Slice());
     sequence_++;
@@ -116,11 +128,11 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable* memtable, uint64_t fileOffset) {
+Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable* memtable, int memNum, uint64_t fileOffset) {
   MemTableInserter inserter;
   inserter.sequence_ = WriteBatchInternal::Sequence(b);
   inserter.mem_ = memtable;
-  return b->Iterate(&inserter, fileOffset);
+  return b->Iterate(&inserter, memNum, fileOffset);
 }
 
 void WriteBatchInternal::SetContents(WriteBatch* b, const Slice& contents) {

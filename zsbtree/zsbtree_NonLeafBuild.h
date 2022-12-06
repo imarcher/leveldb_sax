@@ -100,7 +100,7 @@ namespace nonleaf_method {
     }
 
 //在method2中，遇到大于n的，分一下
-    inline int getbestmid(newVector<NonLeafKey> &leafKeys, int n, int m, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
+    inline int getbestmid(newVector<NonLeafKey> &leafKeys, const int n, const int m, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
         int best_mid_id = id+num/2-1;
         int best_cod = d1+d1;
         for (int mid_id = id+m-1;mid_id<id+num-m;mid_id++){
@@ -120,9 +120,7 @@ namespace nonleaf_method {
 
 //待考虑几个平分时分节点有很多d=8的情况
 //批量构建while循环内, 2n个
-    int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf) {
-        int n = Leaf_maxnum;
-        int m = Leaf_minnum;
+    int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, const int n, const int m) {
         int end = 2 * n - 1;
         saxt first_saxt = get_saxt_i(leafKeys, 0);
         saxt last_saxt = get_saxt_i_r(leafKeys, end);
@@ -418,9 +416,8 @@ namespace nonleaf_method {
     }
 
 
-    void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, int allnum) {
-        int n = Leaf_maxnum;
-        int m = Leaf_minnum;
+    void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, int allnum, const int n, const int m) {
+
         int end = allnum - 1;
         saxt first_saxt = get_saxt_i(leafKeys, 0);
         saxt last_saxt = get_saxt_i_r(leafKeys, end);
@@ -731,27 +728,27 @@ namespace nonleaf_method {
     }
 
 //批量构建树，后面是两个流
-    void buildtree(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf) {
+    void buildtree(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, const int n, const int m) {
 
         //左闭右开
         int l = 0;
-        int r = 2*Leaf_maxnum;
+        int r = 2*n;
         int todoid = 0;
         while (r<leafKeys.size()) {
             newVector<NonLeafKey> leafKey_window(leafKeys, l, r);
-            todoid = buildtree_window(leafKey_window, nonLeafKeys, isleaf);
+            todoid = buildtree_window(leafKey_window, nonLeafKeys, isleaf, n, m);
             l += todoid;
             r += todoid;
         }
         int num = leafKeys.size() - l - 1;
-        if (num>0 && num<=Leaf_maxnum) {
+        if (num>0 && num<=n) {
             //最后剩余小于等于n
             saxt lsaxt = get_saxt_i(leafKeys, l);
             saxt rsaxt = leafKeys.back().rsaxt;
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, l, num, get_co_d_from_saxt(lsaxt, rsaxt), isleaf, lsaxt, rsaxt);
-        } else if (num > Leaf_maxnum) {
+        } else if (num > n) {
             newVector<NonLeafKey> leafKey_window(leafKeys, l, leafKeys.size());
-            buildtree_window_last(leafKey_window, nonLeafKeys, isleaf, num);
+            buildtree_window_last(leafKey_window, nonLeafKeys, isleaf, num, n, m);
         }
 //        for (int i=0;i<10;i++) {
 //            out("l");

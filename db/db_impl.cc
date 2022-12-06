@@ -1188,9 +1188,58 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
   snapshots_.Delete(static_cast<const SnapshotImpl*>(snapshot));
 }
 
+
+
+int DBImpl::root_Choose(const putKey& key) {
+  for (int i = 0; i < mems.size(); ++i) {
+    int pos = whereofKey(mems[i]->Getlsaxt(), mems[i]->Getrsaxt(), (saxt)key.asaxt, 0);
+    if (pos==0) {
+      return i;
+    } else if (pos==-1) {
+      if (!i) {
+        //最左边
+        return 0;
+      }
+      //位于中间，先看相聚度下降程度，然后数量，然后相聚度大小
+      cod preco_d = mems[i-1]->Getcod();
+      saxt prelsaxt = mems[i-1]->Getlsaxt();
+      cod nextco_d = mems[i]->Getcod();
+      saxt nextrsaxt = mems[i]->Getrsaxt();
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, (saxt)key.asaxt, 0);
+      cod co_d2 = get_co_d_from_saxt((saxt)key.asaxt, nextrsaxt, 0);
+      if ((preco_d - co_d1) < (nextco_d - co_d2)) {
+        // 跟前面
+        return i-1;
+      } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
+        //跟后面
+        return i;
+      } else {
+        if (memNum[i-1] < memNum[i]) {
+          return i-1;
+        } else if(memNum[i-1] > memNum[i]) {
+          return i;
+        } else {
+          if (co_d1 <= co_d2) {
+            return i;
+          } else {
+            return i-1;
+          }
+        }
+      }
+    }
+  }
+  return mems.size()-1;
+}
+
 // Convenience methods
+//选表
 Status DBImpl::Put(const WriteOptions& o, const putKey& key) {
-  return DB::Put(o, key);
+  WriteBatch batch;
+  batch.Put(key);
+  // 找到对应的drange
+  // 因为很少，不用二分
+  int memId = root_Choose(key);
+  return Write(o, &batch, memId);
 }
 
 Status DBImpl::Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) {
@@ -1217,7 +1266,7 @@ Status DBImpl::Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesN
 Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKeys) {
   Status status;
   newVector<LeafKey> leafKeys_(leafKeys);
-  leaf_method::buildtree(leafKeys_, nonLeafKeys);
+  leaf_method::buildtree(leafKeys_, nonLeafKeys, Leaf_maxnum, Leaf_minnum);
   return status;
 }
 
@@ -1231,6 +1280,7 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
   for (int i = 0, j = 0; i < averageNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
+    writers_vec.emplace_back();
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
       sum = nonLeafKeys[j++].num;
@@ -1250,13 +1300,16 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
   return DB::Delete(options, key);
 }
 
-Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-  Writer w(&mutex_);
+Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId) {
+
+  port::Mutex* mutex_i = write_mutex.data() + memId;
+  Writer w(mutex_i);
   w.batch = updates;
   w.sync = options.sync;
   w.done = false;
 
-  MutexLock l(&mutex_);
+  MutexLock l(mutex_i);
+  std::deque<Writer*>& writers_ = writers_vec[memId];
   writers_.push_back(&w);
   while (!w.done && &w != writers_.front()) {
     w.cv.Wait();
@@ -1266,20 +1319,21 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   }
 
   // May temporarily unlock and wait.
-  Status status = MakeRoomForWrite(updates == nullptr);
+  Status status = MakeRoomForWrite(updates == nullptr, memId);
   uint64_t last_sequence = versions_->LastSequence();
   Writer* last_writer = &w;
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
+    WriteBatch* write_batch = BuildBatchGroup(&last_writer, memId);
     WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
-    last_sequence += WriteBatchInternal::Count(write_batch);
+    int batch_num = WriteBatchInternal::Count(write_batch);
+    last_sequence += batch_num;
 
     // Add to log and apply to memtable.  We can release the lock
     // during this phase since &w is currently responsible for logging
     // and protects against concurrent loggers and concurrent writes
     // into mem_.
     {
-      mutex_.Unlock();
+      mutex_i->Unlock();
       uint64_t fileOffset = 0;//位置，就是p
       //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
       status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
@@ -1291,9 +1345,12 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
         }
       }
       if (status.ok()) {
-        status = WriteBatchInternal::InsertInto(write_batch, mem_, fileOffset);
+        //里面会有drange内的平衡
+        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], memNum[memId], fileOffset);
+        // 一个batch插入完后，在更新。
+        memNum[memId] += batch_num;
       }
-      mutex_.Lock();
+      mutex_i->Lock();
       if (sync_error) {
         // The state of the log file is indeterminate: the log record we
         // just added may or may not show up when the DB is re-opened.
@@ -1327,10 +1384,10 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
 // REQUIRES: Writer list must be non-empty
 // REQUIRES: First writer must have a non-null batch
-WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
-  mutex_.AssertHeld();
-  assert(!writers_.empty());
-  Writer* first = writers_.front();
+WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer, int memId) {
+  write_mutex[memId].AssertHeld();
+//  assert(!writers_.empty());
+  Writer* first = writers_vec[memId].front();
   WriteBatch* result = first->batch;
   assert(result != nullptr);
 
@@ -1346,9 +1403,9 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 //  }
 
   *last_writer = first;
-  std::deque<Writer*>::iterator iter = writers_.begin();
+  std::deque<Writer*>::iterator iter = writers_vec[memId].begin();
   ++iter;  // Advance past "first"
-  for (; iter != writers_.end(); ++iter) {
+  for (; iter != writers_vec[memId].end(); ++iter) {
     Writer* w = *iter;
     if (w->sync && !first->sync) {
       // Do not include a sync write into a batch handled by a non-sync write.
@@ -1379,8 +1436,9 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
 Status DBImpl::MakeRoomForWrite(bool force, int memId) {
-  mutex_.AssertHeld();
-  assert(!writers_.empty());
+
+  write_mutex[memId].AssertHeld();
+//  assert(!writers_.empty());
   bool allow_delay = !force;
   Status s;
   while (true) {
@@ -1396,12 +1454,12 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // individual write by 1ms to reduce latency variance.  Also,
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
-      mutex_.Unlock();
+      write_mutex[memId].Unlock();
       env_->SleepForMicroseconds(1000);
       allow_delay = false;  // Do not delay a single write more than once
-      mutex_.Lock();
+      write_mutex[memId].Lock();
     } else if (!force &&
-               (mems.at(memId)->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
+               (mems[memId]->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable
       break;
     } else if (imm_ != nullptr) {
@@ -1429,10 +1487,10 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       logfile_ = lfile;
       logfile_number_ = new_log_number;
       log_ = new log::Writer(lfile);
-      imm_ = mems.at(memId);
+      imm_ = mems[memId];
       has_imm_.store(true, std::memory_order_release);
-      mems.at(memId) = new MemTable(internal_comparator_);
-      mems.at(memId)->Ref();
+      mems[memId] = new MemTable();
+      mems[memId]->Ref();
       force = false;  // Do not force another compaction if have room
       MaybeScheduleCompaction();
     }
@@ -1523,11 +1581,11 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish
-Status DB::Put(const WriteOptions& opt, const putKey &key) {
-  WriteBatch batch;
-  batch.Put(key);
-  return Write(opt, &batch);
-}
+//Status DB::Put(const WriteOptions& opt, const putKey &key) {
+//  WriteBatch batch;
+//  batch.Put(key);
+//  return Write(opt, &batch, 0);
+//}
 
 
 Status DB::Delete(const WriteOptions& opt, const Slice& key) {

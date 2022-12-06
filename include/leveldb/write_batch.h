@@ -36,7 +36,9 @@ class LEVELDB_EXPORT WriteBatch {
   class LEVELDB_EXPORT Handler {
    public:
     virtual ~Handler();
-    virtual void Put(saxt saxt_, uint64_t fileOffset) = 0;
+    // true 正常， false drange要重组
+    virtual bool Put(saxt saxt_, uint64_t fileOffset) = 0;
+    virtual void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) = 0;
     virtual void Delete(const Slice& key) = 0;
   };
 
@@ -71,7 +73,7 @@ class LEVELDB_EXPORT WriteBatch {
   void Append(const WriteBatch& source);
 
   // Support for iterating over the contents of a batch.
-  Status Iterate(Handler* handler, uint64_t fileOffset) const;
+  Status Iterate(Handler* handler, int memNum, uint64_t fileOffset) const;
 
  private:
   friend class WriteBatchInternal;

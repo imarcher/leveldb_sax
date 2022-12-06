@@ -15,13 +15,20 @@ namespace leveldb {
 class zsbtree_table {
  public:
 
+
+
   //false 重组
   bool Insert(LeafKey& leafKey);
 
   void BuildTree(newVector<NonLeafKey>& nonLeafKeys);
 
- private:
+  void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
+
+
   NonLeaf* root;
+
+ private:
+  void Rebalance_dfs(NonLeaf* nonLeaf, vector<LeafKey>& sortleafKeys);
 };
 
 }

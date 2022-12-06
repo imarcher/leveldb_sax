@@ -42,7 +42,7 @@ class DBImpl : public DB {
   Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
   Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) override;
   Status Delete(const WriteOptions&, const Slice& key) override;
-  Status Write(const WriteOptions& options, WriteBatch* updates) override;
+  Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;
   Status Get(const ReadOptions& options, const Slice& key,
              std::string* value) override;
   Iterator* NewIterator(const ReadOptions&) override;
@@ -104,6 +104,8 @@ class DBImpl : public DB {
     int64_t bytes_written;
   };
 
+  int root_Choose(const putKey& key);
+
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
@@ -136,7 +138,7 @@ class DBImpl : public DB {
   Status MakeRoomForWrite(bool force /* compact even if there is room? */
       , int memId)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  WriteBatch* BuildBatchGroup(Writer** last_writer)
+  WriteBatch* BuildBatchGroup(Writer** last_writer, int memId)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void RecordBackgroundError(const Status& s);
@@ -190,7 +192,11 @@ class DBImpl : public DB {
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
   vector<port::Mutex> write_mutex;
   vector<MemTable*> mems;
+  //mem中现有的数量
   vector<int> memNum;
+  //mem中统计一段时间内的插入数量
+  vector<int> memNum_period;
+  vector<std::deque<Writer*>> writers_vec;
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
@@ -199,7 +205,7 @@ class DBImpl : public DB {
   uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
 
   // Queue of writers.
-  std::deque<Writer*> writers_ GUARDED_BY(mutex_);
+//  std::deque<Writer*> writers_ GUARDED_BY(mutex_);
   WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
 
   SnapshotList snapshots_ GUARDED_BY(mutex_);

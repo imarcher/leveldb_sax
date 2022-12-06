@@ -9,6 +9,8 @@
 
 #include "LeafKey.h"
 #include <cstring>
+#include "algorithm"
+#include "Cmp.h"
 class Leaf {
 public:
     Leaf();
@@ -19,6 +21,7 @@ public:
     void setLeafKeys(LeafKey *leafKeys);
     void setLsaxt(saxt saxt_);
     void setRsaxt(saxt saxt_);
+    void sort();
     //有几个
     int num = 0;
     //相聚度

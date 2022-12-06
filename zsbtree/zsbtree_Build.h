@@ -8,9 +8,9 @@
 #include "zsbtree_LeafBuild.h"
 #include "zsbtree_NonLeafBuild.h"
 
-NonLeaf* build_tree(newVector<LeafKey> &leafKeys) {
+NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m) {
     vector<NonLeafKey> nonLeafKeys;
-    leaf_method::buildtree(leafKeys, nonLeafKeys);
+    leaf_method::buildtree(leafKeys, nonLeafKeys, n, m);
     vector<NonLeafKey>& nonleafKeys_out = nonLeafKeys;
 
     bool isleaf = true;
@@ -19,7 +19,7 @@ NonLeaf* build_tree(newVector<LeafKey> &leafKeys) {
         //创建下一层
         vector<NonLeafKey> newNonleafKeys_out;
         nonleafKeys_out = newNonleafKeys_out;
-        nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf);
+        nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
         if (isleaf) isleaf = false;
 //        for (int i=0;i<10;i++) {
 //            out("l");
@@ -44,14 +44,14 @@ NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
     if (isleaf) {
       vector<NonLeafKey> newNonleafKeys_out;
       nonleafKeys_out = newNonleafKeys_out;
-      nonleaf_method::buildtree(nonLeafKeys, nonleafKeys_out, isleaf);
+      nonleaf_method::buildtree(nonLeafKeys, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
       isleaf = false;
     } else {
       newVector<NonLeafKey> nonleafKeys_in(nonleafKeys_out);
       //创建下一层
       vector<NonLeafKey> newNonleafKeys_out;
       nonleafKeys_out = newNonleafKeys_out;
-      nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf);
+      nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
     }
 //        for (int i=0;i<10;i++) {
 //            out("l");
