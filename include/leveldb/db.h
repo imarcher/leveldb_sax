@@ -75,8 +75,8 @@ class LEVELDB_EXPORT DB {
   //初始化 按叶子结点划分Dranges, 输入划分后的结果和初始化序列的数量
   virtual Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) = 0;
 
-  //判断drange之间是否平衡,单独开一个线程来做，每10分钟检查一次
-  virtual Status CheckDranges() = 0;
+  //drange之间平衡,单独开一个线程来做，每10分钟检查一次
+  virtual Status RebalanceDranges() = 0;
 
   // Remove the database entry (if any) for "key".  Returns OK on
   // success, and a non-OK status on error.  It is not an error if "key"

@@ -66,6 +66,8 @@ class MemTable {
   saxt Getrsaxt();
   cod Getcod();
   void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
+  int GetleafNum();
+  void LoadNonLeafKeys(vector<NonLeafKey> &nonLeafKeys);
  private:
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;

@@ -24,11 +24,16 @@ class zsbtree_table {
 
   void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
 
+  void LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys);
 
+  //叶子数量， drange重构时用
+  int leafNum;
   NonLeaf* root;
 
  private:
   void Rebalance_dfs(NonLeaf* nonLeaf, vector<LeafKey>& sortleafKeys);
+
+  void LoadNonLeafKeys_dfs(NonLeaf* nonLeaf, vector<NonLeafKey>& nonLeafKeys);
 };
 
 }

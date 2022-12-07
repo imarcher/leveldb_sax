@@ -122,5 +122,7 @@ cod MemTable::Getcod() { return table_.root->co_d; }
 void MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
   table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
 }
+int MemTable::GetleafNum() { return table_.leafNum; }
+void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
 
 }  // namespace leveldb

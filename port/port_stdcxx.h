@@ -56,7 +56,7 @@ class LOCKABLE Mutex {
   void Unlock() UNLOCK_FUNCTION() { mu_.unlock(); }
   void AssertHeld() ASSERT_EXCLUSIVE_LOCK() {}
 
- private:
+// private:
   friend class CondVar;
   std::mutex mu_;
 };

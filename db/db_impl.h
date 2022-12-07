@@ -41,6 +41,7 @@ class DBImpl : public DB {
   Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) override;
   Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
   Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) override;
+  Status RebalanceDranges() override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;
   Status Get(const ReadOptions& options, const Slice& key,
@@ -104,6 +105,9 @@ class DBImpl : public DB {
     int64_t bytes_written;
   };
 
+  //重平衡
+  void RebalanceDranges(vector<int>& table_rebalanced);
+  //插入时选择表
   int root_Choose(const putKey& key);
 
   Iterator* NewInternalIterator(const ReadOptions&,
@@ -190,12 +194,15 @@ class DBImpl : public DB {
   port::Mutex mutex_;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
+  //写锁
   vector<port::Mutex> write_mutex;
+  //表
   vector<MemTable*> mems;
-  //mem中现有的数量
+  //mem中现有的key数量
   vector<int> memNum;
   //mem中统计一段时间内的插入数量
   vector<int> memNum_period;
+  //写队列
   vector<std::deque<Writer*>> writers_vec;
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_

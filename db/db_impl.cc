@@ -1277,13 +1277,13 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
   int averageNum = leafKeysNum / drangesNum;
   //贪心 返回起始位置
 
-  for (int i = 0, j = 0; i < averageNum; ++i) {
+  for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
     writers_vec.emplace_back();
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
-      sum = nonLeafKeys[j++].num;
+      sum += nonLeafKeys[j++].num;
     }
     memNum.push_back(sum);
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
@@ -1293,6 +1293,59 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
   }
 
   return status;
+}
+
+Status DBImpl::RebalanceDranges() {
+  int m = memNum_period.size();
+  bool *st = (bool*)malloc(sizeof(bool)*m);
+  //获得所有表的锁
+  while (m){
+    for(int i=0;i<memNum_period.size();i++){
+      if (!st[i]){
+        unique_lock<mutex> g(write_mutex[i].mu_, try_to_lock);
+        if (g.owns_lock() && writers_vec[i].empty()){
+          //获得锁，发现队列为空
+          //就一直锁住
+          g.release();
+          m--;
+          st[i] = true;
+        }
+      }
+    }
+  }
+  free(st);
+
+
+
+  int res = get_drange_rebalance(memNum_period);
+
+  if (res) {
+    int ans = res;
+    int ans_id = 0;
+    while (ans) {
+      if (!(ans & 1)) {
+        ans_id++;
+        ans >>= 1;
+        continue;
+      }
+
+      vector<int> todo_dranges;
+      while (ans & 1) {
+        todo_dranges.push_back(ans_id);
+        ans_id++;
+        ans >>= 1;
+      }
+      //理论上可以多线程来重建，上面的初始化也是一样
+      RebalanceDranges(todo_dranges);
+    }
+  }
+
+
+
+  //手动解锁
+  for(int i=0;i<memNum_period.size();i++) memNum_period[i] = 0, write_mutex[i].Unlock();
+
+  return Status();
 }
 
 
@@ -1578,6 +1631,45 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   v->Unref();
 }
 
+void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
+
+  vector<int> memsLeafNum;
+  int leafNum_all = 0;
+
+  for(auto item: table_rebalanced) {
+    memsLeafNum.push_back(mems[item]->GetleafNum());
+    leafNum_all += memsLeafNum.back();
+  }
+  vector<NonLeafKey> nonLeafKeys;
+  nonLeafKeys.reserve(leafNum_all);
+  vector<int> leafNum_period;
+  leafNum_period.reserve(leafNum_all);
+
+  int averageNum = 0;
+  for(int i=0;i<table_rebalanced.size();i++){
+    averageNum += memNum_period[i];
+    mems[i]->LoadNonLeafKeys(nonLeafKeys);
+    int thisleafNum_period = memNum_period[i] / memsLeafNum[i];
+    for(int j=0;j<memsLeafNum[i];j++) {
+      leafNum_period.push_back(thisleafNum_period);
+    }
+  }
+  averageNum = (averageNum - 1) / table_rebalanced.size() + 1;
+  for (int i = 0, j = 0; i < table_rebalanced.size(); ++i) {
+    int start = j;
+    int sum_period = 0;
+    int sum = 0;
+    while (sum_period < averageNum && j < nonLeafKeys.size()){
+      sum_period += leafNum_period[j];
+      sum += nonLeafKeys[j++].num;
+    }
+    //真实数量
+    memNum[i] = sum;
+    newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
+    mems[i]->table_.BuildTree(drangeNonLeafKeys);
+  }
+
+}
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish
