@@ -617,6 +617,18 @@
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeafKey.h">
 			<Option target="zsbtree"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STkeyinfo.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STkeyinfo.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STpos.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STpos.h">
+			<Option target="zsbtree"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Build.cc">
 			<Option target="zsbtree"/>
 		</Unit>

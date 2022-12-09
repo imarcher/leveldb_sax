@@ -75,6 +75,54 @@ void zsbtree_table::LoadNonLeafKeys_dfs(NonLeaf* nonLeaf, vector<NonLeafKey>& no
   free(nonLeaf);
 }
 
+zsbtree_table::zsbtree_table() {}
+
+zsbtree_table::zsbtree_table(zsbtree_table& im) {
+  //复制树结构
+  //先申请内存
+  root = (NonLeaf*)malloc(sizeof(NonLeaf));
+  CopyTree_dfs(root, im.root);
+}
+
+void zsbtree_table::CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf) {
+  memcpy(nonLeaf, copyNonLeaf, sizeof(NonLeaf));
+  if (copyNonLeaf->isleaf) {
+    //给叶子申请空间
+    char* leafp = (char*)malloc(nonLeaf->num * sizeof(Leaf));
+    for(int i=0;i<nonLeaf->num;i++) {
+      nonLeaf->nonLeafKeys[i].num = 0;
+      nonLeaf->nonLeafKeys[i].p = leafp;
+      ((Leaf*)leafp)->set(nonLeaf->nonLeafKeys[i]);
+      leafp += sizeof(Leaf);
+    }
+  } else {
+    //给非叶子申请空间
+    char* nonLeafp = (char*)malloc(nonLeaf->num * sizeof(NonLeaf));
+    for(int i=0;i<nonLeaf->num;i++) {
+      nonLeaf->nonLeafKeys[i].p = nonLeafp;
+      CopyTree_dfs((NonLeaf*)nonLeafp, (NonLeaf*)copyNonLeaf->nonLeafKeys[i].p);
+      nonLeafp += sizeof(NonLeaf);
+    }
+  }
+}
+
+zsbtree_table::~zsbtree_table() {
+  if (root!= nullptr) DelTree_dfs(root);
+}
+
+void zsbtree_table::DelTree_dfs(NonLeaf* nonLeaf) {
+  if (nonLeaf->isleaf) {
+    for(int i=0;i<nonLeaf->num;i++) {
+      free((Leaf*)nonLeaf->nonLeafKeys[i].p);
+    }
+  } else {
+    for(int i=0;i<nonLeaf->num;i++) {
+      DelTree_dfs((NonLeaf*)nonLeaf->nonLeafKeys[i].p);
+    }
+  }
+  free(nonLeaf);
+}
+
 }
 
 

@@ -43,3 +43,10 @@ Leaf::Leaf() {
 void Leaf::sort() {
   std::sort(leafKeys, leafKeys + num, LeafKey_cmp);
 }
+
+void Leaf::set(NonLeafKey& nonLeafKey) {
+  num = nonLeafKey.num;
+  co_d = nonLeafKey.co_d;
+  memcpy(lsaxt, nonLeafKey.lsaxt, saxt_size);
+  memcpy(rsaxt, nonLeafKey.rsaxt, saxt_size);
+}

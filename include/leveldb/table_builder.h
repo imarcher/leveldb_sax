@@ -14,10 +14,12 @@
 #define STORAGE_LEVELDB_INCLUDE_TABLE_BUILDER_H_
 
 #include <cstdint>
+#include <db/memtable.h>
 
 #include "leveldb/export.h"
 #include "leveldb/options.h"
 #include "leveldb/status.h"
+
 
 namespace leveldb {
 
@@ -49,7 +51,7 @@ class LEVELDB_EXPORT TableBuilder {
   // Add key,value to the table being constructed.
   // REQUIRES: key is after any previously added key according to comparator.
   // REQUIRES: Finish(), Abandon() have not been called
-  void Add(const Slice& key, const Slice& value);
+  void Add(MemTable* mem);
 
   // Advanced operation: flush any buffered key/value pairs to file.
   // Can be used to ensure that two adjacent entries never live in
@@ -73,16 +75,17 @@ class LEVELDB_EXPORT TableBuilder {
   void Abandon();
 
   // Number of calls to Add() so far.
-  uint64_t NumEntries() const;
+//  uint64_t NumEntries() const;
 
   // Size of the file generated so far.  If invoked after a successful
   // Finish() call, returns the size of the final generated file.
   uint64_t FileSize() const;
 
  private:
+  void Add_dfs(NonLeaf* nonLeaf);
   bool ok() const { return status().ok(); }
-  void WriteBlock(BlockBuilder* block, BlockHandle* handle);
-  void WriteRawBlock(const Slice& data, CompressionType, BlockHandle* handle);
+  void WriteBlock(BlockBuilder* block, STpos* handle);
+  void WriteRawBlock(const Slice& data, CompressionType, STpos* handle);
 
   struct Rep;
   Rep* rep_;

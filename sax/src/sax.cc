@@ -421,6 +421,11 @@ ts_type minidist_paa_to_isax_raw(ts_type *paa, sax_type *sax,
     return distance;
 }
 
+enum response saxt_copy(saxt_type *saxt_out, saxt_type *saxt_in){
+  memcpy(saxt_out, saxt_in, saxt_size);
+  return SUCCESS;
+}
+
 
 
 cod get_co_d_from_saxt(saxt a, saxt b) {

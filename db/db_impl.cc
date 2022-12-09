@@ -509,21 +509,21 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   FileMetaData meta;
   meta.number = versions_->NewFileNumber();
   pending_outputs_.insert(meta.number);
-  Iterator* iter = mem->NewIterator();
+
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta.number);
 
   Status s;
   {
     mutex_.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    s = BuildTable(dbname_, env_, options_, table_cache_, mem, &meta);
     mutex_.Lock();
   }
 
   Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
       (unsigned long long)meta.number, (unsigned long long)meta.file_size,
       s.ToString().c_str());
-  delete iter;
+
   pending_outputs_.erase(meta.number);
 
   // Note that if file_size is zero, the file has been deleted and
@@ -1512,40 +1512,47 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       allow_delay = false;  // Do not delay a single write more than once
       write_mutex[memId].Lock();
     } else if (!force &&
-               (mems[memId]->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
+               (memNum[memId] <= Table_maxnum)) {
       // There is room in current memtable
       break;
-    } else if (imm_ != nullptr) {
-      // We have filled up the current memtable, but the previous
-      // one is still being compacted, so we wait.
-      Log(options_.info_log, "Current memtable full; waiting...\n");
-      background_work_finished_signal_.Wait();
-    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-      // There are too many level-0 files.
-      Log(options_.info_log, "Too many L0 files; waiting...\n");
-      background_work_finished_signal_.Wait();
     } else {
-      // Attempt to switch to a new memtable and trigger compaction of old
-      assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = nullptr;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
+      //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
+      MutexLock l(&mutex_);
+      if (imm_ != nullptr) {
+        // We have filled up the current memtable, but the previous
+        // one is still being compacted, so we wait.
+        Log(options_.info_log, "Current memtable full; waiting...\n");
+        background_work_finished_signal_.Wait();
+      } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+        // There are too many level-0 files.
+        Log(options_.info_log, "Too many L0 files; waiting...\n");
+        background_work_finished_signal_.Wait();
+      } else {
+        // Attempt to switch to a new memtable and trigger compaction of old
+        //重置了log
+        assert(versions_->PrevLogNumber() == 0);
+        uint64_t new_log_number = versions_->NewFileNumber();
+        WritableFile* lfile = nullptr;
+        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+        if (!s.ok()) {
+          // Avoid chewing through file number space in a tight loop.
+          versions_->ReuseFileNumber(new_log_number);
+          break;
+        }
+        delete log_;
+        delete logfile_;
+        logfile_ = lfile;
+        logfile_number_ = new_log_number;
+        log_ = new log::Writer(lfile);
+        //转为im
+        imm_ = mems[memId];
+        has_imm_.store(true, std::memory_order_release);
+        // 复制mem的树结构
+        mems[memId] = new MemTable(imm_);
+        mems[memId]->Ref();
+        force = false;  // Do not force another compaction if have room
+        MaybeScheduleCompaction();
       }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::Writer(lfile);
-      imm_ = mems[memId];
-      has_imm_.store(true, std::memory_order_release);
-      mems[memId] = new MemTable();
-      mems[memId]->Ref();
-      force = false;  // Do not force another compaction if have room
-      MaybeScheduleCompaction();
     }
   }
   return s;

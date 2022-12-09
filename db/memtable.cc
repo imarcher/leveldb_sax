@@ -24,7 +24,7 @@ MemTable::~MemTable() { assert(refs_ == 0); }
 
 
 //待改
-size_t MemTable::ApproximateMemoryUsage() { return arena_.MemoryUsage(); }
+//size_t MemTable::ApproximateMemoryUsage() { return arena_.MemoryUsage(); }
 
 int MemTable::KeyComparator::operator()(const char* aptr,
                                         const char* bptr) const {
@@ -124,5 +124,6 @@ void MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
 }
 int MemTable::GetleafNum() { return table_.leafNum; }
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
+MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_){}
 
 }  // namespace leveldb

@@ -23,6 +23,7 @@ class MemTable {
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   MemTable();
+  MemTable(MemTable* im);
 
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
@@ -41,7 +42,7 @@ class MemTable {
 
   // Returns an estimate of the number of bytes of data in use by this
   // data structure. It is safe to call when MemTable is being modified.
-  size_t ApproximateMemoryUsage();
+//  size_t ApproximateMemoryUsage();
 
   // Return an iterator that yields the contents of the memtable.
   //

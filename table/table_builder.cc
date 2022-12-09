@@ -21,31 +21,21 @@ namespace leveldb {
 struct TableBuilder::Rep {
   Rep(const Options& opt, WritableFile* f)
       : options(opt),
-        index_block_options(opt),
         file(f),
         offset(0),
         data_block(&options),
-        index_block(&index_block_options),
-        num_entries(0),
-        closed(false),
-        filter_block(opt.filter_policy == nullptr
-                         ? nullptr
-                         : new FilterBlockBuilder(opt.filter_policy)),
-        pending_index_entry(false) {
-    index_block_options.block_restart_interval = 1;
-  }
+//        num_entries(0),
+        closed(false) {
 
+  }
   Options options;
-  Options index_block_options;
   WritableFile* file;
   uint64_t offset;
   Status status;
   BlockBuilder data_block;
-  BlockBuilder index_block;
-  std::string last_key;
-  int64_t num_entries;
+//  int64_t num_entries;
   bool closed;  // Either Finish() or Abandon() has been called.
-  FilterBlockBuilder* filter_block;
+
 
   // We do not emit the index entry for a block until we have seen the
   // first key for the next data block.  This allows us to use shorter
@@ -56,22 +46,18 @@ struct TableBuilder::Rep {
   // blocks.
   //
   // Invariant: r->pending_index_entry is true only if data_block is empty.
-  bool pending_index_entry;
-  BlockHandle pending_handle;  // Handle to add to index block
 
+  STpos pending_handle;
   std::string compressed_output;
 };
 
 TableBuilder::TableBuilder(const Options& options, WritableFile* file)
     : rep_(new Rep(options, file)) {
-  if (rep_->filter_block != nullptr) {
-    rep_->filter_block->StartBlock(0);
-  }
+
 }
 
 TableBuilder::~TableBuilder() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
-  delete rep_->filter_block;
   delete rep_;
 }
 
@@ -86,40 +72,91 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   // Note that any live BlockBuilders point to rep_->options and therefore
   // will automatically pick up the updated options.
   rep_->options = options;
-  rep_->index_block_options = options;
-  rep_->index_block_options.block_restart_interval = 1;
   return Status::OK();
 }
 
-void TableBuilder::Add(const Slice& key, const Slice& value) {
+//其实是顺便把内存中也删除了
+void TableBuilder::Add(MemTable* mem) {
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
-  if (r->num_entries > 0) {
-    assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
-  }
 
-  if (r->pending_index_entry) {
-    assert(r->data_block.empty());
-    r->options.comparator->FindShortestSeparator(&r->last_key, key);
-    std::string handle_encoding;
-    r->pending_handle.EncodeTo(&handle_encoding);
-    r->index_block.Add(r->last_key, Slice(handle_encoding));
-    r->pending_index_entry = false;
+  NonLeaf* root = mem->table_.root;
+  Add_dfs(root);
+  if (ok()) {
+    //一个sstable的起点,就是
+    std::string root_str;
+    NonLeafKey rootKey(root->num, root->co_d, root->lsaxt, root->rsaxt, r->pending_handle.Get());
+    root_str.append((char*)&rootKey, nonleaf_key_size);
+    r->status = r->file->Append(root_str);
+    if (r->status.ok()) {
+      //flush剩余的
+      r->file->Flush();
+      r->offset += root_str.size();
+    }
   }
+  free(root);
+  mem->table_.root = nullptr;
 
-  if (r->filter_block != nullptr) {
-    r->filter_block->AddKey(key);
+
+  //num_entries没用
+//  if (r->num_entries > 0) {
+//    assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
+//  }
+
+  // 表示一个block开头
+//  if (r->pending_index_entry) {
+//    assert(r->data_block.empty());
+//    r->options.comparator->FindShortestSeparator(&r->last_key, key);
+//    std::string handle_encoding;
+//    r->pending_handle.EncodeTo(&handle_encoding);
+//    r->index_block.Add(r->last_key, Slice(handle_encoding));
+//    r->pending_index_entry = false;
+//  }
+//
+//  if (r->filter_block != nullptr) {
+//    r->filter_block->AddKey(key);
+//  }
+//
+//  r->last_key.assign(key.data(), key.size());
+//  r->num_entries++;
+//  r->data_block.Add(key, value);
+//
+//  const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
+//  //一个block4k，根本存不了几个结点。
+//  if (estimated_block_size >= r->options.block_size) {
+//    Flush();
+//  }
+}
+
+void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+
+  if (nonLeaf->isleaf) {
+    for(int i=0;i<nonLeaf->num;i++){
+      NonLeafKey* key_i = &nonLeaf->nonLeafKeys[i];
+      Leaf* aleaf = (Leaf*)key_i->p;
+      r->data_block.Add(aleaf);
+      //取消了手动flush，改成每4kb写入了
+      Flush();
+      free(aleaf);
+      //给位置和size
+      key_i->p = r->pending_handle.Get();
+    }
+  } else {
+    for(int i=0;i<nonLeaf->num;i++) {
+      NonLeafKey* key_i = &nonLeaf->nonLeafKeys[i];
+      NonLeaf* anonLeaf = (NonLeaf*)key_i->p;
+      Add_dfs(anonLeaf);
+      free(anonLeaf);
+      key_i->p = r->pending_handle.Get();
+    }
   }
-
-  r->last_key.assign(key.data(), key.size());
-  r->num_entries++;
-  r->data_block.Add(key, value);
-
-  const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
-  if (estimated_block_size >= r->options.block_size) {
-    Flush();
-  }
+  //存这个结点
+  r->data_block.Add(nonLeaf);
+  Flush();
 }
 
 void TableBuilder::Flush() {
@@ -127,18 +164,14 @@ void TableBuilder::Flush() {
   assert(!r->closed);
   if (!ok()) return;
   if (r->data_block.empty()) return;
-  assert(!r->pending_index_entry);
   WriteBlock(&r->data_block, &r->pending_handle);
-  if (ok()) {
-    r->pending_index_entry = true;
-    r->status = r->file->Flush();
-  }
-  if (r->filter_block != nullptr) {
-    r->filter_block->StartBlock(r->offset);
-  }
+//  if (ok()) {
+//    r->status = r->file->Flush();
+//  }
 }
 
-void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
+//外压缩
+void TableBuilder::WriteBlock(BlockBuilder* block, STpos* handle) {
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
   //    type: uint8
@@ -174,11 +207,11 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
   block->Reset();
 }
 
+//写入文件和5字节
 void TableBuilder::WriteRawBlock(const Slice& block_contents,
-                                 CompressionType type, BlockHandle* handle) {
+                                 CompressionType type, STpos* handle) {
   Rep* r = rep_;
-  handle->set_offset(r->offset);
-  handle->set_size(block_contents.size());
+  handle->Set(block_contents.size(), r->offset);
   r->status = r->file->Append(block_contents);
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
@@ -197,58 +230,8 @@ Status TableBuilder::status() const { return rep_->status; }
 
 Status TableBuilder::Finish() {
   Rep* r = rep_;
-  Flush();
   assert(!r->closed);
   r->closed = true;
-
-  BlockHandle filter_block_handle, metaindex_block_handle, index_block_handle;
-
-  // Write filter block
-  if (ok() && r->filter_block != nullptr) {
-    WriteRawBlock(r->filter_block->Finish(), kNoCompression,
-                  &filter_block_handle);
-  }
-
-  // Write metaindex block
-  if (ok()) {
-    BlockBuilder meta_index_block(&r->options);
-    if (r->filter_block != nullptr) {
-      // Add mapping from "filter.Name" to location of filter data
-      std::string key = "filter.";
-      key.append(r->options.filter_policy->Name());
-      std::string handle_encoding;
-      filter_block_handle.EncodeTo(&handle_encoding);
-      meta_index_block.Add(key, handle_encoding);
-    }
-
-    // TODO(postrelease): Add stats and other meta blocks
-    WriteBlock(&meta_index_block, &metaindex_block_handle);
-  }
-
-  // Write index block
-  if (ok()) {
-    if (r->pending_index_entry) {
-      r->options.comparator->FindShortSuccessor(&r->last_key);
-      std::string handle_encoding;
-      r->pending_handle.EncodeTo(&handle_encoding);
-      r->index_block.Add(r->last_key, Slice(handle_encoding));
-      r->pending_index_entry = false;
-    }
-    WriteBlock(&r->index_block, &index_block_handle);
-  }
-
-  // Write footer
-  if (ok()) {
-    Footer footer;
-    footer.set_metaindex_handle(metaindex_block_handle);
-    footer.set_index_handle(index_block_handle);
-    std::string footer_encoding;
-    footer.EncodeTo(&footer_encoding);
-    r->status = r->file->Append(footer_encoding);
-    if (r->status.ok()) {
-      r->offset += footer_encoding.size();
-    }
-  }
   return r->status;
 }
 
@@ -258,8 +241,9 @@ void TableBuilder::Abandon() {
   r->closed = true;
 }
 
-uint64_t TableBuilder::NumEntries() const { return rep_->num_entries; }
+//uint64_t TableBuilder::NumEntries() const { return rep_->num_entries; }
 
 uint64_t TableBuilder::FileSize() const { return rep_->offset; }
+
 
 }  // namespace leveldb

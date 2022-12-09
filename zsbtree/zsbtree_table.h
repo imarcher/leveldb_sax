@@ -8,6 +8,8 @@
 
 #include "zsbtree_Build.h"
 #include "zsbtree_Insert.h"
+#include "STpos.h"
+#include "STkeyinfo.h"
 
 
 namespace leveldb {
@@ -15,7 +17,11 @@ namespace leveldb {
 class zsbtree_table {
  public:
 
+  zsbtree_table();
 
+  zsbtree_table(zsbtree_table &im);
+
+  ~zsbtree_table();
 
   //false 重组
   bool Insert(LeafKey& leafKey);
@@ -34,6 +40,10 @@ class zsbtree_table {
   void Rebalance_dfs(NonLeaf* nonLeaf, vector<LeafKey>& sortleafKeys);
 
   void LoadNonLeafKeys_dfs(NonLeaf* nonLeaf, vector<NonLeafKey>& nonLeafKeys);
+
+  void CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf);
+
+  void DelTree_dfs(NonLeaf* nonLeaf);
 };
 
 }

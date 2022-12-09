@@ -56,7 +56,7 @@ static const int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
 
 static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
 static const size_t leaf_key_size = saxt_size + sizeof(void *);
-static const size_t nonleaf_key_size = sizeof(unsigned char) + saxt_size*2 + sizeof(void *);
+static const size_t nonleaf_key_size = sizeof(unsigned char) + sizeof(int) + saxt_size*2 + sizeof(void *);
 
 typedef struct {
   ts_type ts[Ts_length];

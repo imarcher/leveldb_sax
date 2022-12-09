@@ -5,12 +5,12 @@
 #ifndef TODOZSBTREE_LEAF_H
 #define TODOZSBTREE_LEAF_H
 
-
-
-#include "LeafKey.h"
 #include <cstring>
-#include "algorithm"
+
 #include "Cmp.h"
+#include "LeafKey.h"
+#include "NonLeafKey.h"
+#include "algorithm"
 class Leaf {
 public:
     Leaf();
@@ -22,6 +22,7 @@ public:
     void setLsaxt(saxt saxt_);
     void setRsaxt(saxt saxt_);
     void sort();
+    void set(NonLeafKey& nonLeafKey);
     //有几个
     int num = 0;
     //相聚度
