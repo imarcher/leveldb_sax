@@ -75,7 +75,7 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   return Status::OK();
 }
 
-//其实是顺便把内存中也删除了
+
 void TableBuilder::Add(MemTable* mem) {
   Rep* r = rep_;
   assert(!r->closed);
@@ -95,7 +95,6 @@ void TableBuilder::Add(MemTable* mem) {
       r->offset += root_str.size();
     }
   }
-  free(root);
   mem->table_.root = nullptr;
 
 
@@ -134,6 +133,10 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
   assert(!r->closed);
   if (!ok()) return;
 
+  //地址从内存改成了偏移量
+  vector<void*> new_p;
+  new_p.reserve(nonLeaf->num);
+
   if (nonLeaf->isleaf) {
     for(int i=0;i<nonLeaf->num;i++){
       NonLeafKey* key_i = &nonLeaf->nonLeafKeys[i];
@@ -141,21 +144,19 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
       r->data_block.Add(aleaf);
       //取消了手动flush，改成每4kb写入了
       Flush();
-      free(aleaf);
       //给位置和size
-      key_i->p = r->pending_handle.Get();
+      new_p.push_back(r->pending_handle.Get());
     }
   } else {
     for(int i=0;i<nonLeaf->num;i++) {
       NonLeafKey* key_i = &nonLeaf->nonLeafKeys[i];
       NonLeaf* anonLeaf = (NonLeaf*)key_i->p;
       Add_dfs(anonLeaf);
-      free(anonLeaf);
-      key_i->p = r->pending_handle.Get();
+      new_p.push_back(r->pending_handle.Get());
     }
   }
   //存这个结点
-  r->data_block.Add(nonLeaf);
+  r->data_block.Add(nonLeaf, new_p);
   Flush();
 }
 

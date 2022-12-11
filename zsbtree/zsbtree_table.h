@@ -10,9 +10,14 @@
 #include "zsbtree_Insert.h"
 #include "STpos.h"
 #include "STkeyinfo.h"
-
+#include "zsbtree_Get.h"
 
 namespace leveldb {
+
+typedef struct {
+  NonLeaf* root;
+  int leafNum;
+} zsbtree_table_mem;
 
 class zsbtree_table {
  public:
@@ -21,6 +26,8 @@ class zsbtree_table {
 
   zsbtree_table(zsbtree_table &im);
 
+  zsbtree_table(zsbtree_table_mem table_mem);
+
   ~zsbtree_table();
 
   //false 重组
@@ -28,10 +35,17 @@ class zsbtree_table {
 
   void BuildTree(newVector<NonLeafKey>& nonLeafKeys);
 
-  void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
+  zsbtree_table_mem BuildTree_new(newVector<NonLeafKey>& nonLeafKeys);
+
+  zsbtree_table_mem Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
 
   void LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys);
 
+  //查
+  void GetLeafKeys(saxt key, vector<LeafKey>& leafKeys);
+
+  //标记叶子结点是否被使用，主要用来看删除不删除叶子
+  bool isleafuse = false;
   //叶子数量， drange重构时用
   int leafNum;
   NonLeaf* root;

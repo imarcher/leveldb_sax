@@ -136,7 +136,6 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       db_lock_(nullptr),
       shutting_down_(false),
       background_work_finished_signal_(&mutex_),
-      mem_(nullptr),
       imm_(nullptr),
       has_imm_(false),
       logfile_(nullptr),
@@ -163,7 +162,6 @@ DBImpl::~DBImpl() {
   }
 
   delete versions_;
-  if (mem_ != nullptr) mem_->Unref();
   if (imm_ != nullptr) imm_->Unref();
   delete tmp_batch_;
   delete log_;
@@ -506,6 +504,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
   mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
+  //这里 InternalKey 先放着，后面要去掉顺序号再改
   FileMetaData meta;
   meta.number = versions_->NewFileNumber();
   pending_outputs_.insert(meta.number);
@@ -706,7 +705,7 @@ void DBImpl::BackgroundCompaction() {
     CompactMemTable();
     return;
   }
-
+  //压缩合并sstable，这里写完读取sstable再来写
   Compaction* c;
   bool is_manual = (manual_compaction_ != nullptr);
   InternalKey manual_end;
@@ -1111,10 +1110,10 @@ int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes() {
   MutexLock l(&mutex_);
   return versions_->MaxNextLevelOverlappingBytes();
 }
-
-Status DBImpl::Get(const ReadOptions& options, const Slice& key,
-                   std::string* value) {
+/*
+Status DBImpl::Get(const ReadOptions& options, const saxt& key, const int memId) {
   Status s;
+
   MutexLock l(&mutex_);
   SequenceNumber snapshot;
   if (options.snapshot != nullptr) {
@@ -1124,7 +1123,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
     snapshot = versions_->LastSequence();
   }
 
-  MemTable* mem = mem_;
+  MemTable* mem = mems[memId];
   MemTable* imm = imm_;
   Version* current = versions_->current();
   mem->Ref();
@@ -1158,6 +1157,89 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   current->Unref();
   return s;
 }
+*/
+Status DBImpl::Get_am(const ReadOptions& options, const saxt key, const int memId, vector<LeafKey>& leafKeys) {
+  Status s;
+
+  port::Mutex* mutex_i = write_mutex.data() + memId;
+  MutexLock l(mutex_i);
+
+
+  MemTable* mem = mems[memId];
+  mem->Ref();
+
+
+  // Unlock while reading from files and memtables
+  {
+    mutex_i->Unlock();
+    // First look in the memtable, then in the immutable memtable (if any).
+    mem->Get(key, leafKeys);
+    mutex_i->Lock();
+  }
+
+
+  mem->Unref();
+  return s;
+}
+
+Status DBImpl::Get_im(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) {
+  Status s;
+
+  MutexLock l(&mutex_);
+  MemTable* imm = imm_;
+  if (imm != nullptr) {
+    //先查是否是要查的im，因为可能变成sstable了，那么就返回然后去搜对应的sstable
+    //todo
+
+    return s;
+    //todo
+    //如果是
+    imm->Ref();
+  }
+
+  {
+    mutex_.Unlock();
+    // First look in the memtable, then in the immutable memtable (if any).
+    imm->Get(key, leafKeys);
+    mutex_.Lock();
+  }
+
+  if (imm != nullptr) imm->Unref();
+
+  return s;
+}
+
+Status DBImpl::Get_st(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) {
+  Status s;
+  MutexLock l(&mutex_);
+
+
+  Version* current = versions_->current();
+  current->Ref();
+  bool have_stat_update = false;
+  Version::GetStats stats;
+
+  // Unlock while reading from files and memtables
+  {
+    mutex_.Unlock();
+    // First look in the memtable, then in the immutable memtable (if any).
+    LookupKey lkey(key, snapshot);
+    s = current->Get(options, lkey, , &stats);
+    have_stat_update = true;
+
+    mutex_.Lock();
+  }
+
+  if (have_stat_update && current->UpdateStats(stats)) {
+    MaybeScheduleCompaction();
+  }
+
+  current->Unref();
+
+  return s;
+}
+
+
 
 Iterator* DBImpl::NewIterator(const ReadOptions& options) {
   SequenceNumber latest_snapshot;
@@ -1279,6 +1361,8 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
 
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
+    read_mun_current.emplace_back(0);
+    read_mutex.emplace_back();
     write_mutex.emplace_back();
     writers_vec.emplace_back();
     int sum = 0;
@@ -1288,6 +1372,7 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
     memNum.push_back(sum);
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
     MemTable* newMem = new MemTable();
+    newMem->Ref();
     newMem->table_.BuildTree(drangeNonLeafKeys);
     mems.push_back(newMem);
   }
@@ -1304,7 +1389,7 @@ Status DBImpl::RebalanceDranges() {
       if (!st[i]){
         unique_lock<mutex> g(write_mutex[i].mu_, try_to_lock);
         if (g.owns_lock() && writers_vec[i].empty()){
-          //获得锁，发现队列为空
+          //获得写锁，发现队列为空
           //就一直锁住
           g.release();
           m--;
@@ -1313,9 +1398,8 @@ Status DBImpl::RebalanceDranges() {
       }
     }
   }
+
   free(st);
-
-
 
   int res = get_drange_rebalance(memNum_period);
 
@@ -1324,6 +1408,9 @@ Status DBImpl::RebalanceDranges() {
     int ans_id = 0;
     while (ans) {
       if (!(ans & 1)) {
+        //不重构这个区域
+        memNum_period[ans_id] = 0;
+        write_mutex[ans_id].Unlock();
         ans_id++;
         ans >>= 1;
         continue;
@@ -1337,13 +1424,14 @@ Status DBImpl::RebalanceDranges() {
       }
       //理论上可以多线程来重建，上面的初始化也是一样
       RebalanceDranges(todo_dranges);
+      for(int j : todo_dranges) {
+        memNum_period[j] = 0;
+        write_mutex[j].Unlock();
+      }
     }
   }
 
 
-
-  //手动解锁
-  for(int i=0;i<memNum_period.size();i++) memNum_period[i] = 0, write_mutex[i].Unlock();
 
   return Status();
 }
@@ -1673,7 +1761,10 @@ void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
     //真实数量
     memNum[i] = sum;
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
-    mems[i]->table_.BuildTree(drangeNonLeafKeys);
+    MemTable* oldmem = mems[i];
+    mems[i] = oldmem->BuildTree_new(drangeNonLeafKeys);
+    mems[i]->Ref();
+    oldmem->Unref();
   }
 
 }

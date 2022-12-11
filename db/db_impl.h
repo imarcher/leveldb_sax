@@ -44,8 +44,9 @@ class DBImpl : public DB {
   Status RebalanceDranges() override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;
-  Status Get(const ReadOptions& options, const Slice& key,
-             std::string* value) override;
+  Status Get_am(const ReadOptions& options, const saxt key, const int memId, vector<LeafKey>& leafKeys) override;
+  Status Get_im(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) override;
+  Status Get_st(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) override;
   Iterator* NewIterator(const ReadOptions&) override;
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;

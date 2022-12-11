@@ -32,10 +32,13 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
   }
 
   TableBuilder* builder = new TableBuilder(options, file);
-
-  saxt_copy(meta->smallest, mem->Getlsaxt());
+  //要改的
+  meta->smallest.Set(Slice((char*)mem->Getlsaxt(), saxt_size), 0,
+                     static_cast<ValueType>(0));
+  meta->largest.Set(Slice((char*)mem->Getrsaxt(), saxt_size), 0,
+                     static_cast<ValueType>(0));
   builder->Add(mem);
-  saxt_copy(meta->largest, mem->Getrsaxt());
+
 
   // Finish and check for builder errors
   s = builder->Finish();

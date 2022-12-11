@@ -97,8 +97,14 @@ class LEVELDB_EXPORT DB {
   // a status for which Status::IsNotFound() returns true.
   //
   // May return some other Status on an error.
-  virtual Status Get(const ReadOptions& options, const Slice& key,
-                     std::string* value) = 0;
+  //返回什么暂时不确定
+  //近似，会得到一个叶子结点
+  //查am
+  virtual Status Get_am(const ReadOptions& options, const saxt key, const int memId, vector<LeafKey>& leafKeys) = 0;
+  //查im
+  virtual Status Get_im(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) = 0;
+  //查st
+  virtual Status Get_st(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) = 0;
 
   // Return a heap-allocated iterator over the contents of the database.
   // The result of NewIterator() is initially invalid (caller must

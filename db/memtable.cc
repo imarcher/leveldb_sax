@@ -81,49 +81,23 @@ bool MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
   return table_.Insert(tmpLeafKey);
 }
 
-bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
-  Slice memkey = key.memtable_key();
-  Table::Iterator iter(&table_);
-  iter.Seek(memkey.data());
-  if (iter.Valid()) {
-    // entry format is:
-    //    klength  varint32
-    //    userkey  char[klength]
-    //    tag      uint64
-    //    vlength  varint32
-    //    value    char[vlength]
-    // Check that it belongs to same user key.  We do not check the
-    // sequence number since the Seek() call above should have skipped
-    // all entries with overly large sequence numbers.
-    const char* entry = iter.key();
-    uint32_t key_length;
-    const char* key_ptr = GetVarint32Ptr(entry, entry + 5, &key_length);
-    if (comparator_.comparator.user_comparator()->Compare(
-            Slice(key_ptr, key_length - 8), key.user_key()) == 0) {
-      // Correct user key
-      const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);
-      switch (static_cast<ValueType>(tag & 0xff)) {
-        case kTypeValue: {
-          Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
-          value->assign(v.data(), v.size());
-          return true;
-        }
-        case kTypeDeletion:
-          *s = Status::NotFound(Slice());
-          return true;
-      }
-    }
-  }
-  return false;
+void MemTable::Get(saxt key, vector<LeafKey>& leafKeys) {
+  table_.GetLeafKeys(key, leafKeys);
+}
+
+MemTable* MemTable::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
+  return new MemTable(table_.BuildTree_new(nonLeafKeys));
 }
 saxt MemTable::Getlsaxt() { return table_.root->lsaxt; }
 saxt MemTable::Getrsaxt() { return table_.root->rsaxt; }
 cod MemTable::Getcod() { return table_.root->co_d; }
-void MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
-  table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
+MemTable* MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
+  return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt));
 }
 int MemTable::GetleafNum() { return table_.leafNum; }
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
 MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_){}
+MemTable::MemTable(zsbtree_table_mem table_mem) :refs_(0),table_(table_mem){}
+
 
 }  // namespace leveldb

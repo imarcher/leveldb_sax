@@ -21,10 +21,13 @@
 #ifndef STORAGE_LEVELDB_INCLUDE_WRITE_BATCH_H_
 #define STORAGE_LEVELDB_INCLUDE_WRITE_BATCH_H_
 
+#include <atomic>
+#include <port/port_stdcxx.h>
 #include <string>
 
 #include "leveldb/export.h"
 #include "leveldb/status.h"
+
 #include "globals.h"
 
 namespace leveldb {

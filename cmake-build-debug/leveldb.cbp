@@ -635,6 +635,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Build.h">
 			<Option target="zsbtree"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Get.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Get.h">
+			<Option target="zsbtree"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Insert.cc">
 			<Option target="zsbtree"/>
 		</Unit>

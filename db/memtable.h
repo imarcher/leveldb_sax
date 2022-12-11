@@ -24,6 +24,7 @@ class MemTable {
   // is zero and the caller must call Ref() at least once.
   MemTable();
   MemTable(MemTable* im);
+  MemTable(zsbtree_table_mem table_mem);
 
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
@@ -61,12 +62,13 @@ class MemTable {
   // If memtable contains a deletion for key, store a NotFound() error
   // in *status and return true.
   // Else, return false.
-  bool Get(const LookupKey& key, std::string* value, Status* s);
+  void Get(const saxt key, vector<LeafKey>& leafKeys);
 
+  MemTable* BuildTree_new(newVector<NonLeafKey>& nonLeafKeys);
   saxt Getlsaxt();
   saxt Getrsaxt();
   cod Getcod();
-  void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
+  MemTable* Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
   int GetleafNum();
   void LoadNonLeafKeys(vector<NonLeafKey> &nonLeafKeys);
  private:

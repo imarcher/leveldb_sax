@@ -23,8 +23,8 @@ struct FileMetaData {
   uint64_t number;
   uint64_t file_size;    // File size in bytes
   //最大最小值
-  saxt_type smallest[Bit_cardinality];
-  saxt_type largest[Bit_cardinality];
+  InternalKey smallest;
+  InternalKey largest;
 };
 
 class VersionEdit {

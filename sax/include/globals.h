@@ -45,6 +45,8 @@ typedef unsigned char cod;
 //一个memtable存的数量
 #define Table_maxnum 100000
 
+
+
 //超过这个重构叶结点
 static const int Leaf_rebuildnum = Leaf_maxnum * 1.2;
 
@@ -57,6 +59,8 @@ static const int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
 static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
 static const size_t leaf_key_size = saxt_size + sizeof(void *);
 static const size_t nonleaf_key_size = sizeof(unsigned char) + sizeof(int) + saxt_size*2 + sizeof(void *);
+
+
 
 typedef struct {
   ts_type ts[Ts_length];

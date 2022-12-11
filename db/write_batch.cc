@@ -18,7 +18,10 @@
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
+#include <util/mutexlock.h>
+
 #include "leveldb/db.h"
+#include "zsbtree/zsbtree_table.h"
 #include "util/coding.h"
 
 namespace leveldb {
@@ -107,8 +110,9 @@ namespace {
 class MemTableInserter : public WriteBatch::Handler {
  public:
   SequenceNumber sequence_;
-  MemTable* mem_;
+  MemTable*& mem_;
 
+  MemTableInserter(MemTable*& mem) : mem_(mem) {}
 
   bool Put(saxt saxt_, uint64_t fileOffset) override {
     return mem_->Add(sequence_++, saxt_, fileOffset);
@@ -116,9 +120,11 @@ class MemTableInserter : public WriteBatch::Handler {
 
 
   void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) override {
-    mem_->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
+    MemTable *oldmem = mem_;
+    mem_ = oldmem->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
+    mem_->Ref();
+    oldmem->Unref();
   }
-
 
 
   void Delete(const Slice& key) override {
@@ -128,10 +134,9 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable* memtable, int memNum, uint64_t fileOffset) {
-  MemTableInserter inserter;
+Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable*& memtable, int memNum, uint64_t fileOffset) {
+  MemTableInserter inserter(memtable);
   inserter.sequence_ = WriteBatchInternal::Sequence(b);
-  inserter.mem_ = memtable;
   return b->Iterate(&inserter, memNum, fileOffset);
 }
 
