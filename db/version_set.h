@@ -72,8 +72,7 @@ class Version {
   // Lookup the value for key.  If found, store it in *val and
   // return OK.  Else return a non-OK status.  Fills *stats.
   // REQUIRES: lock is not held
-  Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
-             GetStats* stats);
+  Status Get(const ReadOptions&, LookupKey& k, vector<LeafKey>& leafKeys, GetStats* stats);
 
   // Adds "stats" into the current state.  Returns true if a new
   // compaction may need to be triggered, false otherwise.

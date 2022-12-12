@@ -120,7 +120,7 @@ void zsbtree_table::DelTree_dfs(NonLeaf* nonLeaf) {
   if (nonLeaf->isleaf) {
     if (!isleafuse) {
       for (int i = 0; i < nonLeaf->num; i++) {
-        free((Leaf*)nonLeaf->nonLeafKeys[i].p);
+        delete (Leaf*)nonLeaf->nonLeafKeys[i].p;
       }
     }
   } else {
@@ -128,7 +128,7 @@ void zsbtree_table::DelTree_dfs(NonLeaf* nonLeaf) {
       DelTree_dfs((NonLeaf*)nonLeaf->nonLeafKeys[i].p);
     }
   }
-  free(nonLeaf);
+  delete nonLeaf;
 }
 
 //查

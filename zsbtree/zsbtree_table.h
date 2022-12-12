@@ -5,13 +5,13 @@
 #ifndef LEVELDB_ZSBTREE_TABLE_H
 #define LEVELDB_ZSBTREE_TABLE_H
 
-
+#include "STLeaf.h"
+#include "STNonLeaf.h"
+#include "STkeyinfo.h"
+#include "STpos.h"
 #include "zsbtree_Build.h"
 #include "zsbtree_Insert.h"
-#include "STpos.h"
-#include "STkeyinfo.h"
-#include "zsbtree_Get.h"
-
+#include "zsbtree_finder.h"
 namespace leveldb {
 
 typedef struct {

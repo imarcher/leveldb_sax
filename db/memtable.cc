@@ -20,7 +20,7 @@ static Slice GetLengthPrefixedSlice(const char* data) {
 
 MemTable::MemTable() :refs_(0),table_(){}
 
-MemTable::~MemTable() { assert(refs_ == 0); }
+MemTable::~MemTable() { assert(refs_ == 0);}
 
 
 //待改

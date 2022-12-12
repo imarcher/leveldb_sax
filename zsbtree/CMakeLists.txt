@@ -9,8 +9,8 @@ include_directories(../util)
 file(GLOB_RECURSE ZSBTREE_LIB_SRC
         ./*.cc
         ./*.h
-        ../util/arena.cc
-        ../util/arena.h
+        ../util/newVector.h
+        ../util/newVector.cc
         )
 add_library(zsbtree STATIC ${ZSBTREE_LIB_SRC})
 

@@ -2,8 +2,8 @@
 // Created by hh on 2022/12/11.
 //
 
-#ifndef LEVELDB_ZSBTREE_GET_H
-#define LEVELDB_ZSBTREE_GET_H
+#ifndef LEVELDB_ZSBTREE_FINDER_H
+#define LEVELDB_ZSBTREE_FINDER_H
 #include "zsbtree_table.h"
 
 
@@ -38,4 +38,4 @@ class ZsbTree_finder{
 
 
 
-#endif  // LEVELDB_ZSBTREE_GET_H
+#endif  // LEVELDB_ZSBTREE_FINDER_H

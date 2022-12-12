@@ -5,10 +5,9 @@
 #ifndef TODOZSBTREE_NONLEAFKEY_H
 #define TODOZSBTREE_NONLEAFKEY_H
 
-
-
-#include "sax.h"
 #include "Leaf.h"
+#include "STpos.h"
+#include "sax.h"
 
 class NonLeafKey {
 public:
@@ -21,7 +20,7 @@ public:
     cod co_d;
     saxt_type lsaxt[Bit_cardinality];
     saxt_type rsaxt[Bit_cardinality];
-    void *p;
+    void* p;
 };
 
 

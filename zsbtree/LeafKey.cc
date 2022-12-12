@@ -21,3 +21,8 @@ LeafKey::LeafKey(saxt saxt_, void* p) {
     memcpy(asaxt, saxt_, saxt_size);
     this->p = p;
 }
+
+LeafKey::LeafKey(saxt prefix, char* stleafkey, cod co_size, cod noco_size) {
+  memcpy(asaxt, prefix, co_size);
+  memcpy(((char*)asaxt)+co_size, stleafkey, noco_size);
+}

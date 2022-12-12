@@ -6,9 +6,9 @@
 #define STORAGE_LEVELDB_INCLUDE_TABLE_H_
 
 #include <cstdint>
-
 #include "leveldb/export.h"
 #include "leveldb/iterator.h"
+#include "zsbtree/zsbtree_table.h"
 
 namespace leveldb {
 
@@ -19,6 +19,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
+
 
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from
@@ -69,14 +70,44 @@ class LEVELDB_EXPORT Table {
   // Calls (*handle_result)(arg, ...) with the entry found after a call
   // to Seek(key).  May not make such a call if filter policy says
   // that key is not present.
-  Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
-                     void (*handle_result)(void* arg, const Slice& k,
-                                           const Slice& v));
+  Status InternalGet(const ReadOptions&, const Slice& key, vector<LeafKey>& leafKeys);
 
   void ReadMeta(const Footer& footer);
   void ReadFilter(const Slice& filter_handle_value);
 
+
+
+
   Rep* const rep_;
+
+
+  class ST_finder{
+   public:
+    explicit ST_finder(Rep* rep, vector<LeafKey>& simiLeakKeys) : simi_leakKeys(simiLeakKeys), rep_(rep) {}
+
+   public:
+
+    void root_Get(LeafKey &leafKey);
+
+   private:
+
+    inline STLeaf* getSTLeaf(STNonLeaf& nonLeaf, int i);
+    inline STNonLeaf* getSTNonLeaf(STNonLeaf& nonLeaf, int i);
+    inline int whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey, cod co_d);
+    bool saxt_cmp(saxt a, saxt b, cod co_d);
+    cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d);
+    void l_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey &leafKey);
+
+    void r_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey &leafKey);
+
+    inline void leaf_Get(STLeaf& leaf, LeafKey &leafKey);
+
+// 在nonLeaf的范围里, 才调用
+    void nonLeaf_Get(STNonLeaf& nonLeaf, LeafKey &leafKey);
+   private:
+    Rep* const rep_;
+    vector<LeafKey> &simi_leakKeys;
+  };
 };
 
 }  // namespace leveldb

@@ -114,6 +114,7 @@ if(BUILD_SHARED_LIBS)
 endif(BUILD_SHARED_LIBS)
 
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
+include(include)
 include(GNUInstallDirs)
 include_directories(sax/include)
 add_subdirectory(sax)

@@ -617,6 +617,24 @@
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/NonLeafKey.h">
 			<Option target="zsbtree"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STLeaf.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STLeaf.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STNonLeaf.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STNonLeaf.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/ST_finder.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/ST_finder.h">
+			<Option target="zsbtree"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STkeyinfo.cc">
 			<Option target="zsbtree"/>
 		</Unit>
@@ -635,12 +653,6 @@
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Build.h">
 			<Option target="zsbtree"/>
 		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Get.cc">
-			<Option target="zsbtree"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Get.h">
-			<Option target="zsbtree"/>
-		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_Insert.cc">
 			<Option target="zsbtree"/>
 		</Unit>
@@ -657,6 +669,12 @@
 			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_NonLeafBuild.h">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_finder.cc">
+			<Option target="zsbtree"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_finder.h">
 			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/zsbtree_table.cc">

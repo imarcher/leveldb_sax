@@ -110,7 +110,6 @@ void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> new_p) {
   cod co_d = nonLeaf->co_d;
   size_t co_saxt_size = co_d * sizeof(saxt_type);
   size_t noco_saxt_size = saxt_size - co_saxt_size;
-  buffer_.append(nonLeaf->isleaf,1);
   for(int i=0;i<nonLeaf->num;i++){
     NonLeafKey* nonLeafKey = nonLeaf->nonLeafKeys + i;
     STkeyinfo stkeyinfo(nonLeafKey->co_d, nonLeafKey->num);
@@ -119,6 +118,7 @@ void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> new_p) {
     buffer_.append(((char*)nonLeafKey->rsaxt) + co_saxt_size, noco_saxt_size);
     buffer_.append((char*)(new_p.data()+i*8), 8);
   }
+  buffer_.append(nonLeaf->isleaf,1);
 }
 
 }  // namespace leveldb

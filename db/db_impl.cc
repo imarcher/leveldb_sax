@@ -1223,16 +1223,17 @@ Status DBImpl::Get_st(const ReadOptions& options, const saxt key, vector<LeafKey
   {
     mutex_.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
-    LookupKey lkey(key, snapshot);
-    s = current->Get(options, lkey, , &stats);
+    LookupKey key1(Slice((char*)key, saxt_size), 0);
+    s = current->Get(options, key1, leafKeys, &stats);
     have_stat_update = true;
 
     mutex_.Lock();
   }
 
-  if (have_stat_update && current->UpdateStats(stats)) {
-    MaybeScheduleCompaction();
-  }
+  //本来通过查询合并基本也遇不到，而且查sstable会改成查指定的一个，这里直接不要了。
+//  if (have_stat_update && current->UpdateStats(stats)) {
+//    MaybeScheduleCompaction();
+//  }
 
   current->Unref();
 

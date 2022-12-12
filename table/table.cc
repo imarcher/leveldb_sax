@@ -19,61 +19,65 @@ namespace leveldb {
 
 struct Table::Rep {
   ~Rep() {
-    delete filter;
-    delete[] filter_data;
-    delete index_block;
+//    delete filter;
+//    delete[] filter_data;
+    delete stNonLeaf;
   }
 
   Options options;
   Status status;
   RandomAccessFile* file;
   uint64_t cache_id;
-  FilterBlockReader* filter;
-  const char* filter_data;
+//  FilterBlockReader* filter;
+//  const char* filter_data;
 
-  BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
-  Block* index_block;
+//  BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
+  STNonLeaf* stNonLeaf;
+  saxt_type rsaxt[Bit_cardinality];
 };
 
+
+
+//获得了root
 Status Table::Open(const Options& options, RandomAccessFile* file,
                    uint64_t size, Table** table) {
   *table = nullptr;
-  if (size < Footer::kEncodedLength) {
+  if (size < nonleaf_key_size) {
     return Status::Corruption("file is too short to be an sstable");
   }
 
-  char footer_space[Footer::kEncodedLength];
-  Slice footer_input;
-  Status s = file->Read(size - Footer::kEncodedLength, Footer::kEncodedLength,
-                        &footer_input, footer_space);
+
+  NonLeafKey rootkey;
+  //其实是没用
+  Slice rootkey_input;
+  Status s = file->Read(size - nonleaf_key_size, nonleaf_key_size,
+                        &rootkey_input, (char*)&rootkey);
   if (!s.ok()) return s;
 
-  Footer footer;
-  s = footer.DecodeFrom(&footer_input);
-  if (!s.ok()) return s;
 
-  // Read the index block
-  BlockContents index_block_contents;
-  ReadOptions opt;
-  if (options.paranoid_checks) {
-    opt.verify_checksums = true;
-  }
-  s = ReadBlock(file, opt, footer.index_handle(), &index_block_contents);
+  //先不读校验码
+  STpos* sTpos = (STpos*)&rootkey.p;
+  size_t stNonLeaf_size = sTpos->GetSize();
+  STNonLeaf* stNonLeaf = new STNonLeaf(rootkey.num, rootkey.co_d, rootkey.lsaxt, stNonLeaf_size);
+
+  s = file->Read(sTpos->GetOffset(), stNonLeaf_size,
+                 &rootkey_input, stNonLeaf->rep);
+  stNonLeaf->Setisleaf();
+
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
-    Block* index_block = new Block(index_block_contents);
     Rep* rep = new Table::Rep;
     rep->options = options;
     rep->file = file;
-    rep->metaindex_handle = footer.metaindex_handle();
-    rep->index_block = index_block;
+    rep->stNonLeaf = stNonLeaf;
+    saxt_copy(rep->rsaxt, rootkey.rsaxt);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
-    rep->filter_data = nullptr;
-    rep->filter = nullptr;
     *table = new Table(rep);
-    (*table)->ReadMeta(footer);
+//    (*table)->ReadMeta(footer);
+  } else {
+    delete stNonLeaf;
   }
 
   return s;
@@ -211,33 +215,39 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
       &Table::BlockReader, const_cast<Table*>(this), options);
 }
 
-Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
-                          void (*handle_result)(void*, const Slice&,
-                                                const Slice&)) {
+
+
+
+
+Status Table::InternalGet(const ReadOptions& options, const Slice& k, vector<LeafKey>& leafKeys) {
   Status s;
-  Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
-  iiter->Seek(k);
-  if (iiter->Valid()) {
-    Slice handle_value = iiter->value();
-    FilterBlockReader* filter = rep_->filter;
-    BlockHandle handle;
-    if (filter != nullptr && handle.DecodeFrom(&handle_value).ok() &&
-        !filter->KeyMayMatch(handle.offset(), k)) {
-      // Not found
-    } else {
-      Iterator* block_iter = BlockReader(this, options, iiter->value());
-      block_iter->Seek(k);
-      if (block_iter->Valid()) {
-        (*handle_result)(arg, block_iter->key(), block_iter->value());
-      }
-      s = block_iter->status();
-      delete block_iter;
-    }
-  }
-  if (s.ok()) {
-    s = iiter->status();
-  }
-  delete iiter;
+  saxt key = (saxt)k.data();
+  LeafKey leafKey(key);
+  ST_finder stFinder(rep_, leafKeys);
+  stFinder.root_Get(leafKey);
+//  Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
+//  iiter->Seek(k);
+//  if (iiter->Valid()) {
+//    Slice handle_value = iiter->value();
+//    FilterBlockReader* filter = rep_->filter;
+//    BlockHandle handle;
+//    if (filter != nullptr && handle.DecodeFrom(&handle_value).ok() &&
+//        !filter->KeyMayMatch(handle.offset(), k)) {
+//      // Not found
+//    } else {
+//      Iterator* block_iter = BlockReader(this, options, iiter->value());
+//      block_iter->Seek(k);
+//      if (block_iter->Valid()) {
+//        (*handle_result)(arg, block_iter->key(), block_iter->value());
+//      }
+//      s = block_iter->status();
+//      delete block_iter;
+//    }
+//  }
+//  if (s.ok()) {
+//    s = iiter->status();
+//  }
+//  delete iiter;
   return s;
 }
 
@@ -266,6 +276,164 @@ uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
   }
   delete index_iter;
   return result;
+}
+
+
+
+void Table::ST_finder::root_Get(LeafKey& leafKey) {
+  STNonLeaf *root = rep_->stNonLeaf;
+  int pos = whereofKey(root->prefix, rep_->rsaxt, leafKey.asaxt, 0);
+  if (pos==0) nonLeaf_Get(*root, leafKey);
+  else if (pos==-1) {
+    l_Get_NonLeaf(*root, 0, leafKey);
+  } else {
+    r_Get_NonLeaf(*root, root->num-1, leafKey);
+  }
+}
+
+//leafkey都是没用的
+void Table::ST_finder::l_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey& leafKey) {
+  if (nonLeaf.isleaf) {
+    STLeaf* stLeaf = getSTLeaf(nonLeaf, i);
+    leaf_Get(*stLeaf, leafKey);
+    delete stLeaf;
+  } else {
+    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, i);
+    l_Get_NonLeaf(*stNonLeaf, 0, leafKey);
+    delete stNonLeaf;
+  }
+}
+
+void Table::ST_finder::r_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey& leafKey) {
+  if (nonLeaf.isleaf) {
+    STLeaf* stLeaf = getSTLeaf(nonLeaf, i);
+    leaf_Get(*stLeaf, leafKey);
+    delete stLeaf;
+  } else {
+    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, i);
+    r_Get_NonLeaf(*stNonLeaf, stNonLeaf->num-1, leafKey);
+    delete stNonLeaf;
+  }
+}
+
+void Table::ST_finder::leaf_Get(STLeaf& leaf, LeafKey& leafKey) {
+  simi_leakKeys.reserve(leaf.num);
+  for(int i=0;i<leaf.num;i++){
+    simi_leakKeys.emplace_back(leaf.prefix, leaf.Get_rep(i), leaf.co_size, leaf.noco_size);
+  }
+}
+
+void Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf, LeafKey& leafKey) {
+
+  Slice slice;
+  int l=0;
+  int r=nonLeaf.num-1;
+  while (l<r) {
+    int mid = (l + r) / 2;
+    if (saxt_cmp(leafKey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+    else l = mid + 1;
+  }
+  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+  if (pos==0) {
+    //里面
+    if(nonLeaf.isleaf) {
+      STLeaf* stLeaf  = getSTLeaf(nonLeaf, l);
+      leaf_Get(*stLeaf, leafKey);
+      delete stLeaf;
+    }
+    else {
+      STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, l);
+      nonLeaf_Get(*stNonLeaf, leafKey);
+      delete stNonLeaf;
+    }
+  } else if (pos==-1){
+    //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
+    cod preco_d = nonLeaf.Get_co_d(l-1);
+    saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
+    cod nextco_d = nonLeaf.Get_co_d(l);
+    saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafKey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    if ((preco_d - co_d1) < (nextco_d - co_d2)) {
+      // 跟前面
+      r_Get_NonLeaf(nonLeaf, l-1, leafKey);
+    } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
+      //跟后面
+      l_Get_NonLeaf(nonLeaf, l, leafKey);
+    } else {
+      if (co_d1 <= co_d2) {
+        r_Get_NonLeaf(nonLeaf, l-1,  leafKey);
+      } else {
+        l_Get_NonLeaf(nonLeaf, l , leafKey);
+      }
+    }
+
+  } else {
+    //后面有
+    cod preco_d = nonLeaf.Get_co_d(l);
+    saxt prelsaxt = nonLeaf.Get_lsaxt(l);
+    cod nextco_d = nonLeaf.Get_co_d(l+1);
+    saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafKey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    if ((preco_d - co_d1) < (nextco_d - co_d2)) {
+      // 跟前面
+      r_Get_NonLeaf(nonLeaf, l, leafKey);
+    } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
+      //跟后面
+      l_Get_NonLeaf(nonLeaf, l+1, leafKey);
+    } else {
+      if (co_d1 <= co_d2) {
+        r_Get_NonLeaf(nonLeaf, l, leafKey);
+      } else {
+        l_Get_NonLeaf(nonLeaf, l+1, leafKey);
+      }
+    }
+  }
+}
+
+cod Table::ST_finder::get_co_d_from_saxt(saxt a, saxt b, cod pre_d) {
+  int d = 0;
+  for(; d<Bit_cardinality - pre_d; d++){
+    if (a[d] != b[d]) return d;
+  }
+  return pre_d + d;
+}
+
+bool Table::ST_finder::saxt_cmp(saxt a, saxt b, cod co_d) {
+  for (int d = 0;d<Bit_cardinality - co_d;d++) {
+    if (a[d] < b[d]) return true;
+    else if (a[d] > b[d]) return false;
+  }
+  return true;
+}
+
+int Table::ST_finder::whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey,
+                                 cod co_d) {
+  if (saxt_cmp(leafKey, rsaxt, co_d) && saxt_cmp(lsaxt, leafKey, co_d)) return 0;
+  if (saxt_cmp(leafKey, lsaxt, co_d)) return -1;
+  return 1;
+}
+
+STLeaf* Table::ST_finder::getSTLeaf(STNonLeaf& nonLeaf, int i) {
+  Slice slice;
+  STpos sTpos = nonLeaf.Get_pos(i);
+  size_t stLeaf_size = sTpos.GetSize();
+  STLeaf* stLeaf = new STLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stLeaf_size);
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+                   &slice, stLeaf->rep);
+  return stLeaf;
+}
+
+STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
+  Slice slice;
+  STpos sTpos = nonLeaf.Get_pos(i);
+  size_t stNonLeaf_size = sTpos.GetSize();
+  STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stNonLeaf_size);
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+                   &slice, stNonLeaf->rep);
+  stNonLeaf->Setisleaf();
+  return stNonLeaf;
 }
 
 }  // namespace leveldb

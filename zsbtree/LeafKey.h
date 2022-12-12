@@ -13,6 +13,7 @@ public:
     LeafKey();
     LeafKey(saxt saxt_);
     LeafKey(saxt saxt_, void* p);
+    LeafKey(saxt prefix, char* stleafkey, cod co_size, cod noco_size);
 
     void setAsaxt(saxt saxt_);
 

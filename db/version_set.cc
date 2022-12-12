@@ -256,7 +256,7 @@ struct Saver {
   SaverState state;
   const Comparator* ucmp;
   Slice user_key;
-  std::string* value;
+  vector<LeafKey>* value;
 };
 }  // namespace
 static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
@@ -268,7 +268,7 @@ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
     if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {
       s->state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;
       if (s->state == kFound) {
-        s->value->assign(v.data(), v.size());
+//        s->value->assign(v.data(), v.size());
       }
     }
   }
@@ -322,16 +322,19 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
   }
 }
 
-Status Version::Get(const ReadOptions& options, const LookupKey& k,
-                    std::string* value, GetStats* stats) {
+Status Version::Get(const ReadOptions& options, LookupKey& k,
+                    vector<LeafKey>& leafKeys, GetStats* stats) {
   stats->seek_file = nullptr;
   stats->seek_file_level = -1;
 
   struct State {
-    Saver saver;
+    State(vector<LeafKey>& leafKeys): leafKeys(leafKeys){}
+    //    Saver saver;
+    vector<LeafKey>& leafKeys;
     GetStats* stats;
     const ReadOptions* options;
     Slice ikey;
+    Slice ukey;
     FileMetaData* last_file_read;
     int last_file_read_level;
 
@@ -353,26 +356,28 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
       state->last_file_read_level = level;
 
       state->s = state->vset->table_cache_->Get(*state->options, f->number,
-                                                f->file_size, state->ikey,
-                                                &state->saver, SaveValue);
-      if (!state->s.ok()) {
-        state->found = true;
-        return false;
-      }
-      switch (state->saver.state) {
-        case kNotFound:
-          return true;  // Keep searching in other files
-        case kFound:
-          state->found = true;
-          return false;
-        case kDeleted:
-          return false;
-        case kCorrupt:
-          state->s =
-              Status::Corruption("corrupted key for ", state->saver.user_key);
-          state->found = true;
-          return false;
-      }
+                                                f->file_size, state->ukey, state->leafKeys);
+      //先直接返回，只查一张表
+      state->found = true;
+      return false;
+//      if (!state->s.ok()) {
+//        state->found = true;
+//        return false;
+//      }
+//      switch (state->saver.state) {
+//        case kNotFound:
+//          return true;  // Keep searching in other files
+//        case kFound:
+//          state->found = true;
+//          return false;
+//        case kDeleted:
+//          return false;
+//        case kCorrupt:
+//          state->s =
+//              Status::Corruption("corrupted key for ", state->saver.user_key);
+//          state->found = true;
+//          return false;
+//      }
 
       // Not reached. Added to avoid false compilation warnings of
       // "control reaches end of non-void function".
@@ -380,7 +385,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
     }
   };
 
-  State state;
+  State state(leafKeys);
   state.found = false;
   state.stats = stats;
   state.last_file_read = nullptr;
@@ -388,14 +393,16 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 
   state.options = &options;
   state.ikey = k.internal_key();
+  state.ukey = k.user_key();
   state.vset = vset_;
 
-  state.saver.state = kNotFound;
-  state.saver.ucmp = vset_->icmp_.user_comparator();
-  state.saver.user_key = k.user_key();
-  state.saver.value = value;
+//  state.saver.state = kNotFound;
+//  state.saver.ucmp = vset_->icmp_.user_comparator();
+//  state.saver.user_key = k.user_key();
+//  state.saver.value = &leafKeys;
 
-  ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
+  //自上向下找到key的
+  ForEachOverlapping(state.ukey, state.ikey, &state, &State::Match);
 
   return state.found ? state.s : Status::NotFound(Slice());
 }
