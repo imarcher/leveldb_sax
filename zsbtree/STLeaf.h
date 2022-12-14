@@ -12,6 +12,9 @@ class STLeaf {
  public:
 
   STLeaf(unsigned short num, cod co_d, saxt prefix, size_t size);
+  STLeaf(size_t size);
+
+  void Set(unsigned short num, cod co_d, saxt prefix);
 
   ~STLeaf();
 

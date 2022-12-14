@@ -402,8 +402,7 @@ cod Table::ST_finder::get_co_d_from_saxt(saxt a, saxt b, cod pre_d) {
 
 bool Table::ST_finder::saxt_cmp(saxt a, saxt b, cod co_d) {
   for (int d = 0;d<Bit_cardinality - co_d;d++) {
-    if (a[d] < b[d]) return true;
-    else if (a[d] > b[d]) return false;
+    if (a[d] != b[d]) return a[d] < b[d];
   }
   return true;
 }
@@ -434,6 +433,76 @@ STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
                    &slice, stNonLeaf->rep);
   stNonLeaf->Setisleaf();
   return stNonLeaf;
+}
+
+Table::ST_Iter::ST_Iter(Table* table) :rep_(table->rep_),top(0),leaftop(0),stLeaf(sizeof(Leaf)) {
+  st_nonleaf_stack.push_back(rep_->stNonLeaf);
+  LeafKey l;
+  next(l);
+  leaftop--;
+}
+
+bool Table::ST_Iter::next(LeafKey& res) {
+  while(++leaftop >= stLeaf.num) {
+    while (top >= 0) {
+      if (st_nonleaf_stack[top]->isleaf) {
+        if (++nonleaftops[top] < st_nonleaf_stack[top]->num) {
+          //只换叶节点
+          getSTLeaf();
+          break;
+        } else {
+          top--;
+        }
+      } else {
+        if (++nonleaftops[top] < st_nonleaf_stack[top]->num) {
+          getSTNonLeaf();
+        } else {
+          top--;
+        }
+      }
+    }
+    if (top < 0) {
+      //遍历完了
+      return false;
+    }
+  }
+  res.Set(stLeaf.prefix, stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
+  return true;
+}
+
+void Table::ST_Iter::getSTLeaf() {
+  STNonLeaf &nonLeaf = *st_nonleaf_stack[top];
+  int i = nonleaftops[top];
+  Slice slice;
+  STpos sTpos = nonLeaf.Get_pos(i);
+  size_t stLeaf_size = sTpos.GetSize();
+  stLeaf.Set(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i));
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+                   &slice, stLeaf.rep);
+  leaftop = -1;
+}
+
+void Table::ST_Iter::getSTNonLeaf() {
+  STNonLeaf &nonLeaf = *st_nonleaf_stack[top];
+  int i = nonleaftops[top];
+  Slice slice;
+  STpos sTpos = nonLeaf.Get_pos(i);
+  size_t stNonLeaf_size = sTpos.GetSize();
+  top++;
+  if (top < st_nonleaf_stack.size()){
+    st_nonleaf_stack[top]->Set(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stNonLeaf_size);
+  } else {
+    STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stNonLeaf_size);
+    st_nonleaf_stack.push_back(stNonLeaf);
+  }
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+                   &slice, st_nonleaf_stack[top]->rep);
+  st_nonleaf_stack[top]->Setisleaf();
+  nonleaftops[top] = -1;
+}
+
+Table::ST_Iter::~ST_Iter() {
+  for(int i=1;i<st_nonleaf_stack.size();i++) delete st_nonleaf_stack[i];
 }
 
 }  // namespace leveldb

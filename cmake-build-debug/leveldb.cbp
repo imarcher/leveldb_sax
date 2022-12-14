@@ -303,6 +303,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/cmake-build-debug/include/port/port_config.h">
 			<Option target="leveldb"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/ST_merge.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/ST_merge.h">
+			<Option target="leveldb"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/db/builder.cc">
 			<Option target="leveldb"/>
 		</Unit>
@@ -515,11 +521,9 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/arena.cc">
 			<Option target="leveldb"/>
-			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/arena.h">
 			<Option target="leveldb"/>
-			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/bloom.cc">
 			<Option target="leveldb"/>
@@ -568,9 +572,11 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/newVector.cc">
 			<Option target="leveldb"/>
+			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/newVector.h">
 			<Option target="leveldb"/>
+			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/util/no_destructor.h">
 			<Option target="leveldb"/>
@@ -627,12 +633,6 @@
 			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STNonLeaf.h">
-			<Option target="zsbtree"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/zsbtree/ST_finder.cc">
-			<Option target="zsbtree"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/zsbtree/ST_finder.h">
 			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/zsbtree/STkeyinfo.cc">

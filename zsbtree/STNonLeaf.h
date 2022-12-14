@@ -14,10 +14,13 @@ class STNonLeaf {
  public:
 
   STNonLeaf(unsigned short num, cod co_d, saxt prefix, size_t size);
+  STNonLeaf(size_t size);
+  void Set(unsigned short num, cod co_d, saxt prefix, size_t size);
 
   void Setisleaf();
 
   ~STNonLeaf();
+
 
   cod Get_co_d(int i);
   int Getnum(int i);

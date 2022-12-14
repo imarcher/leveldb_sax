@@ -273,6 +273,7 @@ class VersionSet {
 
   friend class Compaction;
   friend class Version;
+  friend class ST_merge;
 
   bool ReuseManifest(const std::string& dscname, const std::string& dscbase);
 
@@ -359,6 +360,7 @@ class Compaction {
  private:
   friend class Version;
   friend class VersionSet;
+  friend class ST_merge;
 
   Compaction(const Options* options, int level);
 

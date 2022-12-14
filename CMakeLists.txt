@@ -114,7 +114,7 @@ if(BUILD_SHARED_LIBS)
 endif(BUILD_SHARED_LIBS)
 
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
-include(include)
+
 include(GNUInstallDirs)
 include_directories(sax/include)
 add_subdirectory(sax)
@@ -124,6 +124,8 @@ target_link_libraries(leveldb sax zsbtree)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+    "db/ST_merge.cc"
+    "db/ST_merge.h"
     "db/builder.cc"
     "db/builder.h"
     "db/c.cc"

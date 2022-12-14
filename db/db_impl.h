@@ -18,6 +18,7 @@
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "globals.h"
+#include "ST_merge.h"
 
 namespace leveldb {
 

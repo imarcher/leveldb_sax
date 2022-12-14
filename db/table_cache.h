@@ -47,6 +47,7 @@ class TableCache {
   void Evict(uint64_t file_number);
 
  private:
+  friend class ST_merge;
   Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);
 
   Env* const env_;

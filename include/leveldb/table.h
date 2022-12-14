@@ -9,6 +9,7 @@
 #include "leveldb/export.h"
 #include "leveldb/iterator.h"
 #include "zsbtree/zsbtree_table.h"
+#include "stack"
 
 namespace leveldb {
 
@@ -19,7 +20,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
-
+class ST_iter __unused;
 
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from
@@ -59,9 +60,15 @@ class LEVELDB_EXPORT Table {
   // be close to the file length.
   uint64_t ApproximateOffsetOf(const Slice& key) const;
 
+
+
  private:
   friend class TableCache;
   struct Rep;
+  class ST_finder;
+
+
+
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
 
@@ -81,9 +88,11 @@ class LEVELDB_EXPORT Table {
   Rep* const rep_;
 
 
+
+
   class ST_finder{
    public:
-    explicit ST_finder(Rep* rep, vector<LeafKey>& simiLeakKeys) : simi_leakKeys(simiLeakKeys), rep_(rep) {}
+    ST_finder(Rep* rep, vector<LeafKey>& simiLeakKeys) : simi_leakKeys(simiLeakKeys), rep_(rep) {}
 
    public:
 
@@ -107,6 +116,26 @@ class LEVELDB_EXPORT Table {
    private:
     Rep* const rep_;
     vector<LeafKey> &simi_leakKeys;
+  };
+
+ public:
+  class ST_Iter{
+   public:
+    ST_Iter(Table* table);
+    bool next(LeafKey& res);
+    ~ST_Iter();
+   private:
+    inline void getSTLeaf();
+    inline void getSTNonLeaf();
+    Rep* const rep_;
+    //栈，要delete除了root
+    vector<STNonLeaf*> st_nonleaf_stack;
+    //指定当前的位置
+    int top;
+    //指定当前nonleaf的nonleafkey位置
+    int nonleaftops[10];
+    STLeaf stLeaf;
+    int leaftop;
   };
 };
 

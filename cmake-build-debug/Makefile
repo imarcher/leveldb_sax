@@ -175,6 +175,33 @@ zsbtree/fast:
 	$(MAKE) -f zsbtree/CMakeFiles/zsbtree.dir/build.make zsbtree/CMakeFiles/zsbtree.dir/build
 .PHONY : zsbtree/fast
 
+db/ST_merge.o: db/ST_merge.cc.o
+
+.PHONY : db/ST_merge.o
+
+# target to build an object file
+db/ST_merge.cc.o:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_merge.cc.o
+.PHONY : db/ST_merge.cc.o
+
+db/ST_merge.i: db/ST_merge.cc.i
+
+.PHONY : db/ST_merge.i
+
+# target to preprocess a source file
+db/ST_merge.cc.i:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_merge.cc.i
+.PHONY : db/ST_merge.cc.i
+
+db/ST_merge.s: db/ST_merge.cc.s
+
+.PHONY : db/ST_merge.s
+
+# target to generate assembly for a file
+db/ST_merge.cc.s:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_merge.cc.s
+.PHONY : db/ST_merge.cc.s
+
 db/builder.o: db/builder.cc.o
 
 .PHONY : db/builder.o
@@ -1268,6 +1295,9 @@ help:
 	@echo "... main"
 	@echo "... sax"
 	@echo "... zsbtree"
+	@echo "... db/ST_merge.o"
+	@echo "... db/ST_merge.i"
+	@echo "... db/ST_merge.s"
 	@echo "... db/builder.o"
 	@echo "... db/builder.i"
 	@echo "... db/builder.s"

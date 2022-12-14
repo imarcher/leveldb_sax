@@ -17,6 +17,21 @@ STNonLeaf::STNonLeaf(unsigned short num, cod co_d, saxt prefix, size_t size) {
   this->size = size;
 }
 
+STNonLeaf::STNonLeaf(size_t size) {
+  rep = new char[size];
+}
+
+void STNonLeaf::Set(unsigned short num, cod co_d, saxt prefix, size_t size) {
+  this->num = num;
+  this->co_d = co_d;
+  co_size = co_d * sizeof(saxt_type);
+  lkey_size = saxt_size - co_size;
+  pos_size = lkey_size << 1;
+  noco_size = pos_size + 8;
+  memcpy(this->prefix, prefix, saxt_size);
+  this->size = size;
+}
+
 void STNonLeaf::Setisleaf() { isleaf = rep + size - 1; }
 
 STNonLeaf::~STNonLeaf() {
