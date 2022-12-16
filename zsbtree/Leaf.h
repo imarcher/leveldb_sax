@@ -15,6 +15,7 @@ class Leaf {
 public:
     Leaf();
     Leaf(int num, cod co_d, saxt lsaxt, saxt rsaxt, LeafKey *leafKeys);
+    Leaf(NonLeafKey& nonLeafKey);
     //添加一个saxt，p
     void add(LeafKey leafKey);
     void add(LeafKey *leafKeys, int num);

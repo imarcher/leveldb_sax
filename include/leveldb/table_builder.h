@@ -51,6 +51,9 @@ class LEVELDB_EXPORT TableBuilder {
   // Add key,value to the table being constructed.
   // REQUIRES: key is after any previously added key according to comparator.
   // REQUIRES: Finish(), Abandon() have not been called
+  void AddLeaf(NonLeafKey* nonLeafKey);
+  void AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf);
+  void AddRootKey(NonLeafKey* nonLeafKey);
   void Add(MemTable* mem);
 
   // Advanced operation: flush any buffered key/value pairs to file.

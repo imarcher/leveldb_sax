@@ -823,8 +823,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   return s;
 }
 
-Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
-                                          Iterator* input) {
+Status DBImpl::FinishCompactionOutputFile(CompactionState* compact) {
   assert(compact != nullptr);
   assert(compact->outfile != nullptr);
   assert(compact->builder != nullptr);
@@ -833,8 +832,8 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   assert(output_number != 0);
 
   // Check for iterator errors
-  Status s = input->status();
-  const uint64_t current_entries = compact->builder->NumEntries();
+  Status s;
+//  const uint64_t current_entries = compact->builder->NumEntries();
   if (s.ok()) {
     s = compact->builder->Finish();
   } else {
@@ -925,6 +924,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //  bool has_current_user_key = false;
 //  SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   LeafKey leafKey;
+  Zsbtree_Build* zsbtreeBuild;
   while (stMerge.next(leafKey) && !shutting_down_.load(std::memory_order_acquire)) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
@@ -939,51 +939,22 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       imm_micros += (env_->NowMicros() - imm_start);
     }
 
+    //internalkey
+    InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+    Slice key = ikey.Encode();
     //和level+2中很多文件重合了
-    Slice key = input->key();
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
-      status = FinishCompactionOutputFile(compact, input);
+      compact->current_output()->largest.DecodeFrom(key);
+      zsbtreeBuild->finish();
+      compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+      delete zsbtreeBuild;
+      status = FinishCompactionOutputFile(compact);
       if (!status.ok()) {
         break;
       }
     }
 
-    // Handle key/value, add to state, etc.
-    bool drop = false;
-//    if (!ParseInternalKey(key, &ikey)) {
-//      // Do not hide error keys
-//      current_user_key.clear();
-//      has_current_user_key = false;
-//      last_sequence_for_key = kMaxSequenceNumber;
-//    } else {
-//      if (!has_current_user_key ||
-//          user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
-//              0) {
-//        // First occurrence of this user key
-//        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-//        has_current_user_key = true;
-//        last_sequence_for_key = kMaxSequenceNumber;
-//      }
-//
-//      if (last_sequence_for_key <= compact->smallest_snapshot) {
-//        // Hidden by an newer entry for same user key
-//        drop = true;  // (A)
-//      } else if (ikey.type == kTypeDeletion &&
-//                 ikey.sequence <= compact->smallest_snapshot &&
-//                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-//        // For this user key:
-//        // (1) there is no data in higher levels
-//        // (2) data in lower levels will have larger sequence numbers
-//        // (3) data in layers that are being compacted here and have
-//        //     smaller sequence numbers will be dropped in the next
-//        //     few iterations of this loop (by rule (A) above).
-//        // Therefore this deletion marker is obsolete and can be dropped.
-//        drop = true;
-//      }
-//
-//      last_sequence_for_key = ikey.sequence;
-//    }
 #if 0
     Log(options_.info_log,
         "  Compact: %s, seq %d, type: %d %d, drop: %d, is_base: %d, "
@@ -994,44 +965,48 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         (int)last_sequence_for_key, (int)compact->smallest_snapshot);
 #endif
 
-    if (!drop) {
-      // Open output file if necessary
-      if (compact->builder == nullptr) {
-        status = OpenCompactionOutputFile(compact);
-        if (!status.ok()) {
-          break;
-        }
+    // Open output file if necessary
+    if (compact->builder == nullptr) {
+      status = OpenCompactionOutputFile(compact);
+      if (!status.ok()) {
+        break;
       }
-      if (compact->builder->NumEntries() == 0) {
-        compact->current_output()->smallest.DecodeFrom(key);
-      }
-      compact->current_output()->largest.DecodeFrom(key);
-      compact->builder->Add(key, input->value());
+      zsbtreeBuild = new ST_Conmpaction(Leaf_maxnum, Leaf_minnum, compact->builder);
+      compact->current_output()->smallest.DecodeFrom(key);
+    }
+//    if (!compact->builder->FileSize()) {
+//      compact->current_output()->smallest.DecodeFrom(key);
+//    }
 
-      // Close output file if it is big enough
-      if (compact->builder->FileSize() >=
-          compact->compaction->MaxOutputFileSize()) {
-        status = FinishCompactionOutputFile(compact, input);
-        if (!status.ok()) {
-          break;
-        }
+    zsbtreeBuild->Add(leafKey);
+
+    // Close output file if it is big enough
+    if (compact->builder->FileSize() >=
+        compact->compaction->MaxOutputFileSize()) {
+      compact->current_output()->largest.DecodeFrom(key);
+      zsbtreeBuild->finish();
+      compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+      delete zsbtreeBuild;
+      status = FinishCompactionOutputFile(compact);
+      if (!status.ok()) {
+        break;
       }
     }
-
-    input->Next();
   }
 
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && compact->builder != nullptr) {
-    status = FinishCompactionOutputFile(compact, input);
+    InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+    Slice key = ikey.Encode();
+    compact->current_output()->largest.DecodeFrom(key);
+    zsbtreeBuild->finish();
+    compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+    delete zsbtreeBuild;
+    status = FinishCompactionOutputFile(compact);
   }
-  if (status.ok()) {
-    status = input->status();
-  }
-  delete input;
-  input = nullptr;
+
 
   CompactionStats stats;
   stats.micros = env_->NowMicros() - start_micros - imm_micros;
@@ -1778,6 +1753,7 @@ void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
   }
 
 }
+
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

@@ -75,6 +75,40 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   return Status::OK();
 }
 
+void TableBuilder::AddLeaf(NonLeafKey* nonLeafKey) {
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+
+  r->data_block.AddLeaf(nonLeafKey);
+  Flush();
+  nonLeafKey->p = r->pending_handle.Get();
+}
+
+void TableBuilder::AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf) {
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+
+  r->data_block.AddNonLeaf(nonLeafKey, isleaf);
+  Flush();
+  nonLeafKey->p = r->pending_handle.Get();
+}
+
+void TableBuilder::AddRootKey(NonLeafKey* nonLeafKey) {
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+  //一个sstable的起点,就是
+  std::string root_str;
+  root_str.append((char*)&nonLeafKey, nonleaf_key_size);
+  r->status = r->file->Append(root_str);
+  if (r->status.ok()) {
+    //flush剩余的
+    r->file->Flush();
+    r->offset += root_str.size();
+  }
+}
 
 void TableBuilder::Add(MemTable* mem) {
   Rep* r = rep_;
@@ -95,8 +129,6 @@ void TableBuilder::Add(MemTable* mem) {
       r->offset += root_str.size();
     }
   }
-  mem->table_.root = nullptr;
-
 
   //num_entries没用
 //  if (r->num_entries > 0) {

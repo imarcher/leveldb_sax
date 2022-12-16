@@ -29,6 +29,10 @@ class BlockBuilder {
 //  size_t Add(const Slice& key, const Slice& value);
 
   //返回压缩后的大小
+
+  void AddLeaf(NonLeafKey* nonLeafKey);
+  void AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf);
+
   void Add(Leaf* leaf);
 
   void Add(NonLeaf* nonLeaf, vector<void*> new_p);

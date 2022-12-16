@@ -8,6 +8,9 @@
 #include "zsbtree_LeafBuild.h"
 #include "zsbtree_NonLeafBuild.h"
 
+
+
+
 NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m, int &leafNum) {
     vector<NonLeafKey> nonLeafKeys;
     leaf_method::buildtree(leafKeys, nonLeafKeys, n, m);
@@ -159,6 +162,86 @@ int get_drange_rebalance(vector<int> &memNum_period){
 
   return res;
 }
+
+
+//省空间模式
+class Zsbtree_Build {
+ public:
+
+  Zsbtree_Build(int max_size, int min_size);
+
+  void Add(LeafKey& leafkey);
+
+  void Add(NonLeafKey& nonLeafKey, int dep);
+
+  void Emplace(int num, cod co_d, saxt lsaxt, saxt rsaxt, void* leaf, int dep);
+
+  void finish();
+
+
+  NonLeafKey* GetRootKey();
+
+
+ protected:
+  //new或者存磁盘，但是不移动
+  virtual void doleaf(NonLeafKey* nonLeafKey) = 0;
+  virtual void dononleaf(NonLeafKey* nonLeafKey, bool isleaf) = 0;
+ private:
+
+  inline saxt get_saxt_i(newVector<LeafKey> &leafKeys, int i);
+  inline void build_leaf_and_nonleafkey(newVector<LeafKey> &leafKeys, int id,
+                                        int num, cod co_d, saxt lsaxt, saxt rsaxt);
+  inline void build_leaf_and_nonleafkey_two(newVector<LeafKey> &leafKeys, int id,
+                                            int num, cod co_d, saxt lsaxt, saxt rsaxt);
+  inline void add_nonleafkey(newVector<LeafKey> &leafKeys, int id,
+                             int num, cod co_d, saxt rsaxt);
+  inline void split_nonleafkey(newVector<LeafKey> &leafKeys, int id, int allnum,
+                               int num, cod co_d, saxt rsaxt);
+  inline int getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
+  int buildtree_window(newVector<LeafKey> &leafKeys);
+  void buildtree_window_last(newVector<LeafKey> &leafKeys, int allnum);
+
+  inline saxt get_saxt_i(newVector<NonLeafKey> &leafKeys, int i);
+  inline saxt get_saxt_i_r(newVector<NonLeafKey> &leafKeys, int i);
+  inline void build_leaf_and_nonleafkey(newVector<NonLeafKey> &leafKeys, int id,
+                                        int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep);
+  inline void build_leaf_and_nonleafkey_two(newVector<NonLeafKey> &leafKeys, int id,
+                                            int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep);
+  inline void add_nonleafkey(newVector<NonLeafKey> &leafKeys, int id,
+                             int num, cod co_d, saxt rsaxt, int dep);
+  inline void split_nonleafkey(newVector<NonLeafKey> &leafKeys, int id, int allnum,
+                               int num, cod co_d, saxt rsaxt, int dep);
+  inline int getbestmid(newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
+  int buildtree_window(newVector<NonLeafKey> &leafKeys, int dep);
+  void buildtree_window_last(newVector<NonLeafKey> &leafKeys, int allnum, int dep);
+
+
+  typedef struct {
+    cod co_d;
+    int id;
+    int num;
+    saxt lsaxt;
+    saxt rsaxt;
+  } method2_node;
+
+  int n;
+  int m;
+  newVector<LeafKey> leafkeys;
+  vector<newVector<NonLeafKey> > nonleafkeys;
+
+  vector<LeafKey> leafkeys_rep;
+  vector<vector<NonLeafKey> > nonleafkeys_rep;
+
+};
+
+
+class Zsbtree_Build_Mem : public Zsbtree_Build{
+  void doleaf(NonLeafKey* nonLeafKey) override ;
+  void dononleaf(NonLeafKey* nonLeafKey, bool isleaf) override;
+
+ public:
+  Zsbtree_Build_Mem(int max_size, int min_size);
+};
 
 
 

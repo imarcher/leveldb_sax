@@ -15,6 +15,7 @@ public:
     NonLeafKey(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p);
     void setLsaxt(saxt saxt_);
     void setRsaxt(saxt saxt_);
+    void Set(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p);
 
     int num;
     cod co_d;

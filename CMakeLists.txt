@@ -124,6 +124,8 @@ target_link_libraries(leveldb sax zsbtree)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+    "db/ST_Compaction.cc"
+    "db/ST_Compaction.h"
     "db/ST_merge.cc"
     "db/ST_merge.h"
     "db/builder.cc"

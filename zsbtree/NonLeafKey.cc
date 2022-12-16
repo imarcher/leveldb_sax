@@ -27,8 +27,10 @@ NonLeafKey::NonLeafKey() {
 
 }
 
-
-
-
-
-
+void NonLeafKey::Set(int num, cod co_d, saxt lsaxt, saxt rsaxt, void* p) {
+  this->num = num;
+  this->co_d = co_d;
+  memcpy(this->lsaxt, lsaxt, saxt_size);
+  memcpy(this->rsaxt, rsaxt, saxt_size);
+  this->p = p;
+}

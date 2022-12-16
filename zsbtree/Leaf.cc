@@ -50,3 +50,10 @@ void Leaf::set(NonLeafKey& nonLeafKey) {
   memcpy(lsaxt, nonLeafKey.lsaxt, saxt_size);
   memcpy(rsaxt, nonLeafKey.rsaxt, saxt_size);
 }
+
+Leaf::Leaf(NonLeafKey& nonLeafKey) {
+  num = nonLeafKey.num;
+  co_d = nonLeafKey.co_d;
+  memcpy(lsaxt, nonLeafKey.lsaxt, saxt_size);
+  memcpy(rsaxt, nonLeafKey.rsaxt, saxt_size);
+}

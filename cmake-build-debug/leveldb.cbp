@@ -257,6 +257,7 @@
 					<Add directory="/home/hh/a/leveldb-main/sax/include"/>
 					<Add directory="/home/hh/a/leveldb-main/zsbtree/../sax/include"/>
 					<Add directory="/home/hh/a/leveldb-main/zsbtree/../util"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../include/leveldb"/>
 					<Add directory="/usr/include/c++/9"/>
 					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
 					<Add directory="/usr/include/c++/9/backward"/>
@@ -284,6 +285,7 @@
 					<Add directory="/home/hh/a/leveldb-main/sax/include"/>
 					<Add directory="/home/hh/a/leveldb-main/zsbtree/../sax/include"/>
 					<Add directory="/home/hh/a/leveldb-main/zsbtree/../util"/>
+					<Add directory="/home/hh/a/leveldb-main/zsbtree/../include/leveldb"/>
 					<Add directory="/usr/include/c++/9"/>
 					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
 					<Add directory="/usr/include/c++/9/backward"/>
@@ -402,6 +404,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/db/write_batch_internal.h">
 			<Option target="leveldb"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/zsbtree_builder.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/zsbtree_builder.h">
+			<Option target="leveldb"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/helpers/memenv/memenv.cc">
 			<Option target="leveldb"/>
 		</Unit>
@@ -446,6 +454,7 @@
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/include/leveldb/table.h">
 			<Option target="leveldb"/>
+			<Option target="zsbtree"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/include/leveldb/table_builder.h">
 			<Option target="leveldb"/>
@@ -511,6 +520,12 @@
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/table/table_builder.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/table/table_compaction.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/table/table_compaction.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/table/two_level_iterator.cc">

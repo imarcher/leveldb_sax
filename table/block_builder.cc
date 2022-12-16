@@ -121,4 +121,31 @@ void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> new_p) {
   buffer_.append(nonLeaf->isleaf,1);
 }
 
+void BlockBuilder::AddLeaf(NonLeafKey* nonLeafKey) {
+  cod co_d = nonLeafKey->co_d;
+  size_t co_saxt_size = co_d * sizeof(saxt_type);
+  size_t noco_saxt_size = saxt_size - co_saxt_size + 8;
+  LeafKey* leafKeys = (LeafKey*)nonLeafKey->p;
+  //把共享的压缩掉
+  for(int i=0;i<nonLeafKey->num;i++){
+    buffer_.append(((char*)leafKeys + i) + co_saxt_size, noco_saxt_size);
+  }
+}
+
+void BlockBuilder::AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf) {
+  cod co_d = nonLeafKey->co_d;
+  size_t co_saxt_size = co_d * sizeof(saxt_type);
+  size_t noco_saxt_size = saxt_size - co_saxt_size;
+  NonLeafKey* nonLeafKeys = (NonLeafKey*)nonLeafKey->p;
+  for(int i=0;i<nonLeafKey->num;i++){
+    NonLeafKey* nonLeafKey1 = nonLeafKeys + i;
+    STkeyinfo stkeyinfo(nonLeafKey1->co_d, nonLeafKey1->num);
+    buffer_.append((char*)&stkeyinfo, 2);
+    buffer_.append(((char*)nonLeafKey1->lsaxt) + co_saxt_size, noco_saxt_size);
+    buffer_.append(((char*)nonLeafKey1->rsaxt) + co_saxt_size, noco_saxt_size);
+    buffer_.append((char*)nonLeafKey1->p, 8);
+  }
+  buffer_.append(isleaf,1);
+}
+
 }  // namespace leveldb
