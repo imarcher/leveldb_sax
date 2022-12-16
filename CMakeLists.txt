@@ -130,7 +130,7 @@ target_sources(leveldb
     "db/ST_merge.h"
     "db/builder.cc"
     "db/builder.h"
-    "db/c.cc"
+#    "db/c.cc"
     "db/db_impl.cc"
     "db/db_impl.h"
     "db/db_iter.cc"
@@ -202,7 +202,7 @@ target_sources(leveldb
 
   # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
   $<$<VERSION_GREATER:CMAKE_VERSION,3.2>:PUBLIC>
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
+#    "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/cache.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/comparator.h"
     "${LEVELDB_PUBLIC_INCLUDE_DIR}/db.h"

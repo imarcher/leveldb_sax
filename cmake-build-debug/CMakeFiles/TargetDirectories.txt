@@ -4,7 +4,6 @@
 /home/hh/a/leveldb-main/cmake-build-debug/CMakeFiles/leveldb.dir
 /home/hh/a/leveldb-main/cmake-build-debug/sax/CMakeFiles/rebuild_cache.dir
 /home/hh/a/leveldb-main/cmake-build-debug/sax/CMakeFiles/edit_cache.dir
-/home/hh/a/leveldb-main/cmake-build-debug/sax/CMakeFiles/main.dir
 /home/hh/a/leveldb-main/cmake-build-debug/sax/CMakeFiles/sax.dir
 /home/hh/a/leveldb-main/cmake-build-debug/zsbtree/CMakeFiles/rebuild_cache.dir
 /home/hh/a/leveldb-main/cmake-build-debug/zsbtree/CMakeFiles/edit_cache.dir

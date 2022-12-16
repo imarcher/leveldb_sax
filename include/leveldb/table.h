@@ -20,7 +20,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
-class ST_iter __unused;
+
 
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from

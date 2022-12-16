@@ -10,5 +10,5 @@ file(GLOB_RECURSE SAX_LIB_SRC
 add_library(sax STATIC ${SAX_LIB_SRC})
 
 
-add_executable(main main.cc)
-target_link_libraries(main sax)
+#add_executable(main main.cc)
+#target_link_libraries(main sax)

@@ -111,21 +111,6 @@ depend:
 .PHONY : depend
 
 # Convenience name for target.
-sax/CMakeFiles/main.dir/rule:
-	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f CMakeFiles/Makefile2 sax/CMakeFiles/main.dir/rule
-.PHONY : sax/CMakeFiles/main.dir/rule
-
-# Convenience name for target.
-main: sax/CMakeFiles/main.dir/rule
-
-.PHONY : main
-
-# fast build rule for target.
-main/fast:
-	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f sax/CMakeFiles/main.dir/build.make sax/CMakeFiles/main.dir/build
-.PHONY : main/fast
-
-# Convenience name for target.
 sax/CMakeFiles/sax.dir/rule:
 	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f CMakeFiles/Makefile2 sax/CMakeFiles/sax.dir/rule
 .PHONY : sax/CMakeFiles/sax.dir/rule
@@ -139,33 +124,6 @@ sax: sax/CMakeFiles/sax.dir/rule
 sax/fast:
 	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f sax/CMakeFiles/sax.dir/build.make sax/CMakeFiles/sax.dir/build
 .PHONY : sax/fast
-
-main.o: main.cc.o
-
-.PHONY : main.o
-
-# target to build an object file
-main.cc.o:
-	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f sax/CMakeFiles/main.dir/build.make sax/CMakeFiles/main.dir/main.cc.o
-.PHONY : main.cc.o
-
-main.i: main.cc.i
-
-.PHONY : main.i
-
-# target to preprocess a source file
-main.cc.i:
-	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f sax/CMakeFiles/main.dir/build.make sax/CMakeFiles/main.dir/main.cc.i
-.PHONY : main.cc.i
-
-main.s: main.cc.s
-
-.PHONY : main.s
-
-# target to generate assembly for a file
-main.cc.s:
-	cd /home/hh/a/leveldb-main/cmake-build-debug && $(MAKE) -f sax/CMakeFiles/main.dir/build.make sax/CMakeFiles/main.dir/main.cc.s
-.PHONY : main.cc.s
 
 src/sax.o: src/sax.cc.o
 
@@ -229,11 +187,7 @@ help:
 	@echo "... depend"
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
-	@echo "... main"
 	@echo "... sax"
-	@echo "... main.o"
-	@echo "... main.i"
-	@echo "... main.s"
 	@echo "... src/sax.o"
 	@echo "... src/sax.i"
 	@echo "... src/sax.s"

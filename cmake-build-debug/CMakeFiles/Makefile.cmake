@@ -67,7 +67,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/leveldbutil.dir/DependInfo.cmake"
   "CMakeFiles/leveldb.dir/DependInfo.cmake"
-  "sax/CMakeFiles/main.dir/DependInfo.cmake"
   "sax/CMakeFiles/sax.dir/DependInfo.cmake"
   "zsbtree/CMakeFiles/zsbtree.dir/DependInfo.cmake"
   )

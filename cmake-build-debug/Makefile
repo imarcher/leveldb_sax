@@ -137,19 +137,6 @@ leveldb/fast:
 .PHONY : leveldb/fast
 
 #=============================================================================
-# Target rules for targets named main
-
-# Build rule for target.
-main: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 main
-.PHONY : main
-
-# fast build rule for target.
-main/fast:
-	$(MAKE) -f sax/CMakeFiles/main.dir/build.make sax/CMakeFiles/main.dir/build
-.PHONY : main/fast
-
-#=============================================================================
 # Target rules for targets named sax
 
 # Build rule for target.
@@ -255,33 +242,6 @@ db/builder.s: db/builder.cc.s
 db/builder.cc.s:
 	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/builder.cc.s
 .PHONY : db/builder.cc.s
-
-db/c.o: db/c.cc.o
-
-.PHONY : db/c.o
-
-# target to build an object file
-db/c.cc.o:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/c.cc.o
-.PHONY : db/c.cc.o
-
-db/c.i: db/c.cc.i
-
-.PHONY : db/c.i
-
-# target to preprocess a source file
-db/c.cc.i:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/c.cc.i
-.PHONY : db/c.cc.i
-
-db/c.s: db/c.cc.s
-
-.PHONY : db/c.s
-
-# target to generate assembly for a file
-db/c.cc.s:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/c.cc.s
-.PHONY : db/c.cc.s
 
 db/db_impl.o: db/db_impl.cc.o
 
@@ -1319,7 +1279,6 @@ help:
 	@echo "... edit_cache"
 	@echo "... leveldbutil"
 	@echo "... leveldb"
-	@echo "... main"
 	@echo "... sax"
 	@echo "... zsbtree"
 	@echo "... db/ST_Compaction.o"
@@ -1331,9 +1290,6 @@ help:
 	@echo "... db/builder.o"
 	@echo "... db/builder.i"
 	@echo "... db/builder.s"
-	@echo "... db/c.o"
-	@echo "... db/c.i"
-	@echo "... db/c.s"
 	@echo "... db/db_impl.o"
 	@echo "... db/db_impl.i"
 	@echo "... db/db_impl.s"

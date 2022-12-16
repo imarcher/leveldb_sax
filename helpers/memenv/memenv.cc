@@ -202,7 +202,6 @@ class WritableFileImpl : public WritableFile {
   WritableFileImpl(FileState* file) : file_(file) { file_->Ref(); }
 
   ~WritableFileImpl() override { file_->Unref(); }
-  uint64_t GetOffset() override { return file_->Size(); }
   Status Append(const Slice& data) override { return file_->Append(data); }
   Status Close() override { return Status::OK(); }
   Status Flush() override { return Status::OK(); }

@@ -22,15 +22,15 @@ int main(){
     sax_type *sax = (sax_type*) malloc(sizeof(sax_type)*8);
     saxt_type *saxt = (saxt_type*) malloc(sizeof(saxt_type)*8);
 
-    paa_from_ts(a, paa, 8, 1);
-    ts_print(paa, 8);
-    saxt_from_ts(a, saxt, 1, 8, 256, 8);
-    sax_from_saxt(saxt, sax, 8, 8);
-//    sax_from_ts(a, sax, 1, 8, 256);
+//    paa_from_ts(a, paa, 8, 1);
+//    ts_print(paa, 8);
+//    saxt_from_ts(a, saxt, 1, 8, 256, 8);
+//    sax_from_saxt(saxt, sax, 8, 8);
+////    sax_from_ts(a, sax, 1, 8, 256);
+////    sax_print(sax, 8, 8);
+////    saxt_from_sax(sax, saxt, 8, 8);
+//    saxt_print(saxt, 8, 8);
 //    sax_print(sax, 8, 8);
-//    saxt_from_sax(sax, saxt, 8, 8);
-    saxt_print(saxt, 8, 8);
-    sax_print(sax, 8, 8);
 
 }
 

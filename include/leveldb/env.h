@@ -282,7 +282,6 @@ class LEVELDB_EXPORT WritableFile {
   WritableFile& operator=(const WritableFile&) = delete;
 
   virtual ~WritableFile();
-  virtual uint64_t GetOffset() = 0;
   virtual Status Append(const Slice& data) = 0;
   virtual Status Close() = 0;
   virtual Status Flush() = 0;

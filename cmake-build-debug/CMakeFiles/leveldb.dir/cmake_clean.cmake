@@ -2,7 +2,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/db/ST_Compaction.cc.o"
   "CMakeFiles/leveldb.dir/db/ST_merge.cc.o"
   "CMakeFiles/leveldb.dir/db/builder.cc.o"
-  "CMakeFiles/leveldb.dir/db/c.cc.o"
   "CMakeFiles/leveldb.dir/db/db_impl.cc.o"
   "CMakeFiles/leveldb.dir/db/db_iter.cc.o"
   "CMakeFiles/leveldb.dir/db/dbformat.cc.o"

@@ -141,81 +141,81 @@ class Repairer {
   }
 
   Status ConvertLogToTable(uint64_t log) {
-    struct LogReporter : public log::Reader::Reporter {
-      Env* env;
-      Logger* info_log;
-      uint64_t lognum;
-      void Corruption(size_t bytes, const Status& s) override {
-        // We print error messages for corruption, but continue repairing.
-        Log(info_log, "Log #%llu: dropping %d bytes; %s",
-            (unsigned long long)lognum, static_cast<int>(bytes),
-            s.ToString().c_str());
-      }
-    };
-
-    // Open the log file
-    std::string logname = LogFileName(dbname_, log);
-    SequentialFile* lfile;
-    Status status = env_->NewSequentialFile(logname, &lfile);
-    if (!status.ok()) {
-      return status;
-    }
-
-    // Create the log reader.
-    LogReporter reporter;
-    reporter.env = env_;
-    reporter.info_log = options_.info_log;
-    reporter.lognum = log;
-    // We intentionally make log::Reader do checksumming so that
-    // corruptions cause entire commits to be skipped instead of
-    // propagating bad information (like overly large sequence
-    // numbers).
-    log::Reader reader(lfile, &reporter, false /*do not checksum*/,
-                       0 /*initial_offset*/);
-
-    // Read all the records and add to a memtable
-    std::string scratch;
-    Slice record;
-    WriteBatch batch;
-    MemTable* mem = new MemTable(icmp_);
-    mem->Ref();
-    int counter = 0;
-    while (reader.ReadRecord(&record, &scratch)) {
-      if (record.size() < 12) {
-        reporter.Corruption(record.size(),
-                            Status::Corruption("log record too small"));
-        continue;
-      }
-      WriteBatchInternal::SetContents(&batch, record);
-      status = WriteBatchInternal::InsertInto(&batch, mem);
-      if (status.ok()) {
-        counter += WriteBatchInternal::Count(&batch);
-      } else {
-        Log(options_.info_log, "Log #%llu: ignoring %s",
-            (unsigned long long)log, status.ToString().c_str());
-        status = Status::OK();  // Keep going with rest of file
-      }
-    }
-    delete lfile;
-
-    // Do not record a version edit for this conversion to a Table
-    // since ExtractMetaData() will also generate edits.
-    FileMetaData meta;
-    meta.number = next_file_number_++;
-    Iterator* iter = mem->NewIterator();
-    status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
-    delete iter;
-    mem->Unref();
-    mem = nullptr;
-    if (status.ok()) {
-      if (meta.file_size > 0) {
-        table_numbers_.push_back(meta.number);
-      }
-    }
-    Log(options_.info_log, "Log #%llu: %d ops saved to Table #%llu %s",
-        (unsigned long long)log, counter, (unsigned long long)meta.number,
-        status.ToString().c_str());
-    return status;
+//    struct LogReporter : public log::Reader::Reporter {
+//      Env* env;
+//      Logger* info_log;
+//      uint64_t lognum;
+//      void Corruption(size_t bytes, const Status& s) override {
+//        // We print error messages for corruption, but continue repairing.
+//        Log(info_log, "Log #%llu: dropping %d bytes; %s",
+//            (unsigned long long)lognum, static_cast<int>(bytes),
+//            s.ToString().c_str());
+//      }
+//    };
+//
+//    // Open the log file
+//    std::string logname = LogFileName(dbname_, log);
+//    SequentialFile* lfile;
+//    Status status = env_->NewSequentialFile(logname, &lfile);
+//    if (!status.ok()) {
+//      return status;
+//    }
+//
+//    // Create the log reader.
+//    LogReporter reporter;
+//    reporter.env = env_;
+//    reporter.info_log = options_.info_log;
+//    reporter.lognum = log;
+//    // We intentionally make log::Reader do checksumming so that
+//    // corruptions cause entire commits to be skipped instead of
+//    // propagating bad information (like overly large sequence
+//    // numbers).
+//    log::Reader reader(lfile, &reporter, false /*do not checksum*/,
+//                       0 /*initial_offset*/);
+//
+//    // Read all the records and add to a memtable
+//    std::string scratch;
+//    Slice record;
+//    WriteBatch batch;
+//    MemTable* mem = new MemTable(icmp_);
+//    mem->Ref();
+//    int counter = 0;
+//    while (reader.ReadRecord(&record, &scratch)) {
+//      if (record.size() < 12) {
+//        reporter.Corruption(record.size(),
+//                            Status::Corruption("log record too small"));
+//        continue;
+//      }
+//      WriteBatchInternal::SetContents(&batch, record);
+//      status = WriteBatchInternal::InsertInto(&batch, mem);
+//      if (status.ok()) {
+//        counter += WriteBatchInternal::Count(&batch);
+//      } else {
+//        Log(options_.info_log, "Log #%llu: ignoring %s",
+//            (unsigned long long)log, status.ToString().c_str());
+//        status = Status::OK();  // Keep going with rest of file
+//      }
+//    }
+//    delete lfile;
+//
+//    // Do not record a version edit for this conversion to a Table
+//    // since ExtractMetaData() will also generate edits.
+//    FileMetaData meta;
+//    meta.number = next_file_number_++;
+//    Iterator* iter = mem->NewIterator();
+//    status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+//    delete iter;
+//    mem->Unref();
+//    mem = nullptr;
+//    if (status.ok()) {
+//      if (meta.file_size > 0) {
+//        table_numbers_.push_back(meta.number);
+//      }
+//    }
+//    Log(options_.info_log, "Log #%llu: %d ops saved to Table #%llu %s",
+//        (unsigned long long)log, counter, (unsigned long long)meta.number,
+//        status.ToString().c_str());
+//    return status;
   }
 
   void ExtractMetaData() {
@@ -346,63 +346,63 @@ class Repairer {
   }
 
   Status WriteDescriptor() {
-    std::string tmp = TempFileName(dbname_, 1);
-    WritableFile* file;
-    Status status = env_->NewWritableFile(tmp, &file);
-    if (!status.ok()) {
-      return status;
-    }
-
-    SequenceNumber max_sequence = 0;
-    for (size_t i = 0; i < tables_.size(); i++) {
-      if (max_sequence < tables_[i].max_sequence) {
-        max_sequence = tables_[i].max_sequence;
-      }
-    }
-
-    edit_.SetComparatorName(icmp_.user_comparator()->Name());
-    edit_.SetLogNumber(0);
-    edit_.SetNextFile(next_file_number_);
-    edit_.SetLastSequence(max_sequence);
-
-    for (size_t i = 0; i < tables_.size(); i++) {
-      // TODO(opt): separate out into multiple levels
-      const TableInfo& t = tables_[i];
-      edit_.AddFile(0, t.meta.number, t.meta.file_size, t.meta.smallest,
-                    t.meta.largest);
-    }
-
-    // std::fprintf(stderr,
-    //              "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
-    {
-      log::Writer log(file);
-      std::string record;
-      edit_.EncodeTo(&record);
-      status = log.AddRecord(record);
-    }
-    if (status.ok()) {
-      status = file->Close();
-    }
-    delete file;
-    file = nullptr;
-
-    if (!status.ok()) {
-      env_->RemoveFile(tmp);
-    } else {
-      // Discard older manifests
-      for (size_t i = 0; i < manifests_.size(); i++) {
-        ArchiveFile(dbname_ + "/" + manifests_[i]);
-      }
-
-      // Install new manifest
-      status = env_->RenameFile(tmp, DescriptorFileName(dbname_, 1));
-      if (status.ok()) {
-        status = SetCurrentFile(env_, dbname_, 1);
-      } else {
-        env_->RemoveFile(tmp);
-      }
-    }
-    return status;
+//    std::string tmp = TempFileName(dbname_, 1);
+//    WritableFile* file;
+//    Status status = env_->NewWritableFile(tmp, &file);
+//    if (!status.ok()) {
+//      return status;
+//    }
+//
+//    SequenceNumber max_sequence = 0;
+//    for (size_t i = 0; i < tables_.size(); i++) {
+//      if (max_sequence < tables_[i].max_sequence) {
+//        max_sequence = tables_[i].max_sequence;
+//      }
+//    }
+//
+//    edit_.SetComparatorName(icmp_.user_comparator()->Name());
+//    edit_.SetLogNumber(0);
+//    edit_.SetNextFile(next_file_number_);
+//    edit_.SetLastSequence(max_sequence);
+//
+//    for (size_t i = 0; i < tables_.size(); i++) {
+//      // TODO(opt): separate out into multiple levels
+//      const TableInfo& t = tables_[i];
+//      edit_.AddFile(0, t.meta.number, t.meta.file_size, t.meta.smallest,
+//                    t.meta.largest);
+//    }
+//
+//    // std::fprintf(stderr,
+//    //              "NewDescriptor:\n%s\n", edit_.DebugString().c_str());
+//    {
+//      log::Writer log(file);
+//      std::string record;
+//      edit_.EncodeTo(&record);
+//      status = log.AddRecord(record);
+//    }
+//    if (status.ok()) {
+//      status = file->Close();
+//    }
+//    delete file;
+//    file = nullptr;
+//
+//    if (!status.ok()) {
+//      env_->RemoveFile(tmp);
+//    } else {
+//      // Discard older manifests
+//      for (size_t i = 0; i < manifests_.size(); i++) {
+//        ArchiveFile(dbname_ + "/" + manifests_[i]);
+//      }
+//
+//      // Install new manifest
+//      status = env_->RenameFile(tmp, DescriptorFileName(dbname_, 1));
+//      if (status.ok()) {
+//        status = SetCurrentFile(env_, dbname_, 1);
+//      } else {
+//        env_->RemoveFile(tmp);
+//      }
+//    }
+//    return status;
   }
 
   void ArchiveFile(const std::string& fname) {

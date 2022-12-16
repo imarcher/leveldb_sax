@@ -74,14 +74,14 @@ Status PrintLogContents(Env* env, const std::string& fname,
 // Called on every item found in a WriteBatch.
 class WriteBatchItemPrinter : public WriteBatch::Handler {
  public:
-  void Put(const Slice& key, const Slice& value) override {
-    std::string r = "  put '";
-    AppendEscapedStringTo(&r, key);
-    r += "' '";
-    AppendEscapedStringTo(&r, value);
-    r += "'\n";
-    dst_->Append(r);
-  }
+//  void Put(const Slice& key, const Slice& value) override {
+//    std::string r = "  put '";
+//    AppendEscapedStringTo(&r, key);
+//    r += "' '";
+//    AppendEscapedStringTo(&r, value);
+//    r += "'\n";
+//    dst_->Append(r);
+//  }
   void Delete(const Slice& key) override {
     std::string r = "  del '";
     AppendEscapedStringTo(&r, key);
@@ -95,28 +95,28 @@ class WriteBatchItemPrinter : public WriteBatch::Handler {
 // Called on every log record (each one of which is a WriteBatch)
 // found in a kLogFile.
 static void WriteBatchPrinter(uint64_t pos, Slice record, WritableFile* dst) {
-  std::string r = "--- offset ";
-  AppendNumberTo(&r, pos);
-  r += "; ";
-  if (record.size() < 12) {
-    r += "log record length ";
-    AppendNumberTo(&r, record.size());
-    r += " is too small\n";
-    dst->Append(r);
-    return;
-  }
-  WriteBatch batch;
-  WriteBatchInternal::SetContents(&batch, record);
-  r += "sequence ";
-  AppendNumberTo(&r, WriteBatchInternal::Sequence(&batch));
-  r.push_back('\n');
-  dst->Append(r);
-  WriteBatchItemPrinter batch_item_printer;
-  batch_item_printer.dst_ = dst;
-  Status s = batch.Iterate(&batch_item_printer);
-  if (!s.ok()) {
-    dst->Append("  error: " + s.ToString() + "\n");
-  }
+//  std::string r = "--- offset ";
+//  AppendNumberTo(&r, pos);
+//  r += "; ";
+//  if (record.size() < 12) {
+//    r += "log record length ";
+//    AppendNumberTo(&r, record.size());
+//    r += " is too small\n";
+//    dst->Append(r);
+//    return;
+//  }
+//  WriteBatch batch;
+//  WriteBatchInternal::SetContents(&batch, record);
+//  r += "sequence ";
+//  AppendNumberTo(&r, WriteBatchInternal::Sequence(&batch));
+//  r.push_back('\n');
+//  dst->Append(r);
+//  WriteBatchItemPrinter batch_item_printer;
+//  batch_item_printer.dst_ = dst;
+//  Status s = batch.Iterate(&batch_item_printer);
+//  if (!s.ok()) {
+//    dst->Append("  error: " + s.ToString() + "\n");
+//  }
 }
 
 Status DumpLog(Env* env, const std::string& fname, WritableFile* dst) {

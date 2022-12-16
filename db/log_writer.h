@@ -34,7 +34,7 @@ class Writer {
 
   ~Writer();
 
-  Status AddRecord(const std::string& contents, uint64_t* fileOffset);
+  Status AddRecord(const Slice& slice);
 
  private:
   Status EmitPhysicalRecord(RecordType type, const char* ptr, size_t length);
