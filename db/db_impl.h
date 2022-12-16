@@ -41,7 +41,7 @@ class DBImpl : public DB {
   ~DBImpl() override;
 
   // Implementations of the DB interface
-  Status Put(const WriteOptions&, const putKey& key) override;
+  Status Put(const WriteOptions&, const LeafKey& key) override;
   Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) override;
   Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
   Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) override;
@@ -113,7 +113,7 @@ class DBImpl : public DB {
   //重平衡
   void RebalanceDranges(vector<int>& table_rebalanced);
   //插入时选择表
-  int root_Choose(const putKey& key);
+  int root_Choose(const LeafKey& key);
 
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,

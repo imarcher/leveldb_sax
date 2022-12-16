@@ -74,11 +74,9 @@ class MemTableIterator : public Iterator {
 
 Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 
-bool MemTable::Add(SequenceNumber s, saxt saxt_, uint64_t fileOffset) {
-  tmpLeafKey.setAsaxt(saxt_);
-  tmpLeafKey.p = (void *)fileOffset;
+bool MemTable::Add(SequenceNumber s, LeafKey& key) {
   //这里待改，返回false重组
-  return table_.Insert(tmpLeafKey);
+  return table_.Insert(key);
 }
 
 void MemTable::Get(saxt key, vector<LeafKey>& leafKeys) {

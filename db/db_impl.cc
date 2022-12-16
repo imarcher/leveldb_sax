@@ -1257,7 +1257,7 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
 
 
 
-int DBImpl::root_Choose(const putKey& key) {
+int DBImpl::root_Choose(const LeafKey& key) {
   for (int i = 0; i < mems.size(); ++i) {
     int pos = whereofKey(mems[i]->Getlsaxt(), mems[i]->Getrsaxt(), (saxt)key.asaxt, 0);
     if (pos==0) {
@@ -1300,7 +1300,7 @@ int DBImpl::root_Choose(const putKey& key) {
 
 // Convenience methods
 //选表
-Status DBImpl::Put(const WriteOptions& o, const putKey& key) {
+Status DBImpl::Put(const WriteOptions& o, const LeafKey& key) {
   WriteBatch batch;
   batch.Put(key);
   // 找到对应的drange
@@ -1460,9 +1460,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
     // into mem_.
     {
       mutex_i->Unlock();
-      uint64_t fileOffset = 0;//位置，就是p
       //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
-      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
+//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
       bool sync_error = false;
       if (status.ok() && options.sync) {
         status = logfile_->Sync();
@@ -1472,7 +1471,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
       }
       if (status.ok()) {
         //里面会有drange内的平衡
-        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], memNum[memId], fileOffset);
+        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], memNum[memId]);
         // 一个batch插入完后，在更新。
         memNum[memId] += batch_num;
       }

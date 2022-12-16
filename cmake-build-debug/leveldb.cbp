@@ -305,6 +305,12 @@
 		<Unit filename="/home/hh/a/leveldb-main/cmake-build-debug/include/port/port_config.h">
 			<Option target="leveldb"/>
 		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/ST_Compaction.cc">
+			<Option target="leveldb"/>
+		</Unit>
+		<Unit filename="/home/hh/a/leveldb-main/db/ST_Compaction.h">
+			<Option target="leveldb"/>
+		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/db/ST_merge.cc">
 			<Option target="leveldb"/>
 		</Unit>
@@ -402,12 +408,6 @@
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/db/write_batch_internal.h">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/db/zsbtree_builder.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/db/zsbtree_builder.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/helpers/memenv/memenv.cc">
@@ -520,12 +520,6 @@
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/table/table_builder.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/table/table_compaction.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/hh/a/leveldb-main/table/table_compaction.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/hh/a/leveldb-main/table/two_level_iterator.cc">

@@ -56,7 +56,7 @@ class MemTable {
   // Add an entry into memtable that maps key to value at the
   // specified sequence number and with the specified type.
   // Typically value will be empty if type==kTypeDeletion.
-  bool Add(SequenceNumber seq, saxt saxt_, uint64_t fileOffset);
+  bool Add(SequenceNumber seq, LeafKey& key);
 
   // If memtable contains a value for key, store it in *value and return true.
   // If memtable contains a deletion for key, store a NotFound() error
@@ -87,8 +87,7 @@ class MemTable {
 
   ~MemTable();  // Private since only Unref() should be used to delete it
 
-  //add的时候用
-  LeafKey tmpLeafKey;
+
 //  KeyComparator comparator_;
   int refs_;
 

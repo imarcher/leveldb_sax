@@ -1,4 +1,5 @@
 file(REMOVE_RECURSE
+  "CMakeFiles/leveldb.dir/db/ST_Compaction.cc.o"
   "CMakeFiles/leveldb.dir/db/ST_merge.cc.o"
   "CMakeFiles/leveldb.dir/db/builder.cc.o"
   "CMakeFiles/leveldb.dir/db/c.cc.o"
@@ -15,7 +16,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/db/version_edit.cc.o"
   "CMakeFiles/leveldb.dir/db/version_set.cc.o"
   "CMakeFiles/leveldb.dir/db/write_batch.cc.o"
-  "CMakeFiles/leveldb.dir/db/zsbtree_builder.cc.o"
   "CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o"
   "CMakeFiles/leveldb.dir/table/block.cc.o"
   "CMakeFiles/leveldb.dir/table/block_builder.cc.o"
@@ -25,7 +25,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/table/merger.cc.o"
   "CMakeFiles/leveldb.dir/table/table.cc.o"
   "CMakeFiles/leveldb.dir/table/table_builder.cc.o"
-  "CMakeFiles/leveldb.dir/table/table_compaction.cc.o"
   "CMakeFiles/leveldb.dir/table/two_level_iterator.cc.o"
   "CMakeFiles/leveldb.dir/util/arena.cc.o"
   "CMakeFiles/leveldb.dir/util/bloom.cc.o"

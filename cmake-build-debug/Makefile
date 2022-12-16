@@ -175,6 +175,33 @@ zsbtree/fast:
 	$(MAKE) -f zsbtree/CMakeFiles/zsbtree.dir/build.make zsbtree/CMakeFiles/zsbtree.dir/build
 .PHONY : zsbtree/fast
 
+db/ST_Compaction.o: db/ST_Compaction.cc.o
+
+.PHONY : db/ST_Compaction.o
+
+# target to build an object file
+db/ST_Compaction.cc.o:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_Compaction.cc.o
+.PHONY : db/ST_Compaction.cc.o
+
+db/ST_Compaction.i: db/ST_Compaction.cc.i
+
+.PHONY : db/ST_Compaction.i
+
+# target to preprocess a source file
+db/ST_Compaction.cc.i:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_Compaction.cc.i
+.PHONY : db/ST_Compaction.cc.i
+
+db/ST_Compaction.s: db/ST_Compaction.cc.s
+
+.PHONY : db/ST_Compaction.s
+
+# target to generate assembly for a file
+db/ST_Compaction.cc.s:
+	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/ST_Compaction.cc.s
+.PHONY : db/ST_Compaction.cc.s
+
 db/ST_merge.o: db/ST_merge.cc.o
 
 .PHONY : db/ST_merge.o
@@ -634,33 +661,6 @@ db/write_batch.cc.s:
 	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/write_batch.cc.s
 .PHONY : db/write_batch.cc.s
 
-db/zsbtree_builder.o: db/zsbtree_builder.cc.o
-
-.PHONY : db/zsbtree_builder.o
-
-# target to build an object file
-db/zsbtree_builder.cc.o:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/zsbtree_builder.cc.o
-.PHONY : db/zsbtree_builder.cc.o
-
-db/zsbtree_builder.i: db/zsbtree_builder.cc.i
-
-.PHONY : db/zsbtree_builder.i
-
-# target to preprocess a source file
-db/zsbtree_builder.cc.i:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/zsbtree_builder.cc.i
-.PHONY : db/zsbtree_builder.cc.i
-
-db/zsbtree_builder.s: db/zsbtree_builder.cc.s
-
-.PHONY : db/zsbtree_builder.s
-
-# target to generate assembly for a file
-db/zsbtree_builder.cc.s:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/db/zsbtree_builder.cc.s
-.PHONY : db/zsbtree_builder.cc.s
-
 helpers/memenv/memenv.o: helpers/memenv/memenv.cc.o
 
 .PHONY : helpers/memenv/memenv.o
@@ -903,33 +903,6 @@ table/table_builder.s: table/table_builder.cc.s
 table/table_builder.cc.s:
 	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/table/table_builder.cc.s
 .PHONY : table/table_builder.cc.s
-
-table/table_compaction.o: table/table_compaction.cc.o
-
-.PHONY : table/table_compaction.o
-
-# target to build an object file
-table/table_compaction.cc.o:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/table/table_compaction.cc.o
-.PHONY : table/table_compaction.cc.o
-
-table/table_compaction.i: table/table_compaction.cc.i
-
-.PHONY : table/table_compaction.i
-
-# target to preprocess a source file
-table/table_compaction.cc.i:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/table/table_compaction.cc.i
-.PHONY : table/table_compaction.cc.i
-
-table/table_compaction.s: table/table_compaction.cc.s
-
-.PHONY : table/table_compaction.s
-
-# target to generate assembly for a file
-table/table_compaction.cc.s:
-	$(MAKE) -f CMakeFiles/leveldb.dir/build.make CMakeFiles/leveldb.dir/table/table_compaction.cc.s
-.PHONY : table/table_compaction.cc.s
 
 table/two_level_iterator.o: table/two_level_iterator.cc.o
 
@@ -1349,6 +1322,9 @@ help:
 	@echo "... main"
 	@echo "... sax"
 	@echo "... zsbtree"
+	@echo "... db/ST_Compaction.o"
+	@echo "... db/ST_Compaction.i"
+	@echo "... db/ST_Compaction.s"
 	@echo "... db/ST_merge.o"
 	@echo "... db/ST_merge.i"
 	@echo "... db/ST_merge.s"
@@ -1400,9 +1376,6 @@ help:
 	@echo "... db/write_batch.o"
 	@echo "... db/write_batch.i"
 	@echo "... db/write_batch.s"
-	@echo "... db/zsbtree_builder.o"
-	@echo "... db/zsbtree_builder.i"
-	@echo "... db/zsbtree_builder.s"
 	@echo "... helpers/memenv/memenv.o"
 	@echo "... helpers/memenv/memenv.i"
 	@echo "... helpers/memenv/memenv.s"
@@ -1430,9 +1403,6 @@ help:
 	@echo "... table/table_builder.o"
 	@echo "... table/table_builder.i"
 	@echo "... table/table_builder.s"
-	@echo "... table/table_compaction.o"
-	@echo "... table/table_compaction.i"
-	@echo "... table/table_compaction.s"
 	@echo "... table/two_level_iterator.o"
 	@echo "... table/two_level_iterator.i"
 	@echo "... table/two_level_iterator.s"

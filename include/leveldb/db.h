@@ -66,7 +66,7 @@ class LEVELDB_EXPORT DB {
   // and a non-OK status on error.
   // Note: consider setting options.sync = true.
   // 顺便选表
-  virtual Status Put(const WriteOptions& options, const putKey& key) = 0;
+  virtual Status Put(const WriteOptions& options, const LeafKey& key) = 0;
 
   //初始化 给putKey的一个数组，最多256个，写入log然后返回leafkeys
   virtual Status Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) = 0;
