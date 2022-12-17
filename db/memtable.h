@@ -10,14 +10,14 @@
 #include "db/dbformat.h"
 #include "db/skiplist.h"
 #include "leveldb/db.h"
-#include "util/arena.h"
+
 #include "zsbtree/zsbtree_table.h"
 
 namespace leveldb {
 
 class InternalKeyComparator;
 class MemTableIterator;
-
+typedef uint64_t SequenceNumber;
 class MemTable {
  public:
   // MemTables are reference counted.  The initial reference count

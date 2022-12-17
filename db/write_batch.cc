@@ -126,8 +126,8 @@ class MemTableInserter : public WriteBatch::Handler {
 
 
   void Delete(const Slice& key) override {
-    mem_->Add(sequence_, kTypeDeletion, key, Slice());
-    sequence_++;
+//    mem_->Add(sequence_, kTypeDeletion, key, Slice());
+//    sequence_++;
   }
 };
 }  // namespace

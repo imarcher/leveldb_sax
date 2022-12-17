@@ -117,13 +117,16 @@ endif(BUILD_SHARED_LIBS)
 
 include(GNUInstallDirs)
 include_directories(sax/include)
+include_directories(zsbtree)
 add_subdirectory(sax)
 add_subdirectory(zsbtree)
 add_library(leveldb "")
-target_link_libraries(leveldb sax zsbtree)
+
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+    "db/dbformat.cc"
+    "db/dbformat.h"
     "db/ST_Compaction.cc"
     "db/ST_Compaction.h"
     "db/ST_merge.cc"
@@ -135,8 +138,6 @@ target_sources(leveldb
     "db/db_impl.h"
     "db/db_iter.cc"
     "db/db_iter.h"
-    "db/dbformat.cc"
-    "db/dbformat.h"
     "db/dumpfile.cc"
     "db/filename.cc"
     "db/filename.h"
@@ -177,8 +178,6 @@ target_sources(leveldb
     "table/table.cc"
     "table/two_level_iterator.cc"
     "table/two_level_iterator.h"
-    "util/newVector.cc"
-    "util/newVector.h"
     "util/arena.cc"
     "util/arena.h"
     "util/bloom.cc"
@@ -291,9 +290,19 @@ endif(HAVE_TCMALLOC)
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
 
-add_executable(leveldbutil
-  "db/leveldbutil.cc"
-)
-target_link_libraries(leveldbutil leveldb)
+target_link_libraries(leveldb sax zsbtree)
+
+#add_executable(leveldbutil
+#  "db/leveldbutil.cc"
+#)
+#target_link_libraries(leveldbutil leveldb)
+
+add_executable(test_main
+        "test_main.cc"
+        "threadPool_2.cc"
+        "threadPool_2.h"
+        )
+
+target_link_libraries(test_main leveldb)
 
 

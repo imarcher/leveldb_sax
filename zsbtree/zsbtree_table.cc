@@ -15,8 +15,8 @@ bool zsbtree_table::Insert(LeafKey& leafKey) {
 }
 
 void zsbtree_table::BuildTree(newVector<NonLeafKey>& nonLeafKeys) {
-  root = build_tree_from_nonleaf(nonLeafKeys);
   leafNum = nonLeafKeys.size();
+  root = build_tree_from_nonleaf(nonLeafKeys);
 }
 
 zsbtree_table_mem zsbtree_table::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
@@ -30,10 +30,10 @@ zsbtree_table_mem zsbtree_table::Rebalance(int tmp_leaf_maxnum,
   //从root开始dfs删除
   Rebalance_dfs(root, sortleafKeys);
   newVector<LeafKey> new_sortleafKeys(sortleafKeys);
-  int newleafNum;
+  int leafNum;
   return {build_tree_from_leaf(new_sortleafKeys, tmp_leaf_maxnum,
                                tmp_leaf_minnum, leafNum),
-          newleafNum};
+          leafNum};
 }
 
 void zsbtree_table::Rebalance_dfs(NonLeaf* nonLeaf,

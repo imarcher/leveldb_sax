@@ -11,6 +11,9 @@
 #include "LeafKey.h"
 #include "NonLeafKey.h"
 #include "algorithm"
+
+class NonLeafKey;
+
 class Leaf {
 public:
     Leaf();

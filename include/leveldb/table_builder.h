@@ -26,6 +26,7 @@ namespace leveldb {
 class BlockBuilder;
 class BlockHandle;
 class WritableFile;
+class MemTable;
 
 class LEVELDB_EXPORT TableBuilder {
  public:

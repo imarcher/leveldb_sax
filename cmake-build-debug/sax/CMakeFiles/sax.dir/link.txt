@@ -1,2 +1,0 @@
-/usr/bin/ar qc libsax.a  CMakeFiles/sax.dir/src/sax.cc.o CMakeFiles/sax.dir/src/ts.cc.o
-/usr/bin/ranlib libsax.a

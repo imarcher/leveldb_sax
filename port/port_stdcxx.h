@@ -49,7 +49,7 @@ class LOCKABLE Mutex {
   Mutex() = default;
   ~Mutex() = default;
 
-  Mutex(const Mutex&) = delete;
+  Mutex(const Mutex&) {};
   Mutex& operator=(const Mutex&) = delete;
 
   void Lock() EXCLUSIVE_LOCK_FUNCTION() { mu_.lock(); }

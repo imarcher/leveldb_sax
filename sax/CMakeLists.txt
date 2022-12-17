@@ -7,7 +7,7 @@ include_directories(include)
 file(GLOB_RECURSE SAX_LIB_SRC
         src/*.cc
         )
-add_library(sax STATIC ${SAX_LIB_SRC})
+add_library(sax ${SAX_LIB_SRC})
 
 
 #add_executable(main main.cc)

@@ -9,53 +9,57 @@
 #include "zsbtree_NonLeafBuild.h"
 
 
+static NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m, int &leafNum) {
+  vector<NonLeafKey> nonLeafKeys[2];
 
+  leaf_method::buildtree(leafKeys, nonLeafKeys[0], n, m);
+  leafNum = nonLeafKeys[0].size();
 
-NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m, int &leafNum) {
-    vector<NonLeafKey> nonLeafKeys;
-    leaf_method::buildtree(leafKeys, nonLeafKeys, n, m);
-    leafNum = nonLeafKeys.size();
-    vector<NonLeafKey>& nonleafKeys_out = nonLeafKeys;
-
-    bool isleaf = true;
-    while (nonLeafKeys.size()>Leaf_maxnum) {
-        newVector<NonLeafKey> nonleafKeys_in(nonleafKeys_out);
-        //创建下一层
-        vector<NonLeafKey> newNonleafKeys_out;
-        nonleafKeys_out = newNonleafKeys_out;
-        nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
-        if (isleaf) isleaf = false;
-//        for (int i=0;i<10;i++) {
-//            out("l");
-//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->lsaxt);
-//            out("r");
-//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->rsaxt);
-//        }
-    }
-    saxt lsaxt = nonleafKeys_out[0].lsaxt;
-    saxt rsaxt = nonleafKeys_out.back().rsaxt;
-    cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
-    return new NonLeaf(nonleafKeys_out.size(), co_d, isleaf, lsaxt, rsaxt, nonleafKeys_out.data());
-}
-
-NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
-
-
-  vector<NonLeafKey>& nonleafKeys_out = nonLeafKeys.v;
 
   bool isleaf = true;
-  while (nonLeafKeys.size()>Leaf_maxnum) {
+  int out_1 = 0;
+  while (isleaf || nonLeafKeys[out_1].size()>Leaf_maxnum) {
+    newVector<NonLeafKey> nonleafKeys_in(nonLeafKeys[out_1]);
+
+    nonleaf_method::buildtree(nonleafKeys_in, nonLeafKeys[1-out_1], isleaf, Leaf_maxnum, Leaf_minnum);
+    if (isleaf) isleaf = false;
+    nonLeafKeys[out_1].clear();
+    out_1 = 1 - out_1;
+//        for (int i=0;i<10;i++) {
+//            out("l");
+//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->lsaxt);
+//            out("r");
+//            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->rsaxt);
+//        }
+  }
+  if (nonLeafKeys[out_1].size() == 1) {
+    return (NonLeaf*)nonLeafKeys[out_1][0].p;
+  } else {
+    saxt lsaxt = nonLeafKeys[out_1][0].lsaxt;
+    saxt rsaxt = nonLeafKeys[out_1].back().rsaxt;
+    cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
+    return new NonLeaf(nonLeafKeys[out_1].size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys[out_1].data());
+  }
+}
+
+static NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
+
+  vector<NonLeafKey> nonLeafKeys_rep[2];
+
+
+  int out_1 = 1;
+  bool isleaf = true;
+  while (isleaf || nonLeafKeys_rep[out_1].size()>Leaf_maxnum) {
     if (isleaf) {
-      vector<NonLeafKey> newNonleafKeys_out;
-      nonleafKeys_out = newNonleafKeys_out;
-      nonleaf_method::buildtree(nonLeafKeys, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
+      nonleaf_method::buildtree(nonLeafKeys, nonLeafKeys_rep[1 - out_1], isleaf, Leaf_maxnum, Leaf_minnum);
+      out_1 = 1 - out_1;
       isleaf = false;
     } else {
-      newVector<NonLeafKey> nonleafKeys_in(nonleafKeys_out);
+      newVector<NonLeafKey> nonleafKeys_in(nonLeafKeys_rep[out_1]);
       //创建下一层
-      vector<NonLeafKey> newNonleafKeys_out;
-      nonleafKeys_out = newNonleafKeys_out;
-      nonleaf_method::buildtree(nonleafKeys_in, nonleafKeys_out, isleaf, Leaf_maxnum, Leaf_minnum);
+      nonleaf_method::buildtree(nonleafKeys_in, nonLeafKeys_rep[1 - out_1], isleaf, Leaf_maxnum, Leaf_minnum);
+      nonLeafKeys_rep[out_1].clear();
+      out_1 = 1 - out_1;
     }
 //        for (int i=0;i<10;i++) {
 //            out("l");
@@ -64,27 +68,24 @@ NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
 //            saxt_print(((Leaf *)(nonleafKeys_in[i].p))->rsaxt);
 //        }
   }
-  if (isleaf) {
-    saxt lsaxt = nonLeafKeys[0].lsaxt;
-    saxt rsaxt = nonLeafKeys.back().rsaxt;
-    cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
-    return new NonLeaf(nonLeafKeys.size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys.data());
+  if (nonLeafKeys_rep[out_1].size() == 1) {
+    return (NonLeaf*)nonLeafKeys_rep[out_1][0].p;
   } else {
-    saxt lsaxt = nonleafKeys_out[0].lsaxt;
-    saxt rsaxt = nonleafKeys_out.back().rsaxt;
+    saxt lsaxt = nonLeafKeys_rep[out_1][0].lsaxt;
+    saxt rsaxt = nonLeafKeys_rep[out_1].back().rsaxt;
     cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
-    return new NonLeaf(nonleafKeys_out.size(), co_d, isleaf, lsaxt, rsaxt, nonleafKeys_out.data());
+    return new NonLeaf(nonLeafKeys_rep[out_1].size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys_rep[out_1].data());
   }
 }
 
-inline int get_1_Num(int x) {
+static inline int get_1_Num(int x) {
   int res = 0;
   while(x) x -= x & (-x) , res++;
   return res;
 }
 
 
-int get_drange_rebalance(vector<int> &memNum_period){
+static int get_drange_rebalance(vector<int> &memNum_period){
   int m = memNum_period.size();
   //平均值
   int nd = 0;

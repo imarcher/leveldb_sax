@@ -4,14 +4,6 @@
 
 #include "db/db_impl.h"
 
-#include <algorithm>
-#include <atomic>
-#include <cstdint>
-#include <cstdio>
-#include <set>
-#include <string>
-#include <vector>
-
 #include "db/builder.h"
 #include "db/db_iter.h"
 #include "db/dbformat.h"
@@ -22,11 +14,20 @@
 #include "db/table_cache.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
+#include <algorithm>
+#include <atomic>
+#include <cstdint>
+#include <cstdio>
+#include <iostream>
+#include <set>
+#include <string>
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/status.h"
 #include "leveldb/table.h"
 #include "leveldb/table_builder.h"
+
 #include "port/port.h"
 #include "table/block.h"
 #include "table/merger.h"
@@ -34,6 +35,8 @@
 #include "util/coding.h"
 #include "util/logging.h"
 #include "util/mutexlock.h"
+
+#include "zsbtree/newVector.h"
 
 namespace leveldb {
 
@@ -193,7 +196,7 @@ Status DBImpl::NewDB() {
     log::Writer log(file);
     std::string record;
     new_db.EncodeTo(&record);
-    s = log.AddRecord(record, nullptr);
+    s = log.AddRecord(record);
     if (s.ok()) {
       s = file->Sync();
     }
@@ -1261,6 +1264,7 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
 
 int DBImpl::root_Choose(const LeafKey& key) {
   for (int i = 0; i < mems.size(); ++i) {
+    out(i);
     int pos = whereofKey(mems[i]->Getlsaxt(), mems[i]->Getrsaxt(), (saxt)key.asaxt, 0);
     if (pos==0) {
       return i;
@@ -1311,26 +1315,7 @@ Status DBImpl::Put(const WriteOptions& o, const LeafKey& key) {
   return Write(o, &batch, memId);
 }
 
-Status DBImpl::Init(WriteBatch* updates, vector<LeafKey>& leafKeys, int updatesNum) {
 
-  Status status;
-  //首先是写log，256一组来写。
-  uint64_t fileOffset = 0;//位置，就是p
-  //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
-  const string& s = WriteBatchInternal::Contents(updates);
-  status = log_->AddRecord(s, &fileOffset);
-  if (status.ok()) {
-    Slice input(s);
-    input.remove_prefix(12+tsKey_size);
-    //添加vector
-    for(int i=0;i<updatesNum;i++){
-      *(unsigned char*)(&fileOffset) = i;
-      leafKeys.emplace_back((saxt)input.data(), (void*)fileOffset);
-      input.remove_prefix(putKey_size);
-    }
-  }
-  return status;
-}
 
 Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKeys) {
   Status status;
@@ -1345,7 +1330,6 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
   //这个range的总数。
   int averageNum = leafKeysNum / drangesNum;
   //贪心 返回起始位置
-
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();

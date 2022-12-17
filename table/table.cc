@@ -113,26 +113,26 @@ void Table::ReadMeta(const Footer& footer) {
 }
 
 void Table::ReadFilter(const Slice& filter_handle_value) {
-  Slice v = filter_handle_value;
-  BlockHandle filter_handle;
-  if (!filter_handle.DecodeFrom(&v).ok()) {
-    return;
-  }
-
-  // We might want to unify with ReadBlock() if we start
-  // requiring checksum verification in Table::Open.
-  ReadOptions opt;
-  if (rep_->options.paranoid_checks) {
-    opt.verify_checksums = true;
-  }
-  BlockContents block;
-  if (!ReadBlock(rep_->file, opt, filter_handle, &block).ok()) {
-    return;
-  }
-  if (block.heap_allocated) {
-    rep_->filter_data = block.data.data();  // Will need to delete later
-  }
-  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data);
+//  Slice v = filter_handle_value;
+//  BlockHandle filter_handle;
+//  if (!filter_handle.DecodeFrom(&v).ok()) {
+//    return;
+//  }
+//
+//  // We might want to unify with ReadBlock() if we start
+//  // requiring checksum verification in Table::Open.
+//  ReadOptions opt;
+//  if (rep_->options.paranoid_checks) {
+//    opt.verify_checksums = true;
+//  }
+//  BlockContents block;
+//  if (!ReadBlock(rep_->file, opt, filter_handle, &block).ok()) {
+//    return;
+//  }
+//  if (block.heap_allocated) {
+//    rep_->filter_data = block.data.data();  // Will need to delete later
+//  }
+//  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data);
 }
 
 Table::~Table() { delete rep_; }
@@ -210,9 +210,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 }
 
 Iterator* Table::NewIterator(const ReadOptions& options) const {
-  return NewTwoLevelIterator(
-      rep_->index_block->NewIterator(rep_->options.comparator),
-      &Table::BlockReader, const_cast<Table*>(this), options);
+//  return NewTwoLevelIterator(
+//      rep_->index_block->NewIterator(rep_->options.comparator),
+//      &Table::BlockReader, const_cast<Table*>(this), options);
 }
 
 
@@ -252,30 +252,30 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, vector<Lea
 }
 
 uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
-  Iterator* index_iter =
-      rep_->index_block->NewIterator(rep_->options.comparator);
-  index_iter->Seek(key);
-  uint64_t result;
-  if (index_iter->Valid()) {
-    BlockHandle handle;
-    Slice input = index_iter->value();
-    Status s = handle.DecodeFrom(&input);
-    if (s.ok()) {
-      result = handle.offset();
-    } else {
-      // Strange: we can't decode the block handle in the index block.
-      // We'll just return the offset of the metaindex block, which is
-      // close to the whole file size for this case.
-      result = rep_->metaindex_handle.offset();
-    }
-  } else {
-    // key is past the last key in the file.  Approximate the offset
-    // by returning the offset of the metaindex block (which is
-    // right near the end of the file).
-    result = rep_->metaindex_handle.offset();
-  }
-  delete index_iter;
-  return result;
+//  Iterator* index_iter =
+//      rep_->index_block->NewIterator(rep_->options.comparator);
+//  index_iter->Seek(key);
+//  uint64_t result;
+//  if (index_iter->Valid()) {
+//    BlockHandle handle;
+//    Slice input = index_iter->value();
+//    Status s = handle.DecodeFrom(&input);
+//    if (s.ok()) {
+//      result = handle.offset();
+//    } else {
+//      // Strange: we can't decode the block handle in the index block.
+//      // We'll just return the offset of the metaindex block, which is
+//      // close to the whole file size for this case.
+//      result = rep_->metaindex_handle.offset();
+//    }
+//  } else {
+//    // key is past the last key in the file.  Approximate the offset
+//    // by returning the offset of the metaindex block (which is
+//    // right near the end of the file).
+//    result = rep_->metaindex_handle.offset();
+//  }
+//  delete index_iter;
+//  return result;
 }
 
 
