@@ -449,3 +449,11 @@ bool compare_saxt_d(saxt a, saxt b, cod d) {
     return *(a + d - 1) == *(b + d - 1);
 }
 
+bool compare_saxt(saxt a, saxt b) {
+  int d=0;
+  for(d=0; d<Bit_cardinality; d++){
+    if (a[d] != b[d]) return false;
+  }
+  return true;
+}
+

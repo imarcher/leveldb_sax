@@ -342,6 +342,7 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
   if (!s.ok()) {
     return s;
   }
+
   std::set<uint64_t> expected;
   versions_->AddLiveFiles(&expected);
   uint64_t number;
@@ -362,19 +363,20 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
   }
 
   // Recover in the order in which the logs were generated
-  std::sort(logs.begin(), logs.end());
-  for (size_t i = 0; i < logs.size(); i++) {
-    s = RecoverLogFile(logs[i], (i == logs.size() - 1), save_manifest, edit,
-                       &max_sequence);
-    if (!s.ok()) {
-      return s;
-    }
-
-    // The previous incarnation may not have written any MANIFEST
-    // records after allocating this log number.  So we manually
-    // update the file number allocation counter in VersionSet.
-    versions_->MarkFileNumberUsed(logs[i]);
-  }
+  //log不要了
+//  std::sort(logs.begin(), logs.end());
+//  for (size_t i = 0; i < logs.size(); i++) {
+//    s = RecoverLogFile(logs[i], (i == logs.size() - 1), save_manifest, edit,
+//                       &max_sequence);
+//    if (!s.ok()) {
+//      return s;
+//    }
+//    out(4);
+//    // The previous incarnation may not have written any MANIFEST
+//    // records after allocating this log number.  So we manually
+//    // update the file number allocation counter in VersionSet.
+//    versions_->MarkFileNumberUsed(logs[i]);
+//  }
 
   if (versions_->LastSequence() < max_sequence) {
     versions_->SetLastSequence(max_sequence);
@@ -1264,8 +1266,8 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
 
 int DBImpl::root_Choose(const LeafKey& key) {
   for (int i = 0; i < mems.size(); ++i) {
-    out(i);
     int pos = whereofKey(mems[i]->Getlsaxt(), mems[i]->Getrsaxt(), (saxt)key.asaxt, 0);
+
     if (pos==0) {
       return i;
     } else if (pos==-1) {
@@ -1321,6 +1323,17 @@ Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKe
   Status status;
   newVector<LeafKey> leafKeys_(leafKeys);
   leaf_method::buildtree(leafKeys_, nonLeafKeys, Leaf_maxnum, Leaf_minnum);
+//  for(int i=0;i<30000;i++){
+//    int flag = 1;
+//    for(auto item:nonLeafKeys){
+//      if(whereofKey(item.lsaxt, item.rsaxt, leafKeys[i].asaxt, 0)==0) {
+//        flag = 0;
+//        break;
+//      }
+//    }
+//
+//    if(flag==1) out("错了");
+//  }
   return status;
 }
 
@@ -1339,6 +1352,8 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
       sum += nonLeafKeys[j++].num;
     }
     memNum.push_back(sum);
+//    out("sum");
+//    out(sum);
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
     MemTable* newMem = new MemTable();
     newMem->Ref();
@@ -1446,26 +1461,28 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
       mutex_i->Unlock();
       //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
 //      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
-      bool sync_error = false;
-      if (status.ok() && options.sync) {
-        status = logfile_->Sync();
-        if (!status.ok()) {
-          sync_error = true;
-        }
-      }
+//      bool sync_error = false;
+//      if (status.ok() && options.sync) {
+//        status = logfile_->Sync();
+//        if (!status.ok()) {
+//          sync_error = true;
+//        }
+//      }
       if (status.ok()) {
         //里面会有drange内的平衡
+//        out("todoocharu");
         status = WriteBatchInternal::InsertInto(write_batch, mems[memId], memNum[memId]);
+//        out("finishcharu");
         // 一个batch插入完后，在更新。
         memNum[memId] += batch_num;
       }
       mutex_i->Lock();
-      if (sync_error) {
-        // The state of the log file is indeterminate: the log record we
-        // just added may or may not show up when the DB is re-opened.
-        // So we force the DB into a mode where all future writes fail.
-        RecordBackgroundError(status);
-      }
+//      if (sync_error) {
+//        // The state of the log file is indeterminate: the log record we
+//        // just added may or may not show up when the DB is re-opened.
+//        // So we force the DB into a mode where all future writes fail.
+//        RecordBackgroundError(status);
+//      }
     }
     if (write_batch == tmp_batch_) tmp_batch_->Clear();
 
@@ -1572,13 +1589,16 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // There is room in current memtable
       break;
     } else {
+      out("makeroom_to_st");
       //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
       MutexLock l(&mutex_);
       if (imm_ != nullptr) {
+        out("waitim");
         // We have filled up the current memtable, but the previous
         // one is still being compacted, so we wait.
         Log(options_.info_log, "Current memtable full; waiting...\n");
         background_work_finished_signal_.Wait();
+        out("waitoverim");
       } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
         // There are too many level-0 files.
         Log(options_.info_log, "Too many L0 files; waiting...\n");
@@ -1606,8 +1626,9 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
         // 复制mem的树结构
         mems[memId] = new MemTable(imm_);
         mems[memId]->Ref();
+        memNum[memId] = 0;
         force = false;  // Do not force another compaction if have room
-        MaybeScheduleCompaction();
+//        MaybeScheduleCompaction();
       }
     }
   }
@@ -1764,21 +1785,21 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
   Status s = impl->Recover(&edit, &save_manifest);
-//  if (s.ok() && impl->mem_ == nullptr) {
-//    // Create new log and a corresponding memtable.
-//    uint64_t new_log_number = impl->versions_->NewFileNumber();
-//    WritableFile* lfile;
-//    s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
-//                                     &lfile);
-//    if (s.ok()) {
-//      edit.SetLogNumber(new_log_number);
-//      impl->logfile_ = lfile;
-//      impl->logfile_number_ = new_log_number;
-//      impl->log_ = new log::Writer(lfile);
+  if (s.ok() && !impl->mems.size()) {
+    // Create new log and a corresponding memtable.
+    uint64_t new_log_number = impl->versions_->NewFileNumber();
+    WritableFile* lfile;
+    s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+                                     &lfile);
+    if (s.ok()) {
+      edit.SetLogNumber(new_log_number);
+      impl->logfile_ = lfile;
+      impl->logfile_number_ = new_log_number;
+      impl->log_ = new log::Writer(lfile);
 //      impl->mem_ = new MemTable(impl->internal_comparator_);
 //      impl->mem_->Ref();
-//    }
-//  }
+    }
+  }
   if (s.ok() && save_manifest) {
     edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
     edit.SetLogNumber(impl->logfile_number_);

@@ -16,13 +16,13 @@ NonLeaf::NonLeaf(int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt, NonLeaf
 }
 
 
-void NonLeaf::add(NonLeafKey nonLeafKey) {
-    this->nonLeafKeys[num] = nonLeafKey;
+void NonLeaf::add(NonLeafKey &nonLeafKey) {
+    memcpy(nonLeafKeys + num, &nonLeafKey, sizeof(NonLeafKey));
     num++;
 }
 
 void NonLeaf::add(NonLeafKey *nonLeafKeys, int num) {
-    memcpy(this->nonLeafKeys + this->num, nonLeafKeys, sizeof(LeafKey) * num);
+    memcpy(this->nonLeafKeys + this->num, nonLeafKeys, sizeof(NonLeafKey) * num);
     this->num += num;
 }
 

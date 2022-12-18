@@ -23,6 +23,7 @@
 #include "leveldb/db.h"
 #include "zsbtree/zsbtree_table.h"
 #include "util/coding.h"
+#include "iostream"
 
 namespace leveldb {
 
@@ -56,6 +57,7 @@ Status WriteBatch::Iterate(Handler* handler, int memNum) const {
     if (input.size() >= leaf_key_size) {
       //我们添加进table 如果满了，重组
       if (!handler->Put(*(LeafKey*)input.data())) {
+        out("重组");
         int Nt = memNum + found + 1;
         int nt = Nt * Leaf_maxnum / Table_maxnum;
         handler->Rebalance(nt, nt/2, Nt);

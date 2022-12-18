@@ -51,6 +51,8 @@ cod get_co_d_from_saxt(saxt a, saxt b);
 cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d);
 //比较在第d个段是否相等
 bool compare_saxt_d(saxt a, saxt b, cod d);
+//比较saxt是否相等
+bool compare_saxt(saxt a, saxt b);
 
 
 

@@ -15,7 +15,7 @@ public:
 
     NonLeaf(int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt, NonLeafKey *nonLeafKeys);
     //添加一个saxt，p
-    void add(NonLeafKey nonLeafKey);
+    void add(NonLeafKey &nonLeafKey);
     void add(NonLeafKey *nonLeafKeys, int num);
     void setLsaxt(saxt saxt_);
     void setRsaxt(saxt saxt_);

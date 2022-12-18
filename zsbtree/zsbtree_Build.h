@@ -5,9 +5,9 @@
 #ifndef TODOZSBTREE_ZSBTREE_BUILD_H
 #define TODOZSBTREE_ZSBTREE_BUILD_H
 
+#include "zsbtree_Insert.h"
 #include "zsbtree_LeafBuild.h"
 #include "zsbtree_NonLeafBuild.h"
-
 
 static NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m, int &leafNum) {
   vector<NonLeafKey> nonLeafKeys[2];
@@ -45,7 +45,6 @@ static NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, 
 static NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
 
   vector<NonLeafKey> nonLeafKeys_rep[2];
-
 
   int out_1 = 1;
   bool isleaf = true;

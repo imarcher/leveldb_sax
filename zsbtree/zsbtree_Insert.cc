@@ -5,6 +5,7 @@
 #include "zsbtree_Insert.h"
 
 
+
 // -1 0 1代表在点左边，中间，右边
 inline int whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey, cod co_d){
   if (saxt_cmp(leafKey, rsaxt, co_d) && saxt_cmp(lsaxt, leafKey, co_d)) return 0;
@@ -21,7 +22,7 @@ bool l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
     leaf.setLsaxt(leafKey.asaxt);
     leaf.co_d = nonLeafKey.co_d;
     leaf.add(leafKey);
-    leaf.num++;
+    nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
   } else {
     NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
@@ -39,7 +40,7 @@ bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
     leaf.setRsaxt(leafKey.asaxt);
     leaf.co_d = nonLeafKey.co_d;
     leaf.add(leafKey);
-    leaf.num++;
+    nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
   } else {
     NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
@@ -52,7 +53,6 @@ bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
 
 inline bool leaf_Insert(Leaf &leaf, LeafKey &leafKey) {
   leaf.add(leafKey);
-  leaf.num++;
   return leaf.num != Leaf_rebuildnum;
 }
 
@@ -68,9 +68,17 @@ bool nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
     else l = mid + 1;
   }
   int pos = whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafKey.asaxt, nonLeaf.co_d);
+  if (pos!=0) {
+    saxt_print(leafKey.asaxt);
+    saxt_print(nonLeaf.nonLeafKeys[l].lsaxt);
+    saxt_print(nonLeaf.nonLeafKeys[l].rsaxt);
+  }
   if (pos==0) {
     //里面 直接插入
-    if(nonLeaf.isleaf) return leaf_Insert(*(Leaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
+    if(nonLeaf.isleaf) {
+      nonLeaf.nonLeafKeys[l].num++;
+      return leaf_Insert(*(Leaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
+    }
     else return nonLeaf_Insert(*(NonLeaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
   } else if (pos==-1){
     //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小

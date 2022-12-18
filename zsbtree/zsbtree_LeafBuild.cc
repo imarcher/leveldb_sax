@@ -710,7 +710,7 @@ void buildtree_window_last(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &non
       continue;
     }
   }
-  int todonum = num - todoid;
+  int todonum = allnum - todoid;
   if (todonum > n) {
     //直接平分打包
     saxt lsaxt = get_saxt_i(leafKeys, todoid);
@@ -755,7 +755,7 @@ void buildtree(newVector<LeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, co
     l += todoid;
     r += todoid;
   }
-  int num = leafKeys.size() - l - 1;
+  int num = leafKeys.size() - l;
   if (num>0 && num<=n) {
     //最后剩余小于等于n
     saxt lsaxt = get_saxt_i(leafKeys, l);

@@ -94,6 +94,7 @@ MemTable* MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) 
 }
 int MemTable::GetleafNum() { return table_.leafNum; }
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
+
 MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_){}
 MemTable::MemTable(zsbtree_table_mem table_mem) :refs_(0),table_(table_mem){}
 

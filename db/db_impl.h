@@ -144,8 +144,7 @@ class DBImpl : public DB {
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status MakeRoomForWrite(bool force /* compact even if there is room? */
-      , int memId)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      , int memId);
   WriteBatch* BuildBatchGroup(Writer** last_writer, int memId)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -211,7 +210,7 @@ class DBImpl : public DB {
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
-  uint64_t logfile_number_ GUARDED_BY(mutex_);
+  uint64_t logfile_number_ ;
   log::Writer* log_;
   uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
 
@@ -230,10 +229,10 @@ class DBImpl : public DB {
 
   ManualCompaction* manual_compaction_ GUARDED_BY(mutex_);
 
-  VersionSet* const versions_ GUARDED_BY(mutex_);
+  VersionSet* const versions_ ;
 
   // Have we encountered a background error in paranoid mode?
-  Status bg_error_ GUARDED_BY(mutex_);
+  Status bg_error_ ;
 
   CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
 };

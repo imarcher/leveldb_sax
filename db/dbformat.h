@@ -25,10 +25,10 @@ namespace config {
 static const int kNumLevels = 7;
 
 // Level-0 compaction is started when we hit this many files.
-static const int kL0_CompactionTrigger = 4;
+static const int kL0_CompactionTrigger = 8;//4
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
-static const int kL0_SlowdownWritesTrigger = 8;
+static const int kL0_SlowdownWritesTrigger = 16;//8
 
 // Maximum number of level-0 files.  We stop writes at this point.
 static const int kL0_StopWritesTrigger = 12;

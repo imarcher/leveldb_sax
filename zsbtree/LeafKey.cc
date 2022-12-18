@@ -28,7 +28,7 @@ LeafKey::LeafKey(saxt prefix, char* stleafkey, cod co_size, cod noco_size) {
 }
 
 void LeafKey::Set(const LeafKey& leafKey) {
-  memcpy(this, &leafKey, leaf_key_size);
+  memcpy(this, &leafKey, sizeof(LeafKey));
 }
 
 void LeafKey::Set(saxt prefix, char* stleafkey, cod co_size, cod noco_size) {

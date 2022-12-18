@@ -766,7 +766,7 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
       continue;
     }
   }
-  int todonum = num - todoid;
+  int todonum = allnum - todoid;
   if (todonum > n) {
     //直接平分打包
     saxt lsaxt = get_saxt_i(leafKeys, todoid);
@@ -993,8 +993,8 @@ int Zsbtree_Build::buildtree_window(newVector<NonLeafKey> &leafKeys, int dep) {
           saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i_r(leafKeys, id1);
-          tmprsaxt = get_saxt_i(leafKeys, i-1);
+          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
@@ -1282,8 +1282,8 @@ void Zsbtree_Build::buildtree_window_last(newVector<NonLeafKey> &leafKeys, int a
           saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i_r(leafKeys, id1);
-          tmprsaxt = get_saxt_i(leafKeys, i-1);
+          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
@@ -1454,7 +1454,7 @@ void Zsbtree_Build::buildtree_window_last(newVector<NonLeafKey> &leafKeys, int a
       continue;
     }
   }
-  int todonum = num - todoid;
+  int todonum = allnum - todoid;
   if (todonum > n) {
     //直接平分打包
     saxt lsaxt = get_saxt_i(leafKeys, todoid);

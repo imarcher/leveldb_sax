@@ -31,11 +31,13 @@ void test_init(vector<LeafKey>& leafKeys){
 void test_put(vector<LeafKey>& leafKeys){
 //
 //  threadPool pool(6);
+
+
   out("==================");
   int k=0;
-  for(auto item:leafKeys) {
-    db->Put(leveldb::WriteOptions(), item);
-    out(22);
+  for(int i=0;i<90;i++){
+    db->Put(leveldb::WriteOptions(), leafKeys[i%30]);
+//    cout<<"finish:"<<k++<<endl;
   }
 //  int j;
 //  for(int i=0;i<leafKeys.size();i=j) {
@@ -61,18 +63,6 @@ int main(){
   }
 
   string dir = "./testdb";
-  if (access(dir.c_str(), 0) == 0)
-  {
-    cout<<dir<<" exists"<<endl;
-    cout<<"now delete it"<<endl;
-    int flag=rmdir(dir.c_str());
-    if (flag == 0)
-    {
-      cout<<"delete it successfully"<<endl;
-    } else {
-      cout<<"delete it errorly"<<endl;
-    }
-  }
 
   options.create_if_missing = true;
   leveldb::Status status = leveldb::DB::Open(options, dir, &db);
@@ -83,6 +73,5 @@ int main(){
 
 
 
-//  assert(status.ok());
-
+  delete db;
 }
