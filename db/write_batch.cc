@@ -59,7 +59,8 @@ Status WriteBatch::Iterate(Handler* handler, int memNum) const {
       if (!handler->Put(*(LeafKey*)input.data())) {
         out("重组");
         int Nt = memNum + found + 1;
-        int nt = Nt * Leaf_maxnum / Table_maxnum;
+        int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
+
         handler->Rebalance(nt, nt/2, Nt);
       }
       input.remove_prefix(leaf_key_size);

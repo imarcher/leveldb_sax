@@ -40,7 +40,9 @@ typedef unsigned char cod;
 #define Ts_length 256
 #define Leaf_maxnum 64
 #define Leaf_minnum 32
-
+//最小
+#define Leaf_maxnum_rebalance 10
+#define Leaf_minnum_rebalance 5
 
 
 //一个memtable存的数量

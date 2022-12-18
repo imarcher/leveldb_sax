@@ -44,10 +44,14 @@ class zsbtree_table {
   //查
   void GetLeafKeys(saxt key, vector<LeafKey>& leafKeys);
 
-  //标记叶子结点是否被使用，主要用来看删除不删除叶子
-  bool isleafuse = false;
+
+
   //叶子数量， drange重构时用
   int leafNum;
+  //标记叶子结点是否被使用，主要用来看删除不删除叶子
+  bool isleafuse = false;
+  //复制im的会设为true，删除时会不一样
+  bool iscopy = false;
   NonLeaf* root;
 
  private:
@@ -58,6 +62,8 @@ class zsbtree_table {
   void CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf);
 
   void DelTree_dfs(NonLeaf* nonLeaf);
+
+  void DelTree_dfs_2(NonLeaf* nonLeaf);
 };
 
 }

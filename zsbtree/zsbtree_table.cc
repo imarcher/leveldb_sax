@@ -27,7 +27,7 @@ zsbtree_table_mem zsbtree_table::Rebalance(int tmp_leaf_maxnum,
                                            int tmp_leaf_minnum, int Nt) {
   vector<LeafKey> sortleafKeys;
   sortleafKeys.reserve(Nt);
-  //从root开始dfs删除
+  //从root开始dfs
   Rebalance_dfs(root, sortleafKeys);
   newVector<LeafKey> new_sortleafKeys(sortleafKeys);
   int leafNum;
@@ -43,10 +43,12 @@ void zsbtree_table::Rebalance_dfs(NonLeaf* nonLeaf,
     //遍历子结点
     for (int i = 0; i < nonLeaf->num; i++) {
       Leaf* tmpleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
-      tmpleaf->sort();
-      auto dst = sortleafKeys.data() + sortleafKeys.size();
-      sortleafKeys.resize(sortleafKeys.size() + tmpleaf->num);
-      mempcpy(dst, tmpleaf->leafKeys, leaf_key_size * tmpleaf->num);
+      if (tmpleaf->num) {
+        tmpleaf->sort();
+        auto dst = sortleafKeys.data() + sortleafKeys.size();
+        sortleafKeys.resize(sortleafKeys.size() + tmpleaf->num);
+        mempcpy(dst, tmpleaf->leafKeys, leaf_key_size * tmpleaf->num);
+      }
     }
   } else {
     //遍历子结点
@@ -83,6 +85,7 @@ zsbtree_table::zsbtree_table(zsbtree_table& im) {
   //先申请内存
   root = (NonLeaf*)malloc(sizeof(NonLeaf));
   CopyTree_dfs(root, im.root);
+  iscopy = true;
 }
 
 zsbtree_table::zsbtree_table(zsbtree_table_mem table_mem) {
@@ -113,7 +116,14 @@ void zsbtree_table::CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf) {
 }
 
 zsbtree_table::~zsbtree_table() {
-  if (root != nullptr) DelTree_dfs(root);
+  if (root != nullptr) {
+    //有new的，还有统一的，也就是copy
+    if (!iscopy) DelTree_dfs(root);
+    else {
+      DelTree_dfs_2(root);
+      free(root);
+    }
+  }
 }
 
 void zsbtree_table::DelTree_dfs(NonLeaf* nonLeaf) {
@@ -131,12 +141,26 @@ void zsbtree_table::DelTree_dfs(NonLeaf* nonLeaf) {
   delete nonLeaf;
 }
 
+void zsbtree_table::DelTree_dfs_2(NonLeaf* nonLeaf) {
+  if (nonLeaf->isleaf) {
+    if (!isleafuse) {
+      free(nonLeaf->nonLeafKeys[0].p);
+    }
+  } else {
+    for (int i = 0; i < nonLeaf->num; i++) {
+      DelTree_dfs_2((NonLeaf*)nonLeaf->nonLeafKeys[i].p);
+    }
+    free(nonLeaf->nonLeafKeys[0].p);
+  }
+}
+
 //查
 void zsbtree_table::GetLeafKeys(saxt key, vector<LeafKey>& leafKeys) {
   ZsbTree_finder zsbTreeFinder(leafKeys);
   LeafKey leafKey(key);
   zsbTreeFinder.root_Get(*root, leafKey);
 }
+
 
 }
 
