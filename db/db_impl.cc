@@ -145,7 +145,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       logfile_number_(0),
       log_(nullptr),
       seed_(0),
-      tmp_batch_(new WriteBatch),
+//      tmp_batch_(new WriteBatch),
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
@@ -166,7 +166,15 @@ DBImpl::~DBImpl() {
 
   delete versions_;
   if (imm_ != nullptr) imm_->Unref();
-  delete tmp_batch_;
+
+  for (auto item: mems) {
+    item->Unref();
+  }
+
+  for(auto item: tmp_batchs) {
+    delete item;
+  }
+
   delete log_;
   delete logfile_;
   delete table_cache_;
@@ -710,8 +718,12 @@ void DBImpl::BackgroundCompaction() {
 
   if (imm_ != nullptr) {
     CompactMemTable();
+    out("success im compaction");
+    VersionSet::LevelSummaryStorage tmp;
+    out("compacted to: "+ (string)versions_->LevelSummary(&tmp));
     return;
   }
+  out("进入压缩合并");
   //压缩合并sstable，这里写完读取sstable再来写
   Compaction* c;
   // 手动合并，测试用的
@@ -1037,6 +1049,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   }
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
+  out("compacted to: "+ (string)versions_->LevelSummary(&tmp));
   return status;
 }
 
@@ -1347,6 +1360,7 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
     int start = j;
     write_mutex.emplace_back();
     writers_vec.emplace_back();
+    tmp_batchs.push_back(new WriteBatch());
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
       sum += nonLeafKeys[j++].num;
@@ -1442,9 +1456,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
   if (w.done) {
     return w.status;
   }
-
   // May temporarily unlock and wait.
   Status status = MakeRoomForWrite(updates == nullptr, memId);
+  //这个序列号我们是不用的，但也还没改，会有线程不统一的问题
   uint64_t last_sequence = versions_->LastSequence();
   Writer* last_writer = &w;
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
@@ -1452,7 +1466,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
     WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
     int batch_num = WriteBatchInternal::Count(write_batch);
     last_sequence += batch_num;
-
+    int nowNum = memNum[memId];
+    memNum[memId] += batch_num;
     // Add to log and apply to memtable.  We can release the lock
     // during this phase since &w is currently responsible for logging
     // and protects against concurrent loggers and concurrent writes
@@ -1470,11 +1485,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
 //      }
       if (status.ok()) {
         //里面会有drange内的平衡
-//        out("todoocharu");
-        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], memNum[memId]);
-//        out("finishcharu");
+        out("todoocharu");
+        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], nowNum);
+        out("finishcharu");
         // 一个batch插入完后，在更新。
-        memNum[memId] += batch_num;
+
       }
       mutex_i->Lock();
 //      if (sync_error) {
@@ -1484,7 +1499,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
 //        RecordBackgroundError(status);
 //      }
     }
-    if (write_batch == tmp_batch_) tmp_batch_->Clear();
+    if (write_batch == tmp_batchs[memId]) tmp_batchs[memId]->Clear();
 
     versions_->SetLastSequence(last_sequence);
   }
@@ -1504,7 +1519,6 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
   if (!writers_.empty()) {
     writers_.front()->cv.Signal();
   }
-
   return status;
 }
 
@@ -1548,7 +1562,7 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer, int memId) {
       // Append to *result
       if (result == first->batch) {
         // Switch to temporary batch instead of disturbing caller's batch
-        result = tmp_batch_;
+        result = tmp_batchs[memId];
         assert(WriteBatchInternal::Count(result) == 0);
         WriteBatchInternal::Append(result, first->batch);
       }
@@ -1587,6 +1601,7 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
     } else if (!force &&
                (memNum[memId] <= Table_maxnum)) {
       // There is room in current memtable
+      out("todoput");
       break;
     } else {
       out("makeroom_to_st");
@@ -1628,7 +1643,7 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
         mems[memId]->Ref();
         memNum[memId] = 0;
         force = false;  // Do not force another compaction if have room
-//        MaybeScheduleCompaction();
+        MaybeScheduleCompaction();
       }
     }
   }

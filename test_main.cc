@@ -13,6 +13,8 @@
 #include "threadPool_2.h"
 #include "zsbtree_table.h"
 
+#define over(a) std::cout<<a<<" finished"<<std::endl
+
 int datanum = 1000 * 1000;
 leveldb::DB* db;
 leveldb::Options options;
@@ -26,25 +28,58 @@ void test_init(vector<LeafKey>& leafKeys){
   vector<NonLeafKey> nonLeafKeys;
   db->InitLeaf(leafKeys, nonLeafKeys);
   db->InitDranges(nonLeafKeys, datanum);
+  over("init");
 }
 
+
 void test_put(vector<LeafKey>& leafKeys){
-//
-//  threadPool pool(6);
-
-
-  out("==================");
+  leveldb::WriteOptions writeOptions;
   int k=0;
-  for(int i=0;i<90;i++){
-    db->Put(leveldb::WriteOptions(), leafKeys[i%30]);
+  for(int i=0;i<100000;i++){
+    db->Put(writeOptions, leafKeys[i]);
 //    cout<<"finish:"<<k++<<endl;
+  }
+  over("put");
+}
+
+
+void test_put_multithread(vector<LeafKey>& leafKeys){
+
+  ThreadPool pool(4);
+  leveldb::WriteOptions writeOptions;
+
+  for(int i=0;i<10000;i++) {
+      pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
   }
 //  int j;
 //  for(int i=0;i<leafKeys.size();i=j) {
 //    for(int j=i;j<leafKeys.size();j+=Table_maxnum)
 //      pool.append(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[j]));
 //  }
-  out("over");
+  over("put_multithread");
+}
+
+
+void test_rebalance_small(vector<LeafKey>& leafKeys){
+  for(int i=0;i<90;i++){
+    db->Put(leveldb::WriteOptions(), leafKeys[i%30]);
+  }
+  over("rebalance_small");
+}
+
+
+void test_st_compaction_0(vector<LeafKey>& leafKeys){
+  ThreadPool pool(6);
+  leveldb::WriteOptions writeOptions;
+
+  for(int i=0;i<10000;i++) {
+    for(int j=i;j<leafKeys.size();j+=Table_maxnum)
+      pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[j]));
+  }
+//  leveldb::WriteOptions writeOptions;
+//  db->Put(writeOptions, leafKeys[0]);
+//  db->Put(writeOptions, leafKeys[200000]);
+  over("st_compaction_0");
 }
 
 
@@ -69,9 +104,14 @@ int main(){
 
   assert(status.ok());
   test_init(leafKeys);
-  test_put(leafKeys);
+
+  //一组测试
+//  test_put(leafKeys);
+//  test_put_multithread(leafKeys);
+//  test_rebalance_small(leafKeys);
+  test_st_compaction_0(leafKeys);
 
 
+  out("finished");
 
-  delete db;
 }

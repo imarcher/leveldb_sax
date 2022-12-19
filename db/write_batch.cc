@@ -58,6 +58,7 @@ Status WriteBatch::Iterate(Handler* handler, int memNum) const {
       //我们添加进table 如果满了，重组
       if (!handler->Put(*(LeafKey*)input.data())) {
         out("重组");
+        out(memNum + found + 1);
         int Nt = memNum + found + 1;
         int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
 

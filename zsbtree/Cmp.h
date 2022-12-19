@@ -11,6 +11,8 @@
 //排序用
 bool LeafKey_cmp(const LeafKey &a, const LeafKey &b);
 
+bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b);
+
 // <=
 bool saxt_cmp(saxt a, saxt b, cod co_d);
 

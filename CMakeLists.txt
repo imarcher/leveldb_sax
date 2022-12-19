@@ -299,8 +299,6 @@ target_link_libraries(leveldb sax zsbtree)
 
 add_executable(test_main
         "test_main.cc"
-        "threadPool_2.cc"
-        "threadPool_2.h"
         )
 
 target_link_libraries(test_main leveldb)

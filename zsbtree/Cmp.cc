@@ -6,7 +6,7 @@
 
 
 
-//排序用
+//<=
 bool LeafKey_cmp(const LeafKey &a, const LeafKey &b) {
     for (int i=0;i<Bit_cardinality;i++){
       if (a.asaxt[i] != b.asaxt[i]) return a.asaxt[i] < b.asaxt[i];
@@ -14,8 +14,16 @@ bool LeafKey_cmp(const LeafKey &a, const LeafKey &b) {
     return true;
 }
 
+//<
+bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b) {
+    for (int i=0;i<Bit_cardinality;i++){
+        if (a.asaxt[i] != b.asaxt[i]) return a.asaxt[i] < b.asaxt[i];
+    }
+    return false;
+}
 
 
+//<=
 bool saxt_cmp(saxt a, saxt b, cod co_d) {
     int d = co_d;
     for (;d<Bit_cardinality;d++) {

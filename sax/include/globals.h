@@ -51,7 +51,7 @@ typedef unsigned char cod;
 
 
 //超过这个重构叶结点
-static const int Leaf_rebuildnum = Leaf_maxnum * 1.2;
+static const int Leaf_rebuildnum = Leaf_maxnum * 1.5;
 
 //static int cardinality = 256;
 //static int bit_cardinality = 8;

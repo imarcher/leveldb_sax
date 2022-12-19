@@ -41,7 +41,7 @@ Leaf::Leaf() {
 }
 
 void Leaf::sort() {
-  std::sort(leafKeys, leafKeys + num, LeafKey_cmp);
+  std::sort(leafKeys, leafKeys + num, LeafKey_cmp1);
 }
 
 void Leaf::set(NonLeafKey& nonLeafKey) {

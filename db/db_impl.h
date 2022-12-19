@@ -207,6 +207,8 @@ class DBImpl : public DB {
   vector<int> memNum_period;
   //写队列
   vector<std::deque<Writer*>> writers_vec;
+  //写入的临时空间
+  vector<WriteBatch*> tmp_batchs;
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
@@ -216,7 +218,7 @@ class DBImpl : public DB {
 
   // Queue of writers.
 //  std::deque<Writer*> writers_ GUARDED_BY(mutex_);
-  WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
+//  WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
 
   SnapshotList snapshots_ GUARDED_BY(mutex_);
 
