@@ -128,7 +128,8 @@ struct LEVELDB_EXPORT Options {
   // worth switching to kNoCompression.  Even if the input data is
   // incompressible, the kSnappyCompression implementation will
   // efficiently detect that and will switch to uncompressed mode.
-  CompressionType compression = kSnappyCompression;
+  //先不压缩
+  CompressionType compression = CompressionType::kNoCompression;
 
   // EXPERIMENTAL: If true, append to existing MANIFEST and log files
   // when a database is opened.  This can significantly speed up open.

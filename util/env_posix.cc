@@ -8,11 +8,6 @@
 #ifndef __Fuchsia__
 #include <sys/resource.h>
 #endif
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <atomic>
 #include <cerrno>
 #include <cstddef>
@@ -22,15 +17,21 @@
 #include <cstring>
 #include <limits>
 #include <queue>
+#include <sax/include/globals.h>
 #include <set>
 #include <string>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <thread>
 #include <type_traits>
+#include <unistd.h>
 #include <utility>
 
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_posix_test_helper.h"
@@ -140,6 +141,7 @@ class PosixSequentialFile final : public SequentialFile {
   ~PosixSequentialFile() override { close(fd_); }
 
   Status Read(size_t n, Slice* result, char* scratch) override {
+
     Status status;
     while (true) {
       ::ssize_t read_size = ::read(fd_, scratch, n);
@@ -198,6 +200,8 @@ class PosixRandomAccessFile final : public RandomAccessFile {
 
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
+
+
     int fd = fd_;
     if (!has_permanent_fd_) {
       fd = ::open(filename_.c_str(), O_RDONLY | kOpenBaseFlags);
@@ -210,6 +214,7 @@ class PosixRandomAccessFile final : public RandomAccessFile {
 
     Status status;
     ssize_t read_size = ::pread(fd, scratch, n, static_cast<off_t>(offset));
+
     *result = Slice(scratch, (read_size < 0) ? 0 : read_size);
     if (read_size < 0) {
       // An error: return a non-ok status.
@@ -258,6 +263,7 @@ class PosixMmapReadableFile final : public RandomAccessFile {
 
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
+
     if (offset + n > length_) {
       *result = Slice();
       return PosixError(filename_, EINVAL);
@@ -293,7 +299,8 @@ class PosixWritableFile final : public WritableFile {
   Status Append(const Slice& data) override {
     size_t write_size = data.size();
     const char* write_data = data.data();
-
+//    out("write开始");
+//    out(write_size);
     // Fit as much as possible into buffer.
     size_t copy_size = std::min(write_size, kWritableFileBufferSize - pos_);
     std::memcpy(buf_ + pos_, write_data, copy_size);
@@ -539,6 +546,7 @@ class PosixEnv : public Env {
 
   Status NewRandomAccessFile(const std::string& filename,
                              RandomAccessFile** result) override {
+
     *result = nullptr;
     int fd = ::open(filename.c_str(), O_RDONLY | kOpenBaseFlags);
     if (fd < 0) {
@@ -552,6 +560,7 @@ class PosixEnv : public Env {
 
     uint64_t file_size;
     Status status = GetFileSize(filename, &file_size);
+
     if (status.ok()) {
       void* mmap_base =
           ::mmap(/*addr=*/nullptr, file_size, PROT_READ, MAP_SHARED, fd, 0);

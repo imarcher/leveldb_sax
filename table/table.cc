@@ -42,28 +42,31 @@ struct Table::Rep {
 Status Table::Open(const Options& options, RandomAccessFile* file,
                    uint64_t size, Table** table) {
   *table = nullptr;
-  if (size < nonleaf_key_size) {
+  if (size < sizeof(NonLeafKey)) {
     return Status::Corruption("file is too short to be an sstable");
   }
 
 
+  // 这里是申请了空间，但是不一定有用，mmap的时候就没用
   NonLeafKey rootkey;
-  //其实是没用
   Slice rootkey_input;
-  Status s = file->Read(size - nonleaf_key_size, nonleaf_key_size,
+  Status s = file->Read(size - sizeof(NonLeafKey), sizeof(NonLeafKey),
                         &rootkey_input, (char*)&rootkey);
+
+
   if (!s.ok()) return s;
 
-
   //先不读校验码
-  STpos* sTpos = (STpos*)&rootkey.p;
+  NonLeafKey* real_rootkey = (NonLeafKey*)rootkey_input.data();
+  STpos* sTpos = (STpos*)&real_rootkey->p;
   size_t stNonLeaf_size = sTpos->GetSize();
-  STNonLeaf* stNonLeaf = new STNonLeaf(rootkey.num, rootkey.co_d, rootkey.lsaxt, stNonLeaf_size);
-
+  Slice stNonLeaf_input;
+  //开了空间的
+  STNonLeaf* stNonLeaf = new STNonLeaf(real_rootkey->num, real_rootkey->co_d, real_rootkey->lsaxt, stNonLeaf_size);
   s = file->Read(sTpos->GetOffset(), stNonLeaf_size,
-                 &rootkey_input, stNonLeaf->rep);
+                 &stNonLeaf_input, stNonLeaf->rep);
+  stNonLeaf->Setrep(stNonLeaf_input.data());
   stNonLeaf->Setisleaf();
-
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
@@ -72,7 +75,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     rep->options = options;
     rep->file = file;
     rep->stNonLeaf = stNonLeaf;
-    saxt_copy(rep->rsaxt, rootkey.rsaxt);
+    saxt_copy(rep->rsaxt, real_rootkey->rsaxt);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
     *table = new Table(rep);
 //    (*table)->ReadMeta(footer);
@@ -421,6 +424,7 @@ STLeaf* Table::ST_finder::getSTLeaf(STNonLeaf& nonLeaf, int i) {
   STLeaf* stLeaf = new STLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stLeaf_size);
   rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
                    &slice, stLeaf->rep);
+  stLeaf->Setrep(slice.data());
   return stLeaf;
 }
 
@@ -431,6 +435,7 @@ STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
   STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i), stNonLeaf_size);
   rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
                    &slice, stNonLeaf->rep);
+  stNonLeaf->Setrep(slice.data());
   stNonLeaf->Setisleaf();
   return stNonLeaf;
 }
@@ -479,6 +484,7 @@ void Table::ST_Iter::getSTLeaf() {
   stLeaf.Set(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), nonLeaf.Get_lsaxt(i));
   rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
                    &slice, stLeaf.rep);
+  stLeaf.Setrep(slice.data());
   leaftop = -1;
 }
 
@@ -497,6 +503,7 @@ void Table::ST_Iter::getSTNonLeaf() {
   }
   rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
                    &slice, st_nonleaf_stack[top]->rep);
+  st_nonleaf_stack[top]->Setrep(slice.data());
   st_nonleaf_stack[top]->Setisleaf();
   nonleaftops[top] = -1;
 }

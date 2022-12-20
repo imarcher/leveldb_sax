@@ -101,8 +101,8 @@ void TableBuilder::AddRootKey(NonLeafKey* nonLeafKey) {
   if (!ok()) return;
   //一个sstable的起点,就是
   std::string root_str;
-  root_str.append((char*)&nonLeafKey, nonleaf_key_size);
-  r->status = r->file->Append(root_str);
+  root_str.append((char*)nonLeafKey, sizeof(NonLeafKey));
+  r->status = r->file->Append(Slice(root_str));
   if (r->status.ok()) {
     //flush剩余的
     r->file->Flush();
@@ -120,9 +120,12 @@ void TableBuilder::Add(MemTable* mem) {
   if (ok()) {
     //一个sstable的起点,就是
     std::string root_str;
+//      out("rootKey");
+//      out(r->pending_handle.GetSize());
+//      out(r->pending_handle.GetOffset());
     NonLeafKey rootKey(root->num, root->co_d, root->lsaxt, root->rsaxt, r->pending_handle.Get());
-    root_str.append((char*)&rootKey, nonleaf_key_size);
-    r->status = r->file->Append(root_str);
+    root_str.append((char*)&rootKey, sizeof(NonLeafKey));
+    r->status = r->file->Append(Slice(root_str));
     if (r->status.ok()) {
       //flush剩余的
       r->file->Flush();
@@ -176,17 +179,23 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
       r->data_block.Add(aleaf);
       //取消了手动flush，改成每4kb写入了
       Flush();
-      //给位置和size
+//      out("handle");
+//          out(r->pending_handle.GetSize());
+//          out(r->pending_handle.GetOffset());
       new_p.push_back(r->pending_handle.Get());
     }
   } else {
     for(int i=0;i<nonLeaf->num;i++) {
       NonLeaf* anonLeaf = (NonLeaf*)nonLeaf->nonLeafKeys[i].p;
       Add_dfs(anonLeaf);
+//      out("handle");
+//      out(r->pending_handle.GetSize());
+//      out(r->pending_handle.GetOffset());
       new_p.push_back(r->pending_handle.Get());
     }
   }
   //存这个结点
+//  out("jin");
   r->data_block.Add(nonLeaf, new_p);
   Flush();
 }
@@ -234,6 +243,7 @@ void TableBuilder::WriteBlock(BlockBuilder* block, STpos* handle) {
       break;
     }
   }
+
   WriteRawBlock(block_contents, type, handle);
   r->compressed_output.clear();
   block->Reset();

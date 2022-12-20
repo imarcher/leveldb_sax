@@ -521,6 +521,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   const uint64_t start_micros = env_->NowMicros();
   //这里 InternalKey 先放着，后面要去掉顺序号再改
   FileMetaData meta;
+
   meta.number = versions_->NewFileNumber();
   pending_outputs_.insert(meta.number);
 
@@ -549,6 +550,8 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
     }
+    out("=================filenumber:"+to_string(meta.number));
+    out("=================file_size:"+to_string(meta.file_size));
     edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
                   meta.largest);
   }
@@ -1485,9 +1488,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId
 //      }
       if (status.ok()) {
         //里面会有drange内的平衡
-        out("todoocharu");
+//        out("todoocharu");
         status = WriteBatchInternal::InsertInto(write_batch, mems[memId], nowNum);
-        out("finishcharu");
+//        out("finishcharu");
         // 一个batch插入完后，在更新。
 
       }
@@ -1601,7 +1604,7 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
     } else if (!force &&
                (memNum[memId] <= Table_maxnum)) {
       // There is room in current memtable
-      out("todoput");
+//      out("todoput");
       break;
     } else {
       out("makeroom_to_st");
@@ -1621,15 +1624,15 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       } else {
         // Attempt to switch to a new memtable and trigger compaction of old
         //重置了log
-        assert(versions_->PrevLogNumber() == 0);
-        uint64_t new_log_number = versions_->NewFileNumber();
-        WritableFile* lfile = nullptr;
-        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-        if (!s.ok()) {
-          // Avoid chewing through file number space in a tight loop.
-          versions_->ReuseFileNumber(new_log_number);
-          break;
-        }
+//        assert(versions_->PrevLogNumber() == 0);
+//        uint64_t new_log_number = versions_->NewFileNumber();
+//        WritableFile* lfile = nullptr;
+//        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//        if (!s.ok()) {
+//          // Avoid chewing through file number space in a tight loop.
+//          versions_->ReuseFileNumber(new_log_number);
+//          break;
+//        }
 //        delete log_;
 //        delete logfile_;
 //        logfile_ = lfile;

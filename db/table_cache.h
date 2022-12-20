@@ -46,6 +46,8 @@ class TableCache {
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number);
 
+//  Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);
+
  private:
   friend class ST_merge;
   Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);

@@ -309,11 +309,18 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
 
     // Binary search to find earliest index whose largest key >= internal_key.
     uint32_t index = FindFile(vset_->icmp_, files_[level], internal_key);
+      out("=========");
+      out(index);
+      out(num_files);
     if (index < num_files) {
       FileMetaData* f = files_[level][index];
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
+          out("11");
+
         // All of "f" is past any data for user_key
       } else {
+            out("22");
+
         if (!(*func)(arg, level, f)) {
           return;
         }
@@ -351,7 +358,9 @@ Status Version::Get(const ReadOptions& options, LookupKey& k,
         state->stats->seek_file = state->last_file_read;
         state->stats->seek_file_level = state->last_file_read_level;
       }
-
+        out("33");
+        out(f->number);
+        out(f->file_size);
       state->last_file_read = f;
       state->last_file_read_level = level;
 
@@ -400,7 +409,7 @@ Status Version::Get(const ReadOptions& options, LookupKey& k,
 //  state.saver.ucmp = vset_->icmp_.user_comparator();
 //  state.saver.user_key = k.user_key();
 //  state.saver.value = &leafKeys;
-
+  out("找key");
   //自上向下找到key的
   ForEachOverlapping(state.ukey, state.ikey, &state, &State::Match);
 

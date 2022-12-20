@@ -106,7 +106,7 @@ void BlockBuilder::Add(Leaf* leaf) {
 
 }
 
-void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> new_p) {
+void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> &new_p) {
   cod co_d = nonLeaf->co_d;
   size_t co_saxt_size = co_d * sizeof(saxt_type);
   size_t noco_saxt_size = saxt_size - co_saxt_size;
@@ -116,7 +116,10 @@ void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> new_p) {
     buffer_.append((char*)&stkeyinfo, 2);
     buffer_.append(((char*)nonLeafKey->lsaxt) + co_saxt_size, noco_saxt_size);
     buffer_.append(((char*)nonLeafKey->rsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append((char*)(new_p.data()+i*8), 8);
+    buffer_.append((char*)(new_p.data()+i), 8);
+//    out("ADD==================handle");
+//    out(((STpos*)(new_p.data()+i))->GetSize());
+//    out(((STpos*)(new_p.data()+i))->GetOffset());
   }
   buffer_.append(nonLeaf->isleaf,1);
 }
@@ -128,7 +131,7 @@ void BlockBuilder::AddLeaf(NonLeafKey* nonLeafKey) {
   LeafKey* leafKeys = (LeafKey*)nonLeafKey->p;
   //把共享的压缩掉
   for(int i=0;i<nonLeafKey->num;i++){
-    buffer_.append(((char*)leafKeys + i) + co_saxt_size, noco_saxt_size);
+    buffer_.append(((char*)(leafKeys + i)) + co_saxt_size, noco_saxt_size);
   }
 }
 

@@ -35,7 +35,7 @@ void test_init(vector<LeafKey>& leafKeys){
 void test_put(vector<LeafKey>& leafKeys){
   leveldb::WriteOptions writeOptions;
   int k=0;
-  for(int i=0;i<100000;i++){
+  for(int i=0;i<1;i++){
     db->Put(writeOptions, leafKeys[i]);
 //    cout<<"finish:"<<k++<<endl;
   }
@@ -82,7 +82,26 @@ void test_st_compaction_0(vector<LeafKey>& leafKeys){
   over("st_compaction_0");
 }
 
+void test_get_mem(vector<LeafKey>& leafKeys){
+  vector<LeafKey> res;
+  db->Get_am(leveldb::ReadOptions(), leafKeys[3].asaxt, 0, res);
+  for(int i=0;i<res.size();i++){
+    saxt_print(res[i].asaxt);
+  }
+  out("size:"+to_string(res.size()));
+  over("get_mem");
+}
 
+void test_get_st(vector<LeafKey>& leafKeys){
+  vector<LeafKey> res;
+  db->Get_st(leveldb::ReadOptions(), leafKeys[0].asaxt, res);
+  for(int i=0;i<res.size();i++){
+    saxt_print(res[i].asaxt);
+  }
+  saxt_print(leafKeys[0].asaxt);
+  out("size:"+to_string(res.size()));
+  over("get_st");
+}
 
 int main(){
 
@@ -106,10 +125,15 @@ int main(){
   test_init(leafKeys);
 
   //一组测试
-//  test_put(leafKeys);
+  test_put(leafKeys);
 //  test_put_multithread(leafKeys);
 //  test_rebalance_small(leafKeys);
-  test_st_compaction_0(leafKeys);
+//  test_st_compaction_0(leafKeys);
+
+
+//  test_get_mem(leafKeys);
+  sleep(10);
+  test_get_st(leafKeys);
 
 
   out("finished");

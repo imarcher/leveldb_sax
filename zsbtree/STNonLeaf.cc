@@ -15,10 +15,12 @@ STNonLeaf::STNonLeaf(unsigned short num, cod co_d, saxt prefix, size_t size) {
   memcpy(this->prefix, prefix, saxt_size);
   rep = new char[size];
   this->size = size;
+  ismmap = false;
 }
 
 STNonLeaf::STNonLeaf(size_t size) {
   rep = new char[size];
+  ismmap = false;
 }
 
 void STNonLeaf::Set(unsigned short num, cod co_d, saxt prefix, size_t size) {
@@ -32,10 +34,18 @@ void STNonLeaf::Set(unsigned short num, cod co_d, saxt prefix, size_t size) {
   this->size = size;
 }
 
+void STNonLeaf::Setrep(const char* newrep) {
+  if (newrep!=rep){
+    ismmap = true;
+    delete rep;
+    rep = const_cast<char*>(newrep);
+  }
+}
+
 void STNonLeaf::Setisleaf() { isleaf = rep + size - 1; }
 
 STNonLeaf::~STNonLeaf() {
-  free(rep);
+  if (!ismmap) delete rep;
 }
 
 cod STNonLeaf::Get_co_d(int i) {

@@ -35,7 +35,7 @@ class BlockBuilder {
 
   void Add(Leaf* leaf);
 
-  void Add(NonLeaf* nonLeaf, vector<void*> new_p);
+  void Add(NonLeaf* nonLeaf, vector<void*> &new_p);
 
   // Finish building the block and return a slice that refers to the
   // block contents.  The returned slice will remain valid for the

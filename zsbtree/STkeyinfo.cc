@@ -6,17 +6,16 @@
 
 
 STkeyinfo::STkeyinfo(cod co_d, int num) {
-  co_d_num = num;
-  unsigned short tmp = co_d;
-  co_d_num |= tmp << 11;
+  co_d_num = co_d;
+  co_d_num |= num<<5;
 }
 
 
 cod STkeyinfo::GetCo_d() {
-  return co_d_num >> 11;
+  return co_d_num & 31;
 }
 
 
 int STkeyinfo::GetNum() {
-  return co_d_num << 5 >> 5;
+  return co_d_num >> (unsigned short )5;
 }

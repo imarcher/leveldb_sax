@@ -6,8 +6,8 @@
 
 
 STpos::STpos(unsigned short size, size_t offset) {
-  pos = offset;
-  *(unsigned short*)(&pos) = size;
+  pos = size;
+  pos |= offset << 16;
 }
 
 unsigned short STpos::GetSize() {
@@ -15,14 +15,14 @@ unsigned short STpos::GetSize() {
 }
 
 size_t STpos::GetOffset() {
-  return pos << 16 >> 16;
+  return (unsigned long long)pos >> (unsigned short)16;
 }
 
 STpos::STpos() {}
 
 void STpos::Set(unsigned short size, size_t offset) {
-  pos = offset;
-  *(unsigned short*)(&pos) = size;
+    pos = size;
+    pos |= offset << 16;
 }
 
 void* STpos::Get() {

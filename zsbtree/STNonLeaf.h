@@ -16,7 +16,7 @@ class STNonLeaf {
   STNonLeaf(unsigned short num, cod co_d, saxt prefix, size_t size);
   STNonLeaf(size_t size);
   void Set(unsigned short num, cod co_d, saxt prefix, size_t size);
-
+  void Setrep(const char* newrep);
   void Setisleaf();
 
   ~STNonLeaf();
@@ -38,6 +38,7 @@ class STNonLeaf {
   cod pos_size;
   cod noco_size;
   bool isleaf;
+  bool ismmap;
   size_t size;
   saxt_type prefix[Bit_cardinality];
   char* rep;

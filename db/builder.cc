@@ -61,10 +61,13 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
   //这里是验证，写完查再说
 //  if (s.ok()) {
 //    // Verify that the table is usable
-//    Iterator* it = table_cache->NewIterator(ReadOptions(), meta->number,
-//                                              meta->file_size);
-//    s = it->status();
-//    delete it;
+//    out("===============");
+//    out("验证：");
+//    out(meta->number);
+//    out(meta->file_size);
+//    Cache::Handle* handle = nullptr;
+//    s = table_cache->FindTable(meta->number, meta->file_size, &handle);
+//    if (!s.ok()) exit(1);
 //  }
 
 

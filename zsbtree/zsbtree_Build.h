@@ -130,7 +130,7 @@ static int get_drange_rebalance(vector<int> &memNum_period){
       int num_1 = get_1_Num(i);
       if (num_1 >= resNum) continue;
       //格式不合格的排完了
-      int ans = i;
+      unsigned int ans = i;
       bool isRight = true;
       int ans_id = 0;
       while (ans) {
