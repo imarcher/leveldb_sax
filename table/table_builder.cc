@@ -89,7 +89,6 @@ void TableBuilder::AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf) {
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
-
   r->data_block.AddNonLeaf(nonLeafKey, isleaf);
   Flush();
   nonLeafKey->p = r->pending_handle.Get();

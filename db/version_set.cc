@@ -309,18 +309,11 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
 
     // Binary search to find earliest index whose largest key >= internal_key.
     uint32_t index = FindFile(vset_->icmp_, files_[level], internal_key);
-      out("=========");
-      out(index);
-      out(num_files);
     if (index < num_files) {
       FileMetaData* f = files_[level][index];
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
-          out("11");
-
         // All of "f" is past any data for user_key
       } else {
-            out("22");
-
         if (!(*func)(arg, level, f)) {
           return;
         }
@@ -358,9 +351,13 @@ Status Version::Get(const ReadOptions& options, LookupKey& k,
         state->stats->seek_file = state->last_file_read;
         state->stats->seek_file_level = state->last_file_read_level;
       }
-        out("33");
-        out(f->number);
-        out(f->file_size);
+        out("找到文件符合=============");
+        out("number:"+to_string(f->number));
+        out("size:"+to_string(f->file_size));
+        out("最小最大");
+        saxt_print((saxt)f->smallest.user_key().data());
+        saxt_print((saxt)f->largest.user_key().data());
+        out("=============");
       state->last_file_read = f;
       state->last_file_read_level = level;
 
@@ -409,7 +406,6 @@ Status Version::Get(const ReadOptions& options, LookupKey& k,
 //  state.saver.ucmp = vset_->icmp_.user_comparator();
 //  state.saver.user_key = k.user_key();
 //  state.saver.value = &leafKeys;
-  out("找key");
   //自上向下找到key的
   ForEachOverlapping(state.ukey, state.ikey, &state, &State::Match);
 
@@ -738,6 +734,12 @@ class VersionSet::Builder {
       std::vector<FileMetaData*>* files = &v->files_[level];
       if (level > 0 && !files->empty()) {
         // Must not overlap
+//        if (vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
+//                                 f->smallest) >= 0) {
+//          saxt_print((saxt)((*files)[files->size() - 1]->largest.user_key().data()));
+//          saxt_print((saxt)f->smallest.user_key().data());
+//        }
+
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
                                     f->smallest) < 0);
       }

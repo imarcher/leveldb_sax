@@ -10,6 +10,6 @@ file(GLOB_RECURSE ZSBTREE_LIB_SRC
         )
 
 
-add_library(zsbtree ${ZSBTREE_LIB_SRC})
+add_library(zsbtree SHARED ${ZSBTREE_LIB_SRC})
 
 

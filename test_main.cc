@@ -69,7 +69,7 @@ void test_rebalance_small(vector<LeafKey>& leafKeys){
 
 
 void test_st_compaction_0(vector<LeafKey>& leafKeys){
-  ThreadPool pool(6);
+  ThreadPool pool(8);
   leveldb::WriteOptions writeOptions;
 
   for(int i=0;i<10000;i++) {
@@ -84,22 +84,28 @@ void test_st_compaction_0(vector<LeafKey>& leafKeys){
 
 void test_get_mem(vector<LeafKey>& leafKeys){
   vector<LeafKey> res;
-  db->Get_am(leveldb::ReadOptions(), leafKeys[3].asaxt, 0, res);
-  for(int i=0;i<res.size();i++){
-    saxt_print(res[i].asaxt);
-  }
+  db->Get_am(leveldb::ReadOptions(), leafKeys[1000000-1].asaxt, 9, res);
+
+  saxt_print(res[0].asaxt);
+  saxt_print(res.back().asaxt);
+  saxt_print(leafKeys[1000000-1].asaxt);
   out("size:"+to_string(res.size()));
   over("get_mem");
 }
 
 void test_get_st(vector<LeafKey>& leafKeys){
+  LeafKey& tofind_leafkey = leafKeys[900000];
   vector<LeafKey> res;
-  db->Get_st(leveldb::ReadOptions(), leafKeys[0].asaxt, res);
-  for(int i=0;i<res.size();i++){
-    saxt_print(res[i].asaxt);
-  }
-  saxt_print(leafKeys[0].asaxt);
+  db->Get_st(leveldb::ReadOptions(), tofind_leafkey.asaxt, res);
+//  for(int i=0;i<res.size();i++){
+//    saxt_print(res[i].asaxt);
+//  }
+  out("找到的最小和最大==========");
   out("size:"+to_string(res.size()));
+  saxt_print(res[0].asaxt);
+  saxt_print(res.back().asaxt);
+  out("要找的");
+  saxt_print(tofind_leafkey.asaxt);
   over("get_st");
 }
 
@@ -125,17 +131,17 @@ int main(){
   test_init(leafKeys);
 
   //一组测试
-  test_put(leafKeys);
+//  test_put(leafKeys);
 //  test_put_multithread(leafKeys);
 //  test_rebalance_small(leafKeys);
-//  test_st_compaction_0(leafKeys);
+  test_st_compaction_0(leafKeys);
 
 
 //  test_get_mem(leafKeys);
-  sleep(10);
+//  sleep(10);
   test_get_st(leafKeys);
-
-
+//
+//  sleep(5);
   out("finished");
 
 }

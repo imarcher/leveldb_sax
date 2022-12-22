@@ -5,14 +5,11 @@
 #include "STLeaf.h"
 
 
-STLeaf::STLeaf(unsigned short num, cod co_d, saxt prefix, size_t size) {
-  this->num = num;
-  this->co_d = co_d;
+
+STLeaf::STLeaf(unsigned short num, cod co_d, size_t size): num(num), co_d(co_d), ismmap(false) {
   co_size = co_d * sizeof(saxt_type);
   noco_size = saxt_size - co_size + 8;
-  memcpy(this->prefix, prefix, saxt_size);
   rep = new char[size];
-  ismmap = false;
 }
 
 STLeaf::~STLeaf() {
@@ -22,19 +19,32 @@ STLeaf::~STLeaf() {
 char* STLeaf::Get_rep(int i) { return rep + i * noco_size; }
 
 
-STLeaf::STLeaf(size_t size) { ismmap = false; rep = new char[size]; }
+STLeaf::STLeaf(size_t size): num(0), ismmap(false) { rep = new char[size]; }
 
-void STLeaf::Set(unsigned short num, cod co_d, saxt prefix) {
+void STLeaf::Set(unsigned short num, cod co_d) {
   this->num = num;
   this->co_d = co_d;
   co_size = co_d * sizeof(saxt_type);
   noco_size = saxt_size - co_size + 8;
-  memcpy(this->prefix, prefix, saxt_size);
 }
 void STLeaf::Setrep(const char* newrep) {
   if (newrep!=rep){
+    if (!ismmap) delete rep;
     ismmap = true;
-    delete rep;
     rep = const_cast<char*>(newrep);
   }
+}
+
+void STLeaf::Setnewroom(size_t size) {
+  rep = new char[size];
+  ismmap = false;
+}
+void STLeaf::Setprefix(saxt prefix, saxt stleafkey, cod co_size,
+                       cod noco_size) {
+  memcpy(this->prefix, prefix, co_size);
+  memcpy(((char*)this->prefix)+co_size, stleafkey, noco_size);
+}
+
+void STLeaf::Setprefix(saxt prefix1) {
+  memcpy(prefix, prefix1, saxt_size);
 }

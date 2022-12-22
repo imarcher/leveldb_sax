@@ -51,5 +51,16 @@ bool LeafKey::operator>(const LeafKey& leafKey) const {
   return false;
 }
 
+bool LeafKey::operator<=(const LeafKey& leafKey) const {
+  for (int i=0;i<Bit_cardinality;i++){
+    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] < leafKey.asaxt[i];
+  }
+  return true;
+}
 
-
+bool LeafKey::operator>=(const LeafKey& leafKey) const {
+  for (int i=0;i<Bit_cardinality;i++){
+    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] > leafKey.asaxt[i];
+  }
+  return true;
+}

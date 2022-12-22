@@ -11,6 +11,7 @@
 #include "bitset"
 #include "config.h"
 #include "iostream"
+#include <cassert>
 #ifndef isax_globals_h
 #define isax_globals_h
 

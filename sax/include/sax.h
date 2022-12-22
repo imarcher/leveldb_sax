@@ -20,6 +20,7 @@ enum response saxt_from_ts(ts_type *ts_in, saxt_type *sax_out);
 
 void sax_print(sax_type *sax, int segments, int bit_cardinality);
 void saxt_print(saxt_type *saxt);
+void saxt_print(saxt_type *saxt, saxt_type *prefix, cod co_d);
 void printbin(unsigned long long n, int size);
 void serial_printbin (unsigned long long n, int size);
 int compare(const void *a, const void *b);
@@ -53,6 +54,8 @@ cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d);
 bool compare_saxt_d(saxt a, saxt b, cod d);
 //比较saxt是否相等
 bool compare_saxt(saxt a, saxt b);
+
+
 
 
 

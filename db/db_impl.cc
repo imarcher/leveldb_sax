@@ -721,7 +721,7 @@ void DBImpl::BackgroundCompaction() {
 
   if (imm_ != nullptr) {
     CompactMemTable();
-    out("success im compaction");
+//    out("success im compaction");
     VersionSet::LevelSummaryStorage tmp;
     out("compacted to: "+ (string)versions_->LevelSummary(&tmp));
     return;
@@ -747,11 +747,13 @@ void DBImpl::BackgroundCompaction() {
   } else {
     c = versions_->PickCompaction();
   }
+//  out("Pick");
 
   Status status;
   if (c == nullptr) {
     // Nothing to do
   } else if (!is_manual && c->IsTrivialMove()) {
+    out("直接下移");
     //下一层没有与这个文件范围重叠的，直接移动
     // Move file to next level
     assert(c->num_input_files(0) == 1);
@@ -769,9 +771,11 @@ void DBImpl::BackgroundCompaction() {
         static_cast<unsigned long long>(f->file_size),
         status.ToString().c_str(), versions_->LevelSummary(&tmp));
   } else {
+    out(" 进入多文件合并");
     CompactionState* compact = new CompactionState(c);
     status = DoCompactionWork(compact);
     if (!status.ok()) {
+      out(" DoCompactionWork错了");
       RecordBackgroundError(status);
     }
     CleanupCompaction(compact);
@@ -852,7 +856,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact) {
 
   const uint64_t output_number = compact->current_output()->number;
   assert(output_number != 0);
-
+//  out("FinishCompactionOutputFile");
   // Check for iterator errors
   Status s;
 //  const uint64_t current_entries = compact->builder->NumEntries();
@@ -900,12 +904,21 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
       static_cast<long long>(compact->total_bytes));
-
+  printf("Compacted %d@%d + %d@%d files => %lld bytes\n",compact->compaction->num_input_files(0), compact->compaction->level(),
+         compact->compaction->num_input_files(1), compact->compaction->level() + 1,
+         static_cast<long long>(compact->total_bytes));
   // Add compaction outputs
   compact->compaction->AddInputDeletions(compact->compaction->edit());
   const int level = compact->compaction->level();
+
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionState::Output& out = compact->outputs[i];
+    out("压缩合并输出一个文件");
+    out(out.number);
+    out(out.file_size);
+    out("最小最大");
+    saxt_print((saxt)out.smallest.user_key().data());
+    saxt_print((saxt)out.largest.user_key().data());
     compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
                                          out.smallest, out.largest);
   }
@@ -930,12 +943,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     compact->smallest_snapshot = snapshots_.oldest()->sequence_number();
   }
 
-
-
-  //
+  out("Merge");
 //  Iterator* input = versions_->MakeInputIterator(compact->compaction);
   ST_merge stMerge(versions_, compact->compaction);
-
+  out("Merge Create finish");
   // Release mutex while we're actually doing the compaction work
   mutex_.Unlock();
 
@@ -946,10 +957,29 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //  bool has_current_user_key = false;
 //  SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   LeafKey leafKey;
+  LeafKey oldKey;
   Zsbtree_Build* zsbtreeBuild;
+  //因为两个文件范围不能重合，除了最后一个文件
+  bool tocompact_flag = false;
+  //调试用
+//  int k=0;
   while (stMerge.next(leafKey) && !shutting_down_.load(std::memory_order_acquire)) {
+//    saxt_print(leafKey.asaxt);
+    //调试用
+//    assert(!k ||  leafKey >= oldKey);
+//    if (k && leafKey < oldKey) {
+//      out(k);
+//      saxt_print(leafKey.asaxt);
+//      saxt_print(oldKey.asaxt);
+//      exit(1);
+//    }
+//    k++;
+//    oldKey.Set(leafKey);
+
+
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
+//      out("进入im");
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
       if (imm_ != nullptr) {
@@ -967,14 +997,40 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     //和level+2中很多文件重合了
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
-      compact->current_output()->largest.DecodeFrom(key);
+//      out("重合了");
+//      out("largest");
+//      saxt_print(zsbtreeBuild->GetLastLeafKey()->asaxt);
+      InternalKey ikey1(Slice((char*)(zsbtreeBuild->GetLastLeafKey()->asaxt), saxt_size), 0, static_cast<ValueType>(0));
+      Slice key1 = ikey1.Encode();
+      compact->current_output()->largest.DecodeFrom(key1);
       zsbtreeBuild->finish();
       compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+      assert(compare_saxt(zsbtreeBuild->GetRootKey()->rsaxt, (saxt)compact->current_output()->largest.user_key().data()));
       delete zsbtreeBuild;
       status = FinishCompactionOutputFile(compact);
       if (!status.ok()) {
         break;
       }
+    }
+
+    if (tocompact_flag && leafKey > oldKey) {
+
+      out("压缩文件");
+      out("largest");
+      saxt_print(oldKey.asaxt);
+      saxt_print(leafKey.asaxt);
+      zsbtreeBuild->finish();
+      compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+      out("zsb层数："+to_string(zsbtreeBuild->nonleafkeys.size()-1));
+      saxt_print(zsbtreeBuild->GetRootKey()->rsaxt);
+      saxt_print((saxt)compact->current_output()->largest.user_key().data());
+      assert(compare_saxt(zsbtreeBuild->GetRootKey()->rsaxt, (saxt)compact->current_output()->largest.user_key().data()));
+      delete zsbtreeBuild;
+      status = FinishCompactionOutputFile(compact);
+      if (!status.ok()) {
+        break;
+      }
+      tocompact_flag = false;
     }
 
 #if 0
@@ -986,45 +1042,51 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         compact->compaction->IsBaseLevelForKey(ikey.user_key),
         (int)last_sequence_for_key, (int)compact->smallest_snapshot);
 #endif
-
     // Open output file if necessary
     if (compact->builder == nullptr) {
+//      out("开始创建放入");
       status = OpenCompactionOutputFile(compact);
       if (!status.ok()) {
         break;
       }
+//      out("small");
+//      saxt_print(leafKey.asaxt);
       zsbtreeBuild = new ST_Conmpaction(Leaf_maxnum, Leaf_minnum, compact->builder);
       compact->current_output()->smallest.DecodeFrom(key);
     }
 //    if (!compact->builder->FileSize()) {
 //      compact->current_output()->smallest.DecodeFrom(key);
 //    }
-
+//    out("add前");
     zsbtreeBuild->Add(leafKey);
-
+//    out("add完");
     // Close output file if it is big enough
-    if (compact->builder->FileSize() >=
+    if (!tocompact_flag && compact->builder->FileSize() >=
         compact->compaction->MaxOutputFileSize()) {
+      out("要压缩");
+      oldKey.Set(leafKey);
+      tocompact_flag = true;
       compact->current_output()->largest.DecodeFrom(key);
-      zsbtreeBuild->finish();
-      compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
-      delete zsbtreeBuild;
-      status = FinishCompactionOutputFile(compact);
-      if (!status.ok()) {
-        break;
-      }
     }
+
   }
+
 
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
+//    out("db关了");
     status = Status::IOError("Deleting DB during compaction");
   }
+//  out("完成压缩");
   if (status.ok() && compact->builder != nullptr) {
+//    out("压缩清尾");
+//    out("largest");
+//    saxt_print(leafKey.asaxt);
     InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
     Slice key = ikey.Encode();
     compact->current_output()->largest.DecodeFrom(key);
     zsbtreeBuild->finish();
     compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
+    assert(compare_saxt(zsbtreeBuild->GetRootKey()->rsaxt, (saxt)compact->current_output()->largest.user_key().data()));
     delete zsbtreeBuild;
     status = FinishCompactionOutputFile(compact);
   }
@@ -1040,10 +1102,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     stats.bytes_written += compact->outputs[i].file_size;
   }
-
   mutex_.Lock();
+//  out("改变version");
   stats_[compact->compaction->level() + 1].Add(stats);
-
+//  out("更改完version");
   if (status.ok()) {
     status = InstallCompactionResults(compact);
   }
@@ -1607,16 +1669,16 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
 //      out("todoput");
       break;
     } else {
-      out("makeroom_to_st");
+//      out("makeroom_to_st");
       //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
       MutexLock l(&mutex_);
       if (imm_ != nullptr) {
-        out("waitim");
+//        out("waitim");
         // We have filled up the current memtable, but the previous
         // one is still being compacted, so we wait.
         Log(options_.info_log, "Current memtable full; waiting...\n");
         background_work_finished_signal_.Wait();
-        out("waitoverim");
+//        out("waitoverim");
       } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
         // There are too many level-0 files.
         Log(options_.info_log, "Too many L0 files; waiting...\n");

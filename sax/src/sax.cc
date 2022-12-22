@@ -266,8 +266,24 @@ void sax_print(sax_type *sax, int segments, int bit_cardinality)
 void saxt_print(saxt_type *saxt) {
     int i;
     for (i=0; i < Bit_cardinality; i++) {
-        printf("%d:\t", i);
-        printbin(saxt[i], Segments);
+//        printf("%d:\t", i);
+        std::cout<<(int)saxt[i]<<" ";
+//        printbin(saxt[i], Segments);
+    }
+    printf("\n");
+}
+
+void saxt_print(saxt_type *saxt, saxt_type *prefix, cod co_d) {
+    int i;
+    for (i=0; i < co_d; i++) {
+//        printf("%d:\t", i);
+//        printbin(prefix[i], Segments);
+      std::cout<<(int)prefix[i]<<" ";
+    }
+    for (i=co_d; i < Bit_cardinality; i++) {
+//        printf("%d:\t", i);
+//        printbin(saxt[i-co_d], Segments);
+      std::cout<<(int)saxt[i-co_d]<<" ";
     }
     printf("\n");
 }
@@ -456,4 +472,6 @@ bool compare_saxt(saxt a, saxt b) {
   }
   return true;
 }
+
+
 

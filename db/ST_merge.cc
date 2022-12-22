@@ -19,7 +19,11 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
     for (auto & file : files) {
       Cache::Handle* handle = nullptr;
       Status s = cache->FindTable(file->number, file->file_size, &handle);
+//      out("afile");
+//      out(file->number);
+//      out(file->file_size);
       if (s.ok()) {
+//        out("ok");
         Table* t = reinterpret_cast<TableAndFile*>(cache->cache_->Value(handle))->table;
         Table::ST_Iter* stIter = new Table::ST_Iter(t);
         st_iters.insert(stIter);
@@ -28,10 +32,13 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
       }
     }
   }
-
+//  out("st_iters");
   for(auto item: st_iters) {
     LeafKey leafKey;
-    if (item->next(leafKey)) heap.emplace(leafKey, item);
+    if (item->next(leafKey)) {
+//      out("进堆");
+      heap.emplace(leafKey, item);
+    }
     else {
       del(item);
     }
@@ -40,7 +47,9 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
 }
 
 bool ST_merge::next(LeafKey& leafKey) {
+//  out("进入next");
   if (!heap.empty()){
+//    out("没空");
     leafKey.Set(heap.top().first);
     auto item = heap.top().second;
     heap.pop();
@@ -49,6 +58,7 @@ bool ST_merge::next(LeafKey& leafKey) {
     else {
       del(item);
     }
+//    out("有next");
     return true;
   }
   return false;

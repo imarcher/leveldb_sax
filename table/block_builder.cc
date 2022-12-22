@@ -121,7 +121,7 @@ void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> &new_p) {
 //    out(((STpos*)(new_p.data()+i))->GetSize());
 //    out(((STpos*)(new_p.data()+i))->GetOffset());
   }
-  buffer_.append(nonLeaf->isleaf,1);
+  buffer_.append((char*)&(nonLeaf->isleaf),1);
 }
 
 void BlockBuilder::AddLeaf(NonLeafKey* nonLeafKey) {
@@ -146,9 +146,9 @@ void BlockBuilder::AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf) {
     buffer_.append((char*)&stkeyinfo, 2);
     buffer_.append(((char*)nonLeafKey1->lsaxt) + co_saxt_size, noco_saxt_size);
     buffer_.append(((char*)nonLeafKey1->rsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append((char*)nonLeafKey1->p, 8);
+    buffer_.append((char *)&(nonLeafKey1->p), 8);
   }
-  buffer_.append(isleaf,1);
+  buffer_.append((char*)&isleaf,1);
 }
 
 }  // namespace leveldb

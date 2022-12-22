@@ -4,14 +4,12 @@
 
 #include "zsbtree_Build.h"
 
-
-
-
 Zsbtree_Build::Zsbtree_Build(int max_size, int min_size)
-    :n(max_size), m(min_size),
-      leafkeys(leafkeys_rep, 0, 2*max_size) {
-  leafkeys_rep.reserve(3*n);
-  nonleafkeys_rep.emplace_back();
+    :n(max_size), m(min_size) {
+  nonleafkeys.reserve(10);
+  leafkeys_rep = (LeafKey*)malloc(3*n*sizeof(LeafKey));
+  leafkeys.Set(leafkeys_rep, 0, 2*n);
+  nonleafkeys_rep.push_back((NonLeafKey*)malloc(3*n*sizeof(NonLeafKey)));
   nonleafkeys.emplace_back(nonleafkeys_rep[0], 0, 2*n);
 }
 
@@ -20,13 +18,16 @@ void Zsbtree_Build::Add(LeafKey& leafkey) {
     //满窗口了
     int toid = buildtree_window(leafkeys);
     NonLeafKey* nonLeafKey_back = nonleafkeys[0].back_add();
-    nonLeafKey_back->p = leafkeys_rep.data();
+    nonLeafKey_back->p = leafkeys_rep;
     int newnum = toid - nonLeafKey_back->num;
     int copynum = 2*n - newnum;
     int notoid = 2*n - toid;
-    memcpy(leafkeys_rep.data(), leafkeys.data() + newnum, copynum * leaf_key_size);
-    leafkeys.restart(leafkeys_rep.data() + nonLeafKey_back->num);
+    memcpy(leafkeys_rep, leafkeys.data() + newnum, copynum * sizeof(LeafKey));
+    leafkeys.restart(leafkeys_rep + nonLeafKey_back->num);
     leafkeys.resize(notoid);
+//    out("leafkeys构建了");
+//    out(toid);
+//    out(leafkeys.size_add());
   }
 }
 
@@ -34,50 +35,59 @@ void Zsbtree_Build::Add(NonLeafKey& nonLeafKey, int dep) {}
 
 void Zsbtree_Build::Emplace(int num, cod co_d, saxt lsaxt, saxt rsaxt,
                             void* leaf, int dep) {
+//  out("Emplace"+to_string(dep));
+//  out(nonleafkeys[dep].size_add());
+//  saxt_print(lsaxt);
+//  saxt_print(rsaxt);
   if (dep + 1 == nonleafkeys_rep.size()) {
     // 空间构造了，申请下一个
-    nonleafkeys_rep[dep].reserve(3*n);
-    nonleafkeys_rep.emplace_back();
+    nonleafkeys_rep.push_back((NonLeafKey*)malloc(3*n*sizeof(NonLeafKey)));
     nonleafkeys.emplace_back(nonleafkeys_rep[dep + 1], 0, 2*n);
+    assert(nonleafkeys.size()<=10);
   }
-  newVector<NonLeafKey>& nonleafkeys_dep = nonleafkeys[dep];
-  if (!nonleafkeys_dep.empty_add()) {
+  if (!nonleafkeys[dep].empty_add()) {
     //前面有，先实例化了
     if (!dep) {
-      doleaf(nonleafkeys_dep.back_add());
+      doleaf(nonleafkeys[dep].back_add());
     } else {
-      dononleaf(nonleafkeys_dep.back_add(), dep == 1);
+      dononleaf(nonleafkeys[dep].back_add(), dep == 1);
     }
   }
+  newVector<NonLeafKey>& nonleafkeys_dep = nonleafkeys[dep];
   nonleafkeys_dep.topush_pos->Set(num, co_d, lsaxt, rsaxt, leaf);
-  if (++nonleafkeys_dep.topush_pos == nonleafkeys_dep.r) {
+  nonleafkeys_dep.posadd();
+  if (nonleafkeys_dep.isfull()) {
     //满窗口了
     int toid = buildtree_window(nonleafkeys_dep, dep + 1);
-    vector<NonLeafKey>& dep_rep = nonleafkeys_rep[dep];
-    newVector<NonLeafKey>& nonLeafKey_dep = nonleafkeys[dep];
+    NonLeafKey* dep_rep = nonleafkeys_rep[dep];
     NonLeafKey* nonLeafKey_back = nonleafkeys[dep + 1].back_add();
-    nonLeafKey_back->p = dep_rep.data();
+    nonLeafKey_back->p = dep_rep;
     int newnum = toid - nonLeafKey_back->num;
     int copynum = 2*n - newnum;
     int notoid = 2*n - toid;
-    memcpy(dep_rep.data(), nonLeafKey_dep.data() + newnum, copynum * nonleaf_key_size);
-    nonLeafKey_dep.restart(dep_rep.data() + nonLeafKey_back->num);
-    nonLeafKey_dep.resize(notoid);
+    memcpy(dep_rep, nonleafkeys_dep.data() + newnum, copynum * sizeof(NonLeafKey));
+    nonleafkeys_dep.restart(dep_rep + nonLeafKey_back->num);
+    nonleafkeys_dep.resize(notoid);
   }
 }
 
 void Zsbtree_Build::finish() {
   buildtree_window_last(leafkeys, leafkeys.size_add());
   for (int i=0;i<nonleafkeys.size() - 1;i++) {
-    if (!i) doleaf(nonleafkeys[i].back_add());
-    else dononleaf(nonleafkeys[i].back_add(), i == 1);
-    if (i && i == nonleafkeys.size() - 2 && nonleafkeys[i].size_add() == 1) {
+    newVector<NonLeafKey>& nonleafkeys_dep = nonleafkeys[i];
+    if (!i) doleaf(nonleafkeys_dep.back_add());
+    else dononleaf(nonleafkeys_dep.back_add(), i == 1);
+    if (i && i == nonleafkeys.size() - 2 && nonleafkeys_dep.size_add() == 1) {
       //最高且只有一个，且不是0层，那这个就是root的nonleafkey
       //保证root一定能访问到一个nonleaf
       break;
     }
-    buildtree_window_last(nonleafkeys[i], leafkeys.size_add(), i + 1);
+    buildtree_window_last(nonleafkeys_dep, nonleafkeys_dep.size_add(), i + 1);
   }
+}
+
+LeafKey* Zsbtree_Build::GetLastLeafKey() {
+  return leafkeys.back_add();
 }
 
 NonLeafKey* Zsbtree_Build::GetRootKey() {
@@ -92,6 +102,7 @@ inline saxt Zsbtree_Build::get_saxt_i(newVector<LeafKey> &leafKeys, int i){
 //构造leaf和索引点
 inline void Zsbtree_Build::build_leaf_and_nonleafkey(newVector<LeafKey> &leafKeys, int id,
                                       int num, cod co_d, saxt lsaxt, saxt rsaxt) {
+
   //构造nonleaf索引点
   Emplace(num, co_d, lsaxt, rsaxt, leafKeys.data()+id, 0);
 }
@@ -99,22 +110,26 @@ inline void Zsbtree_Build::build_leaf_and_nonleafkey(newVector<LeafKey> &leafKey
 //构造leaf和索引点,从中间平分
 inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(newVector<LeafKey> &leafKeys, int id,
                                           int num, cod co_d, saxt lsaxt, saxt rsaxt) {
+
   int tmpnum1 = num / 2;
   int tmpnum2 = num - tmpnum1;
   //构造leaf
   saxt tmpsaxt = leafKeys[id+tmpnum1-1].asaxt;
   //构造nonleaf索引点
   Emplace(tmpnum1, get_co_d_from_saxt(lsaxt, tmpsaxt, co_d), lsaxt, tmpsaxt, leafKeys.data()+id, 0);
+
   //第二个叶
   //构造leaf
   tmpsaxt = leafKeys[id+tmpnum1].asaxt;
   //构造nonleaf索引点
   Emplace(tmpnum2, get_co_d_from_saxt(tmpsaxt, rsaxt, co_d), tmpsaxt, rsaxt, leafKeys.data()+id+tmpnum1, 0);
+
 }
 
 //给一个叶子结点加一些key
 inline void Zsbtree_Build::add_nonleafkey(newVector<LeafKey> &leafKeys, int id,
                            int num, cod co_d, saxt rsaxt) {
+
   NonLeafKey *nonLeafKey = nonleafkeys[0].back_add();
   nonLeafKey->co_d = co_d;
   nonLeafKey->num += num;
@@ -133,6 +148,7 @@ inline void Zsbtree_Build::split_nonleafkey(newVector<LeafKey> &leafKeys, int id
   saxt newRsaxt = leafs[tmpnum1-1].asaxt;
   nonLeafKey->num = tmpnum1;
   nonLeafKey->co_d = get_co_d_from_saxt(nonLeafKey->lsaxt, newRsaxt, nonLeafKey->co_d);
+
   nonLeafKey->setRsaxt(newRsaxt);
   //添加后一个点
   int tmpnum3 = tmpnum2 - num;
@@ -798,24 +814,24 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 }
 
 
-inline saxt Zsbtree_Build::get_saxt_i(newVector<NonLeafKey> &leafKeys, int i){
+inline saxt Zsbtree_Build::get_saxt_i(const newVector<NonLeafKey> &leafKeys, int i){
   return leafKeys[i].lsaxt;
 }
 
-inline saxt Zsbtree_Build::get_saxt_i_r(newVector<NonLeafKey> &leafKeys, int i){
+inline saxt Zsbtree_Build::get_saxt_i_r(const newVector<NonLeafKey> &leafKeys, int i){
   return leafKeys[i].rsaxt;
 }
 
 
 //构造leaf和索引点
-inline void Zsbtree_Build::build_leaf_and_nonleafkey(newVector<NonLeafKey> &leafKeys, int id,
+inline void Zsbtree_Build::build_leaf_and_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
                                       int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep) {
-  //构造nonleaf索引点
+
   Emplace(num, co_d, lsaxt, rsaxt, leafKeys.data()+id, dep);
 }
 
 //构造leaf和索引点,从中间平分
-inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(newVector<NonLeafKey> &leafKeys, int id,
+inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(const newVector<NonLeafKey> &leafKeys, int id,
                                           int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep) {
   int tmpnum1 = num / 2;
   int tmpnum2 = num - tmpnum1;
@@ -831,7 +847,7 @@ inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(newVector<NonLeafKey> &
 }
 
 //给一个叶子结点加一些key
-inline void Zsbtree_Build::add_nonleafkey(newVector<NonLeafKey> &leafKeys, int id,
+inline void Zsbtree_Build::add_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
                            int num, cod co_d, saxt rsaxt, int dep) {
   NonLeafKey *nonLeafKey = nonleafkeys[dep].back_add();
   nonLeafKey->co_d = co_d;
@@ -840,8 +856,9 @@ inline void Zsbtree_Build::add_nonleafkey(newVector<NonLeafKey> &leafKeys, int i
 }
 
 //给一个叶子结点加一些key,到大于n了，平分
-inline void Zsbtree_Build::split_nonleafkey(newVector<NonLeafKey> &leafKeys, int id, int allnum,
+inline void Zsbtree_Build::split_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id, int allnum,
                              int num, cod co_d, saxt rsaxt, int dep) {
+
   NonLeafKey *nonLeafKey = nonleafkeys[dep].back_add();
   NonLeafKey *leafs = (NonLeafKey *)(nonLeafKey->p);
   int tmpnum1 = allnum / 2;
@@ -858,7 +875,7 @@ inline void Zsbtree_Build::split_nonleafkey(newVector<NonLeafKey> &leafKeys, int
 }
 
 //在method2中，遇到大于n的，分一下
-inline int Zsbtree_Build::getbestmid(newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
+inline int Zsbtree_Build::getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
   int best_mid_id = id+num/2-1;
   int best_cod = d1+d1;
   for (int mid_id = id+m-1;mid_id<id+num-m;mid_id++){
@@ -878,7 +895,7 @@ inline int Zsbtree_Build::getbestmid(newVector<NonLeafKey> &leafKeys, int id, in
 
 //待考虑几个平分时分节点有很多d=8的情况
 //批量构建while循环内, 2n个
-int Zsbtree_Build::buildtree_window(newVector<NonLeafKey> &leafKeys, int dep) {
+int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int dep) {
   int end = 2 * n - 1;
   saxt first_saxt = get_saxt_i(leafKeys, 0);
   saxt last_saxt = get_saxt_i_r(leafKeys, end);
@@ -1174,8 +1191,7 @@ int Zsbtree_Build::buildtree_window(newVector<NonLeafKey> &leafKeys, int dep) {
 }
 
 
-void Zsbtree_Build::buildtree_window_last(newVector<NonLeafKey> &leafKeys, int allnum, int dep) {
-
+void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys, int allnum, int dep) {
   int end = allnum - 1;
   saxt first_saxt = get_saxt_i(leafKeys, 0);
   saxt last_saxt = get_saxt_i_r(leafKeys, end);
@@ -1485,6 +1501,12 @@ void Zsbtree_Build::buildtree_window_last(newVector<NonLeafKey> &leafKeys, int a
   }
 }
 
+Zsbtree_Build::~Zsbtree_Build() {
+  free(leafkeys_rep);
+  for(auto item: nonleafkeys_rep){
+    free(item);
+  }
+}
 
 Zsbtree_Build_Mem::Zsbtree_Build_Mem(int max_size, int min_size) : Zsbtree_Build(max_size, min_size) {}
 

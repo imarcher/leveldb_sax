@@ -120,7 +120,7 @@ include_directories(sax/include)
 include_directories(zsbtree)
 add_subdirectory(sax)
 add_subdirectory(zsbtree)
-add_library(leveldb "")
+add_library(leveldb SHARED "")
 
 target_sources(leveldb
   PRIVATE
@@ -298,7 +298,7 @@ target_link_libraries(leveldb sax zsbtree)
 #target_link_libraries(leveldbutil leveldb)
 
 add_executable(test_main
-        "test_main.cc"
+        "test_main.cc" "threadPool_2.h"
         )
 
 target_link_libraries(test_main leveldb)

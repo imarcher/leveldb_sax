@@ -13,12 +13,15 @@
 class STNonLeaf {
  public:
 
-  STNonLeaf(unsigned short num, cod co_d, saxt prefix, size_t size);
+  STNonLeaf(unsigned short num, cod co_d, size_t size);
   STNonLeaf(size_t size);
-  void Set(unsigned short num, cod co_d, saxt prefix, size_t size);
+  void Set(unsigned short num, cod co_d, size_t size);
   void Setrep(const char* newrep);
   void Setisleaf();
+  void Setnewroom(size_t size);
 
+  void Setprefix(saxt prefix, saxt stleafkey, cod co_size, cod noco_size);
+  void Setprefix(saxt prefix1);
   ~STNonLeaf();
 
 

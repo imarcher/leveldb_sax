@@ -11,12 +11,14 @@
 class STLeaf {
  public:
 
-  STLeaf(unsigned short num, cod co_d, saxt prefix, size_t size);
+  STLeaf(unsigned short num, cod co_d, size_t size);
   STLeaf(size_t size);
 
   void Setrep(const char* newrep);
-  void Set(unsigned short num, cod co_d, saxt prefix);
-
+  void Setnewroom(size_t size);
+  void Set(unsigned short num, cod co_d);
+  void Setprefix(saxt prefix, saxt stleafkey, cod co_size, cod noco_size);
+  void Setprefix(saxt prefix1);
   ~STLeaf();
 
   char* Get_rep(int i);

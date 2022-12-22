@@ -8,10 +8,20 @@
 
 #include "cstring"
 #include "vector"
+#include "globals.h"
 
 template <typename T>
 class newVector {
  public:
+
+  newVector(): l(0), r(0), topush_pos(0), size_(0){};
+
+  newVector(T* v, int l, int r) {
+    this->l = v + l;
+    this->r = v + r;
+    size_ = r - l;
+    topush_pos = this->l;
+  }
 
   newVector(newVector<T>& v, int l, int r) {
       this->l = v.l + l;
@@ -29,14 +39,27 @@ class newVector {
   }
 
   newVector(std::vector<T>& v, int l, int r) {
-
       this->l = v.data() + l;
       this->r = v.data() + r;
       size_ = r - l;
       topush_pos = this->l;
   }
 
-  T* data() {
+  void Set(T* v, int ll, int rr) {
+    l = v + ll;
+    r = v + rr;
+    size_ = rr - ll;
+    topush_pos = l;
+  }
+
+  void Set(std::vector<T>& v, int ll, int rr) {
+      l = v.data() + ll;
+      r = v.data() + rr;
+      size_ = rr - ll;
+      topush_pos = l;
+  }
+
+  T* data() const {
       return l;
   }
 
@@ -54,7 +77,7 @@ class newVector {
 
   size_t size() {return size_;}
 
-  T& operator[] (size_t n) {
+  T& operator[] (size_t n) const {
       return *(l + n);
   }
 
@@ -68,22 +91,29 @@ class newVector {
   }
 
   bool push_back(T& vv) {
-      if (topush_pos == r) return false;
       memcpy(topush_pos, &vv, sizeof(T));
       topush_pos++;
-      return true;
+      return topush_pos != r;
   }
 
-  int size_add() {
-      return (topush_pos - l) / sizeof(T);
+  size_t size_add() const {
+      return topush_pos - l;
   }
 
-  T* back_add() {
+  T* back_add() const {
       return topush_pos - 1;
   }
 
   bool empty_add() {
       return topush_pos == l;
+  }
+
+  void posadd(){
+    topush_pos++;
+  }
+
+  bool isfull() {
+    return topush_pos == r;
   }
 
 

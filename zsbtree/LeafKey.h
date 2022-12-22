@@ -25,6 +25,10 @@ public:
 
     bool operator> (const LeafKey& leafKey) const ;
 
+    bool operator<= (const LeafKey& leafKey) const ;
+
+    bool operator>= (const LeafKey& leafKey) const ;
+
 
     saxt_type asaxt[Bit_cardinality];
     void* p;
