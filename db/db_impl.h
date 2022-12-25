@@ -41,9 +41,8 @@ class DBImpl : public DB {
   ~DBImpl() override;
 
   // Implementations of the DB interface
-  Status Put(const WriteOptions&, const LeafKey& key) override;
-  Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) override;
-  Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) override;
+  Status Put(const WriteOptions&, const LeafTimeKey& key) override;
+  Status Init(LeafTimeKey* leafKeys, int leafKeysNum) override;
   Status RebalanceDranges() override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;

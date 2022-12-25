@@ -18,7 +18,9 @@ static Slice GetLengthPrefixedSlice(const char* data) {
   return Slice(p, len);
 }
 
-MemTable::MemTable() :refs_(0),table_(){}
+MemTable::MemTable() :refs_(0),table_(),startTime(starttime_init),endTime(endtime_init){}
+
+MemTable::MemTable(ts_time starttime, ts_time endtime) :refs_(0),table_(),startTime(starttime),endTime(endtime){}
 
 MemTable::~MemTable() { assert(refs_ == 0);}
 
@@ -74,7 +76,7 @@ class MemTableIterator : public Iterator {
 
 Iterator* MemTable::NewIterator() { return nullptr; }
 
-bool MemTable::Add(SequenceNumber s, LeafKey& key) {
+bool MemTable::Add(LeafKey& key) {
   //这里待改，返回false重组
   return table_.Insert(key);
 }
@@ -84,19 +86,19 @@ void MemTable::Get(saxt key, vector<LeafKey>& leafKeys) {
 }
 
 MemTable* MemTable::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
-  return new MemTable(table_.BuildTree_new(nonLeafKeys));
+  return new MemTable(table_.BuildTree_new(nonLeafKeys), starttime_init, endtime_init);
 }
 saxt MemTable::Getlsaxt() { return table_.root->lsaxt; }
 saxt MemTable::Getrsaxt() { return table_.root->rsaxt; }
 cod MemTable::Getcod() { return table_.root->co_d; }
 MemTable* MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
-  return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt));
+  return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt), startTime, endTime);
 }
 int MemTable::GetleafNum() { return table_.leafNum; }
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
 
-MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_){}
-MemTable::MemTable(zsbtree_table_mem table_mem) :refs_(0),table_(table_mem){}
+MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_),startTime(starttime_init),endTime(endtime_init){}
+MemTable::MemTable(zsbtree_table_mem table_mem, ts_time starttime, ts_time endtime) :refs_(0),table_(table_mem), startTime(starttime), endTime(endtime){}
 
 
 }  // namespace leveldb

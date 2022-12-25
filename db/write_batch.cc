@@ -54,9 +54,12 @@ Status WriteBatch::Iterate(Handler* handler, int memNum) const {
   int found = -1;
   while (!input.empty()) {
     found++;
-    if (input.size() >= leaf_key_size) {
+    if (input.size() >= sizeof(LeafTimeKey)) {
+      //先改变memtable的时间
+      LeafTimeKey* leafTimeKey = (LeafTimeKey*)input.data();
+      handler->SetTime(leafTimeKey->keytime);
       //我们添加进table 如果满了，重组
-      if (!handler->Put(*(LeafKey*)input.data())) {
+      if (!handler->Put(leafTimeKey->leafKey)) {
         out("重组");
         out(memNum + found + 1);
         int Nt = memNum + found + 1;
@@ -64,7 +67,7 @@ Status WriteBatch::Iterate(Handler* handler, int memNum) const {
 
         handler->Rebalance(nt, nt/2, Nt);
       }
-      input.remove_prefix(leaf_key_size);
+      input.remove_prefix(sizeof(LeafTimeKey));
     } else {
       return Status::Corruption("bad WriteBatch Put");
     }
@@ -93,9 +96,9 @@ void WriteBatchInternal::SetSequence(WriteBatch* b, SequenceNumber seq) {
   EncodeFixed64(&b->rep_[0], seq);
 }
 
-void WriteBatch::Put(const LeafKey& key) {
+void WriteBatch::Put(const LeafTimeKey& key) {
   WriteBatchInternal::SetCount(this, WriteBatchInternal::Count(this) + 1);
-  rep_.append((char*)&key, leaf_key_size);
+  rep_.append((char*)&key, sizeof(LeafTimeKey));
 }
 
 void WriteBatch::Delete(const Slice& key) {
@@ -111,13 +114,18 @@ void WriteBatch::Append(const WriteBatch& source) {
 namespace {
 class MemTableInserter : public WriteBatch::Handler {
  public:
-  SequenceNumber sequence_;
+//  SequenceNumber sequence_;
   MemTable*& mem_;
 
   MemTableInserter(MemTable*& mem) : mem_(mem) {}
 
   bool Put(LeafKey& key) override {
-    return mem_->Add(sequence_++, key);
+    return mem_->Add(key);
+  }
+
+  void SetTime(ts_time newtime) override {
+    if (mem_->endTime < newtime) mem_->endTime = newtime;
+    else if (mem_->startTime > newtime) mem_->startTime = newtime;
   }
 
 
@@ -138,7 +146,6 @@ class MemTableInserter : public WriteBatch::Handler {
 
 Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable*& memtable, int memNum) {
   MemTableInserter inserter(memtable);
-  inserter.sequence_ = WriteBatchInternal::Sequence(b);
   return b->Iterate(&inserter, memNum);
 }
 

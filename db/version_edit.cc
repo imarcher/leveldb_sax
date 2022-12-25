@@ -81,6 +81,8 @@ void VersionEdit::EncodeTo(std::string* dst) const {
     PutVarint64(dst, f.file_size);
     PutLengthPrefixedSlice(dst, f.smallest.Encode());
     PutLengthPrefixedSlice(dst, f.largest.Encode());
+    PutVarint64(dst, f.startTime);
+    PutVarint64(dst, f.endTime);
   }
 }
 
@@ -179,7 +181,9 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
         if (GetLevel(&input, &level) && GetVarint64(&input, &f.number) &&
             GetVarint64(&input, &f.file_size) &&
             GetInternalKey(&input, &f.smallest) &&
-            GetInternalKey(&input, &f.largest)) {
+            GetInternalKey(&input, &f.largest) &&
+            GetVarint64(&input, (uint64_t *)&f.startTime) &&
+            GetVarint64(&input, (uint64_t *)&f.endTime)) {
           new_files_.push_back(std::make_pair(level, f));
         } else {
           msg = "new-file entry";
@@ -250,6 +254,10 @@ std::string VersionEdit::DebugString() const {
     r.append(f.smallest.DebugString());
     r.append(" .. ");
     r.append(f.largest.DebugString());
+    r.append(" ");
+    AppendNumberTo(&r, f.startTime);
+    r.append(" ");
+    AppendNumberTo(&r, f.endTime);
   }
   r.append("\n}\n");
   return r;

@@ -23,16 +23,15 @@ leveldb::Options options;
 
 
 
-void test_init(vector<LeafKey>& leafKeys){
+void test_init(vector<LeafTimeKey>& leafKeys){
 
-  vector<NonLeafKey> nonLeafKeys;
-  db->InitLeaf(leafKeys, nonLeafKeys);
-  db->InitDranges(nonLeafKeys, datanum);
+
+  db->Init(leafKeys.data(), leafKeys.size());
   over("init");
 }
 
 
-void test_put(vector<LeafKey>& leafKeys){
+void test_put(vector<LeafTimeKey>& leafKeys){
   leveldb::WriteOptions writeOptions;
   int k=0;
   for(int i=0;i<1;i++){
@@ -43,7 +42,7 @@ void test_put(vector<LeafKey>& leafKeys){
 }
 
 
-void test_put_multithread(vector<LeafKey>& leafKeys){
+void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
   ThreadPool pool(4);
   leveldb::WriteOptions writeOptions;
@@ -60,7 +59,7 @@ void test_put_multithread(vector<LeafKey>& leafKeys){
 }
 
 
-void test_rebalance_small(vector<LeafKey>& leafKeys){
+void test_rebalance_small(vector<LeafTimeKey>& leafKeys){
   for(int i=0;i<90;i++){
     db->Put(leveldb::WriteOptions(), leafKeys[i%30]);
   }
@@ -68,7 +67,7 @@ void test_rebalance_small(vector<LeafKey>& leafKeys){
 }
 
 
-void test_st_compaction_0(vector<LeafKey>& leafKeys){
+void test_st_compaction_0(vector<LeafTimeKey>& leafKeys){
   ThreadPool pool(8);
   leveldb::WriteOptions writeOptions;
 
@@ -82,19 +81,19 @@ void test_st_compaction_0(vector<LeafKey>& leafKeys){
   over("st_compaction_0");
 }
 
-void test_get_mem(vector<LeafKey>& leafKeys){
+void test_get_mem(vector<LeafTimeKey>& leafKeys){
   vector<LeafKey> res;
-  db->Get_am(leveldb::ReadOptions(), leafKeys[1000000-1].asaxt, 9, res);
+  db->Get_am(leveldb::ReadOptions(), leafKeys[1000000-1].leafKey.asaxt, 9, res);
 
   saxt_print(res[0].asaxt);
   saxt_print(res.back().asaxt);
-  saxt_print(leafKeys[1000000-1].asaxt);
+  saxt_print(leafKeys[1000000-1].leafKey.asaxt);
   out("size:"+to_string(res.size()));
   over("get_mem");
 }
 
-void test_get_st(vector<LeafKey>& leafKeys){
-  LeafKey& tofind_leafkey = leafKeys[900000];
+void test_get_st(vector<LeafTimeKey>& leafKeys){
+  LeafKey& tofind_leafkey = leafKeys[900000].leafKey;
   vector<LeafKey> res;
   db->Get_st(leveldb::ReadOptions(), tofind_leafkey.asaxt, res);
 //  for(int i=0;i<res.size();i++){
@@ -116,10 +115,10 @@ int main(){
   FILE * data_file;
   data_file = fopen (filename,"r");
 
-  vector<LeafKey> leafKeys;
+  vector<LeafTimeKey> leafKeys;
   for(int i=0; i < datanum; i ++) {
     leafKeys.emplace_back();
-    fread(leafKeys.back().asaxt, sizeof(saxt_type), Bit_cardinality, data_file);
+    fread(leafKeys.back().leafKey.asaxt, sizeof(saxt_type), Bit_cardinality, data_file);
   }
 
   string dir = "./testdb";

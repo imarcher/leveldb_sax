@@ -76,6 +76,7 @@ typedef struct {
   ts_time tsTime;
   saxt_type asaxt[Bit_cardinality];
 } putKey;
+
 static const size_t tsKey_size = sizeof(tsKey);
 static const size_t putKey_size = sizeof(putKey);
 

@@ -35,4 +35,10 @@ public:
 };
 
 
+typedef struct{
+  LeafKey leafKey;
+  ts_time keytime;
+} LeafTimeKey;
+
+
 #endif //TODOZSBTREE_LEAFKEY_H

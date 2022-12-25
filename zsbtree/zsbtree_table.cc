@@ -14,11 +14,13 @@ bool zsbtree_table::Insert(LeafKey& leafKey) {
   return root_Insert(*root, leafKey);
 }
 
+//初始化用
 void zsbtree_table::BuildTree(newVector<NonLeafKey>& nonLeafKeys) {
   leafNum = nonLeafKeys.size();
   root = build_tree_from_nonleaf(nonLeafKeys);
 }
 
+//平衡用
 zsbtree_table_mem zsbtree_table::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
   return {build_tree_from_nonleaf(nonLeafKeys), (int)(nonLeafKeys.size())};
 }

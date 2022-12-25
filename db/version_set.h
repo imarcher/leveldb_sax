@@ -387,6 +387,10 @@ class Compaction {
   // higher level than the ones involved in this compaction (i.e. for
   // all L >= level_ + 2).
   size_t level_ptrs_[config::kNumLevels];
+
+  //时间范围，在ST_merge初始化时获得
+ public:
+  ts_time startTime, endTime;
 };
 
 }  // namespace leveldb

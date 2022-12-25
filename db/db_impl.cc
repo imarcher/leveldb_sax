@@ -60,6 +60,7 @@ struct DBImpl::CompactionState {
     uint64_t number;
     uint64_t file_size;
     InternalKey smallest, largest;
+    ts_time startTime, endTime;
   };
 
   Output* current_output() { return &outputs[outputs.size() - 1]; }
@@ -553,7 +554,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
     out("=================filenumber:"+to_string(meta.number));
     out("=================file_size:"+to_string(meta.file_size));
     edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
-                  meta.largest);
+                  meta.largest, meta.startTime, meta.endTime);
   }
 
   CompactionStats stats;
@@ -760,7 +761,7 @@ void DBImpl::BackgroundCompaction() {
     FileMetaData* f = c->input(0, 0);
     c->edit()->RemoveFile(c->level(), f->number);
     c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest,
-                       f->largest);
+                       f->largest, f->startTime, f->endTime);
     status = versions_->LogAndApply(c->edit(), &mutex_);
     if (!status.ok()) {
       RecordBackgroundError(status);
@@ -867,6 +868,8 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact) {
   }
   const uint64_t current_bytes = compact->builder->FileSize();
   compact->current_output()->file_size = current_bytes;
+  compact->current_output()->startTime = compact->compaction->startTime;
+  compact->current_output()->endTime = compact->compaction->endTime;
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
@@ -920,7 +923,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     saxt_print((saxt)out.smallest.user_key().data());
     saxt_print((saxt)out.largest.user_key().data());
     compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
-                                         out.smallest, out.largest);
+                                         out.smallest, out.largest, out.startTime, out.endTime);
   }
   return versions_->LogAndApply(compact->compaction->edit(), &mutex_);
 }
@@ -1386,41 +1389,35 @@ int DBImpl::root_Choose(const LeafKey& key) {
 
 // Convenience methods
 //选表
-Status DBImpl::Put(const WriteOptions& o, const LeafKey& key) {
+Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
   WriteBatch batch;
   batch.Put(key);
   // 找到对应的drange
   // 因为很少，不用二分
-  int memId = root_Choose(key);
+  int memId = root_Choose(key.leafKey);
+  memNum_period[memId]++;
   return Write(o, &batch, memId);
 }
 
 
-
-Status DBImpl::InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey>& nonLeafKeys) {
+Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   Status status;
-  newVector<LeafKey> leafKeys_(leafKeys);
+  LeafKey* leafkeys_rep = (LeafKey*)malloc(leafKeysNum*sizeof(LeafKey));
+  ts_time* times_rep = (ts_time*)malloc(leafKeysNum*sizeof(ts_time));
+  for(int i=0;i<leafKeysNum;i++){
+    leafkeys_rep[i] = leafKeys[i].leafKey;
+    times_rep[i] = leafKeys[i].keytime;
+  }
+  vector<NonLeafKey> nonLeafKeys;
+  newVector<LeafKey> leafKeys_(leafkeys_rep, 0, leafKeysNum);
   leaf_method::buildtree(leafKeys_, nonLeafKeys, Leaf_maxnum, Leaf_minnum);
-//  for(int i=0;i<30000;i++){
-//    int flag = 1;
-//    for(auto item:nonLeafKeys){
-//      if(whereofKey(item.lsaxt, item.rsaxt, leafKeys[i].asaxt, 0)==0) {
-//        flag = 0;
-//        break;
-//      }
-//    }
-//
-//    if(flag==1) out("错了");
-//  }
-  return status;
-}
+  free(leafkeys_rep);
 
-Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
-  Status status;
   int drangesNum = (leafKeysNum - 1) / Table_maxnum + 1;
   //这个range的总数。
   int averageNum = leafKeysNum / drangesNum;
   //贪心 返回起始位置
+  int timeid = 0;
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
@@ -1431,17 +1428,28 @@ Status DBImpl::InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) {
       sum += nonLeafKeys[j++].num;
     }
     memNum.push_back(sum);
-//    out("sum");
-//    out(sum);
+    memNum_period.push_back(0);
+    int newtimeid = timeid + sum;
+    ts_time mintime = 0x3f3f3f3f3f3f3f3f;
+    ts_time maxtime = 0;
+    for(int k=timeid;k<newtimeid;k++){
+      mintime = min(mintime, times_rep[k]);
+      maxtime = max(maxtime, times_rep[k]);
+    }
+    timeid = newtimeid;
+    out("sum");
+    out(sum);
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
-    MemTable* newMem = new MemTable();
+    MemTable* newMem = new MemTable(mintime, maxtime);
     newMem->Ref();
     newMem->table_.BuildTree(drangeNonLeafKeys);
     mems.push_back(newMem);
   }
-
+  free(times_rep);
   return status;
 }
+
+
 
 Status DBImpl::RebalanceDranges() {
   int m = memNum_period.size();
@@ -1797,6 +1805,51 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
 void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
 
+
+  {
+    MutexLock l(&mutex_);
+    for(auto memId: table_rebalanced) {
+      if (imm_ != nullptr) {
+//        out("waitim");
+        // We have filled up the current memtable, but the previous
+        // one is still being compacted, so we wait.
+        Log(options_.info_log, "Current memtable full; waiting...\n");
+        background_work_finished_signal_.Wait();
+//        out("waitoverim");
+      } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+        // There are too many level-0 files.
+        Log(options_.info_log, "Too many L0 files; waiting...\n");
+        background_work_finished_signal_.Wait();
+      } else {
+        // Attempt to switch to a new memtable and trigger compaction of old
+        //重置了log
+//        assert(versions_->PrevLogNumber() == 0);
+//        uint64_t new_log_number = versions_->NewFileNumber();
+//        WritableFile* lfile = nullptr;
+//        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//        if (!s.ok()) {
+//          // Avoid chewing through file number space in a tight loop.
+//          versions_->ReuseFileNumber(new_log_number);
+//          break;
+//        }
+//        delete log_;
+//        delete logfile_;
+//        logfile_ = lfile;
+//        logfile_number_ = new_log_number;
+//        log_ = new log::Writer(lfile);
+        //转为im
+        imm_ = mems[memId];
+        has_imm_.store(true, std::memory_order_release);
+        // 复制mem的树结构
+        mems[memId] = new MemTable(imm_);
+        mems[memId]->Ref();
+        memNum[memId] = 0;
+        MaybeScheduleCompaction();
+      }
+    }
+  }
+
+
   vector<int> memsLeafNum;
   int leafNum_all = 0;
 
@@ -1828,7 +1881,6 @@ void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
       sum += nonLeafKeys[j++].num;
     }
     //真实数量
-    memNum[i] = sum;
     newVector<NonLeafKey> drangeNonLeafKeys(nonLeafKeys, start, j);
     MemTable* oldmem = mems[i];
     mems[i] = oldmem->BuildTree_new(drangeNonLeafKeys);

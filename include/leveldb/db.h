@@ -66,12 +66,11 @@ class LEVELDB_EXPORT DB {
   // and a non-OK status on error.
   // Note: consider setting options.sync = true.
   // 顺便选表
-  virtual Status Put(const WriteOptions& options, const LeafKey& key) = 0;
+  virtual Status Put(const WriteOptions& options, const LeafTimeKey& key) = 0;
 
   //初始化 给叶子划分为非叶子
-  virtual Status InitLeaf(vector<LeafKey>& leafKeys, vector<NonLeafKey> &nonLeafKeys) = 0;
   //初始化 按叶子结点划分Dranges, 输入划分后的结果和初始化序列的数量
-  virtual Status InitDranges(vector<NonLeafKey> &nonLeafKeys, int leafKeysNum) = 0;
+  virtual Status Init(LeafTimeKey* leafKeys, int leafKeysNum) = 0;
 
   //drange之间平衡,单独开一个线程来做，每10分钟检查一次
   virtual Status RebalanceDranges() = 0;

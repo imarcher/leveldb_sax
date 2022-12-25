@@ -25,6 +25,9 @@ struct FileMetaData {
   //最大最小值
   InternalKey smallest;
   InternalKey largest;
+  //时间范围
+  ts_time startTime;
+  ts_time endTime;
 };
 
 class VersionEdit {
@@ -62,12 +65,14 @@ class VersionEdit {
   // REQUIRES: This version has not been saved (see VersionSet::SaveTo)
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
   void AddFile(int level, uint64_t file, uint64_t file_size,
-               const InternalKey& smallest, const InternalKey& largest) {
+               const InternalKey& smallest, const InternalKey& largest, const ts_time startTime, const ts_time endTime) {
     FileMetaData f;
     f.number = file;
     f.file_size = file_size;
     f.smallest = smallest;
     f.largest = largest;
+    f.startTime = startTime;
+    f.endTime = endTime;
     new_files_.push_back(std::make_pair(level, f));
   }
 

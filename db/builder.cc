@@ -37,6 +37,8 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                      static_cast<ValueType>(0));
   meta->largest.Set(Slice((char*)mem->Getrsaxt(), saxt_size), 0,
                      static_cast<ValueType>(0));
+  meta->startTime = mem->startTime;
+  meta->endTime = mem->endTime;
   builder->Add(mem);
 
 

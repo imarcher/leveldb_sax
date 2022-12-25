@@ -42,6 +42,7 @@ class LEVELDB_EXPORT WriteBatch {
     virtual ~Handler();
     // true 正常， false drange要重组
     virtual bool Put(LeafKey& key) = 0;
+    virtual void SetTime(ts_time newtime) = 0;
     virtual void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) = 0;
     virtual void Delete(const Slice& key) = 0;
   };
@@ -55,7 +56,7 @@ class LEVELDB_EXPORT WriteBatch {
   ~WriteBatch();
 
   // Store the mapping "key->value" in the database.
-  void Put(const LeafKey& key);
+  void Put(const LeafTimeKey& key);
 
   // If the database contains a mapping for "key", erase it.  Else do nothing.
   void Delete(const Slice& key);

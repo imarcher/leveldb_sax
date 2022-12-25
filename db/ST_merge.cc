@@ -15,6 +15,7 @@ struct TableAndFile {
 
 
 ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
+  ts_time tmpstart = 0x3f3f3f3f3f3f3f3f, tmpend = 0;
   for (auto & files : c->inputs_) {
     for (auto & file : files) {
       Cache::Handle* handle = nullptr;
@@ -29,9 +30,14 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
         st_iters.insert(stIter);
         handles[stIter] = handle;
 //        cache->cache_->Release(handle);
+        //更新时间
+        tmpstart = min(tmpstart, file->startTime);
+        tmpend = max(tmpend, file->endTime);
       }
     }
   }
+  c->startTime = tmpstart;
+  c->endTime = tmpend;
 //  out("st_iters");
   for(auto item: st_iters) {
     LeafKey leafKey;
