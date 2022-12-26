@@ -110,6 +110,28 @@ inline int getbestmid(newVector<NonLeafKey> &leafKeys, const int n, const int m,
   return best_mid_id;
 }
 
+//左闭右闭
+//在范围里找到在d层小于最后一个的最大的，没有返回l
+inline int get_new_end(newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d) {
+  while(l < r)
+  {
+    int mid = (l + r)/ 2;
+    if(compare_saxt_d(get_saxt_i(leafKeys, mid), saxt_, co_d)) r = mid;
+    else l = mid + 1;
+  }
+  return l;
+}
+
+inline int get_new_end_1(newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d) {
+  while(l < r)
+  {
+    int mid = (l + r + 1)/ 2;
+    if(compare_saxt_d(get_saxt_i_r(leafKeys, mid), saxt_, co_d)) l = mid;
+    else r = mid - 1;
+  }
+  return l;
+}
+
 
 //待考虑几个平分时分节点有很多d=8的情况
 //批量构建while循环内, 2n个
@@ -122,25 +144,98 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
   cod d1 = window_co_d + 1;
   //先从2n-1往前看,删掉后面的,最多删掉n个
   int new_end = end;
-  saxt new_last_saxt = last_saxt;
-  saxt pre_new_last_saxt = get_saxt_i(leafKeys, new_end-1);
-  while(compare_saxt_d(new_last_saxt, pre_new_last_saxt, d1) && new_end > n){
-    new_end--;
-    new_last_saxt = get_saxt_i_r(leafKeys, new_end);
-    pre_new_last_saxt = get_saxt_i(leafKeys, new_end-1);;
-  }
+  if (leafKeys[new_end].co_d >= d1) new_end = get_new_end(leafKeys, n, end, last_saxt, d1);
   //从前往后看
   std::vector<method2_node> d1Arr;
   int num = 1;
   int id = 0;
+  int nextid = id + m - 1;
   saxt now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i_r(leafKeys, m-1);
+  saxt now1_saxt = get_saxt_i_r(leafKeys, nextid);
   bool mark = true;
-    if (x) {
-      out("new_end");
-      out(new_end);
+  while (true){
+    if (mark){
+      if (compare_saxt_d(now_saxt, now1_saxt, d1)) {
+        mark = false;
+      } else {
+        if (leafKeys[nextid].co_d >= d1) id = get_new_end(leafKeys, id + 1, nextid, now1_saxt, d1);
+        else id = nextid + 1;
+        nextid = id + m - 1;
+        if (nextid >= new_end) break;
+        now_saxt = get_saxt_i(leafKeys, id);
+        now1_saxt = get_saxt_i_r(leafKeys, nextid);
+      }
+    } else {
+      int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
+      num = overid - id + 1;
+      if (num <= n) {
+        saxt tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id, num, now_saxt, tmprsaxt});
+      } else {
+        //要找d+2,但这里先直接平分,其实可以从m开始一个一个找最小的区域
+        //平分代码
+        int tmpnum1 = num / 2;
+        int tmpnum2 = num - tmpnum1;
+        int id1 = id + tmpnum1;
+        saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+        cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
+        saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+        tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
+        //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
+        //可能的区间 1000000才触发18次，太少了，不如平分
+        /*
+                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+                  int tmpnum1 = best_mid_id-id+1;
+                  int tmpnum2 = num-(best_mid_id-id+1);
+                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+                  if (tmpnum1<=n) {
+                      d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+                  } else {
+                      //再分
+                      int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+                      int tmpnum1_ = best_mid_id_-id+1;
+                      int tmpnum2_ = tmpnum1-tmpnum1_;
+                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+                      d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+                      d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+                  }
+                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+                  if (tmpnum2<=n) {
+                      d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+                  } else {
+                      //再分
+                      int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+                      int tmpnum1_ = best_mid_id_-best_mid_id;
+                      int tmpnum2_ = tmpnum2-tmpnum1_;
+                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+                      d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+                      d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+                  }
+                  */
+      }
+      id = overid + 1;
+      nextid = id + m - 1;
+      if (nextid >= new_end) break;
+      now_saxt = get_saxt_i(leafKeys, id);
+      now1_saxt = get_saxt_i_r(leafKeys, nextid);
+      mark = true;
     }
+  }
+  /*
   for(int i=0;; i++) {
     if (mark) {
       if (i>=new_end-m+1) break;
@@ -177,44 +272,44 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-          /*
-                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
-                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
-                    int tmpnum1 = best_mid_id-id+1;
-                    int tmpnum2 = num-(best_mid_id-id+1);
-                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
-                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-                    if (tmpnum1<=n) {
-                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
-                        int tmpnum1_ = best_mid_id_-id+1;
-                        int tmpnum2_ = tmpnum1-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
-                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
-                    }
-                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
-                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
-                    if (tmpnum2<=n) {
-                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
-                        int tmpnum1_ = best_mid_id_-best_mid_id;
-                        int tmpnum2_ = tmpnum2-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
-                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
-                    }
-                    */
+
+//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+//                    int tmpnum1 = best_mid_id-id+1;
+//                    int tmpnum2 = num-(best_mid_id-id+1);
+//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+//                    if (tmpnum1<=n) {
+//                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+//                        int tmpnum1_ = best_mid_id_-id+1;
+//                        int tmpnum2_ = tmpnum1-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+//                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+//                    }
+//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+//                    if (tmpnum2<=n) {
+//                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+//                        int tmpnum1_ = best_mid_id_-best_mid_id;
+//                        int tmpnum2_ = tmpnum2-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+//                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+//                    }
+
         }
         break;
       }
@@ -243,44 +338,44 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-          /*
-                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
-                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
-                    int tmpnum1 = best_mid_id-id+1;
-                    int tmpnum2 = num-(best_mid_id-id+1);
-                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
-                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-                    if (tmpnum1<=n) {
-                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
-                        int tmpnum1_ = best_mid_id_-id+1;
-                        int tmpnum2_ = tmpnum1-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
-                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
-                    }
-                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
-                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
-                    if (tmpnum2<=n) {
-                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
-                        int tmpnum1_ = best_mid_id_-best_mid_id;
-                        int tmpnum2_ = tmpnum2-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
-                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
-                    }
-                    */
+
+//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+//                    int tmpnum1 = best_mid_id-id+1;
+//                    int tmpnum2 = num-(best_mid_id-id+1);
+//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+//                    if (tmpnum1<=n) {
+//                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+//                        int tmpnum1_ = best_mid_id_-id+1;
+//                        int tmpnum2_ = tmpnum1-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+//                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+//                    }
+//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+//                    if (tmpnum2<=n) {
+//                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+//                        int tmpnum1_ = best_mid_id_-best_mid_id;
+//                        int tmpnum2_ = tmpnum2-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+//                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+//                    }
+
         }
         mark = true;
         if (i>=new_end-m+1) break;
@@ -290,6 +385,7 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
       }
     }
   }
+   */
   //method2 end
   //构建叶子结点和非叶子的索引点
   int todoid = 0;
@@ -447,11 +543,93 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
   std::vector<method2_node> d1Arr;
   int num = 1;
   int id = 0;
+  int nextid = id + m - 1;
   saxt now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i_r(leafKeys, m-1);
+  saxt now1_saxt = get_saxt_i_r(leafKeys, nextid);
   bool mark = true;
-  if(x) out(new_end);
+  while (true){
+    if (mark){
+      if (compare_saxt_d(now_saxt, now1_saxt, d1)) {
+        mark = false;
+      } else {
+        if (leafKeys[nextid].co_d >= d1) id = get_new_end(leafKeys, id + 1, nextid, now1_saxt, d1);
+        else id = nextid + 1;
+        nextid = id + m - 1;
+        if (nextid >= new_end) break;
+        now_saxt = get_saxt_i(leafKeys, id);
+        now1_saxt = get_saxt_i_r(leafKeys, nextid);
+      }
+    } else {
+      int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
+      num = overid - id + 1;
+      if (num <= n) {
+        saxt tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id, num, now_saxt, tmprsaxt});
+      } else {
+        //要找d+2,但这里先直接平分,其实可以从m开始一个一个找最小的区域
+        //平分代码
+        int tmpnum1 = num / 2;
+        int tmpnum2 = num - tmpnum1;
+        int id1 = id + tmpnum1;
+        saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+        cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
+        saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+        tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
+        d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
+        //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
+        //可能的区间 1000000才触发18次，太少了，不如平分
+        /*
+                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+                  int tmpnum1 = best_mid_id-id+1;
+                  int tmpnum2 = num-(best_mid_id-id+1);
+                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+                  if (tmpnum1<=n) {
+                      d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+                  } else {
+                      //再分
+                      int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+                      int tmpnum1_ = best_mid_id_-id+1;
+                      int tmpnum2_ = tmpnum1-tmpnum1_;
+                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+                      d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+                      d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+                  }
+                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+                  if (tmpnum2<=n) {
+                      d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+                  } else {
+                      //再分
+                      int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+                      int tmpnum1_ = best_mid_id_-best_mid_id;
+                      int tmpnum2_ = tmpnum2-tmpnum1_;
+                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+                      d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+                      d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+                  }
+                  */
+      }
+      id = overid + 1;
+      nextid = id + m - 1;
+      if (nextid >= new_end) break;
+      now_saxt = get_saxt_i(leafKeys, id);
+      now1_saxt = get_saxt_i_r(leafKeys, nextid);
+      mark = true;
+    }
+  }
+  /*
   for(int i=0;; i++) {
     if (mark) {
       if (i>=new_end-m+1) break;
@@ -488,44 +666,44 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-          /*
-                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
-                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
-                    int tmpnum1 = best_mid_id-id+1;
-                    int tmpnum2 = num-(best_mid_id-id+1);
-                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
-                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-                    if (tmpnum1<=n) {
-                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
-                        int tmpnum1_ = best_mid_id_-id+1;
-                        int tmpnum2_ = tmpnum1-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
-                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
-                    }
-                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
-                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
-                    if (tmpnum2<=n) {
-                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
-                        int tmpnum1_ = best_mid_id_-best_mid_id;
-                        int tmpnum2_ = tmpnum2-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
-                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
-                    }
-                    */
+
+//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+//                    int tmpnum1 = best_mid_id-id+1;
+//                    int tmpnum2 = num-(best_mid_id-id+1);
+//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+//                    if (tmpnum1<=n) {
+//                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+//                        int tmpnum1_ = best_mid_id_-id+1;
+//                        int tmpnum2_ = tmpnum1-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+//                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+//                    }
+//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+//                    if (tmpnum2<=n) {
+//                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+//                        int tmpnum1_ = best_mid_id_-best_mid_id;
+//                        int tmpnum2_ = tmpnum2-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+//                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+//                    }
+
         }
         break;
       }
@@ -558,44 +736,44 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-          /*
-                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
-                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
-                    int tmpnum1 = best_mid_id-id+1;
-                    int tmpnum2 = num-(best_mid_id-id+1);
-                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
-                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-                    if (tmpnum1<=n) {
-                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
-                        int tmpnum1_ = best_mid_id_-id+1;
-                        int tmpnum2_ = tmpnum1-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
-                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
-                    }
-                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
-                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
-                    if (tmpnum2<=n) {
-                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
-                    } else {
-                        //再分
-                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
-                        int tmpnum1_ = best_mid_id_-best_mid_id;
-                        int tmpnum2_ = tmpnum2-tmpnum1_;
-                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
-                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
-                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
-                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
-                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
-                    }
-                    */
+//
+//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
+//                    int tmpnum1 = best_mid_id-id+1;
+//                    int tmpnum2 = num-(best_mid_id-id+1);
+//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
+//                    if (tmpnum1<=n) {
+//                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
+//                        int tmpnum1_ = best_mid_id_-id+1;
+//                        int tmpnum2_ = tmpnum1-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
+//                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
+//                    }
+//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
+//                    if (tmpnum2<=n) {
+//                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
+//                    } else {
+//                        //再分
+//                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
+//                        int tmpnum1_ = best_mid_id_-best_mid_id;
+//                        int tmpnum2_ = tmpnum2-tmpnum1_;
+//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
+//                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
+//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
+//                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
+//                    }
+
         }
         mark = true;
         if (i>=new_end-m+1) break;
@@ -605,6 +783,7 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
       }
     }
   }
+  */
   //method2 end
   //构建叶子结点和非叶子的索引点
   int todoid = 0;
@@ -739,9 +918,9 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
       continue;
     }
   }
-  if (x) out("todonum");
+
   int todonum = allnum - todoid;
-  if (x) out(todonum);
+
   if (todonum > n) {
     //直接平分打包
     saxt lsaxt = get_saxt_i(leafKeys, todoid);
@@ -749,7 +928,6 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
   } else if (todonum > m && todonum <= n) {
     //直接打包
     saxt lsaxt = get_saxt_i(leafKeys, todoid);
-      if (x) out("163_12");
     build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, window_co_d, isleaf, lsaxt, last_saxt);
   } else if (todonum > 0) {
     if (!nonLeafKeys.empty()) {

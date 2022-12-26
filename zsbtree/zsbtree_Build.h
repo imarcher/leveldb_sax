@@ -201,6 +201,8 @@ class Zsbtree_Build {
   inline void split_nonleafkey(newVector<LeafKey> &leafKeys, int id, int allnum,
                                int num, cod co_d, saxt rsaxt);
   inline int getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
+  inline int get_new_end(newVector<LeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
+  inline int get_new_end_1(newVector<LeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
   int buildtree_window(newVector<LeafKey> &leafKeys);
   void buildtree_window_last(newVector<LeafKey> &leafKeys, int allnum);
 
@@ -215,6 +217,8 @@ class Zsbtree_Build {
   inline void split_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id, int allnum,
                                int num, cod co_d, saxt rsaxt, int dep);
   inline int getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
+  inline int get_new_end(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
+  inline int get_new_end_1(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
   int buildtree_window(const newVector<NonLeafKey> &leafKeys, int dep);
   void buildtree_window_last(const newVector<NonLeafKey> &leafKeys, int allnum, int dep);
 

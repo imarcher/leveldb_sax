@@ -43,6 +43,9 @@ namespace nonleaf_method {
     inline int getbestmid(newVector<NonLeafKey> &leafKeys, const int n, const int m, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
 
 
+    inline int get_new_end(newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
+
+    inline int get_new_end_1(newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
 //待考虑几个平分时分节点有很多d=8的情况
 //批量构建while循环内, 2n个
     int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, const int n, const int m);

@@ -93,7 +93,7 @@ void test_get_mem(vector<LeafTimeKey>& leafKeys){
 }
 
 void test_get_st(vector<LeafTimeKey>& leafKeys){
-  LeafKey& tofind_leafkey = leafKeys[900000].leafKey;
+  LeafKey& tofind_leafkey = leafKeys[903000].leafKey;
   vector<LeafKey> res;
   db->Get_st(leveldb::ReadOptions(), tofind_leafkey.asaxt, res);
 //  for(int i=0;i<res.size();i++){
