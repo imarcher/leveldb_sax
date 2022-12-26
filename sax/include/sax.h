@@ -39,7 +39,7 @@ ts_type minidist_paa_to_isax_raw(ts_type *paa, sax_type *sax,
 			       ts_type ratio_sqrt) ;
 
 //分开
-enum response paa_from_ts (ts_type *ts_in, ts_type *paa_out);
+enum response paa_from_ts(ts_type *ts_in, ts_type *paa_out);
 enum response sax_from_paa (ts_type *paa, sax_type *sax);
 enum response saxt_from_sax(sax_type *sax_in, saxt_type *saxt_out);
 enum response sax_from_saxt(sax_type *saxt_in, saxt_type *sax_out);

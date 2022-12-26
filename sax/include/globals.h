@@ -64,7 +64,13 @@ static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
 static const size_t leaf_key_size = saxt_size + sizeof(void *);
 static const size_t nonleaf_key_size = 32;
 
+typedef struct {
+  ts_type ts[Ts_length];
+} ts_only;
 
+typedef struct {
+  saxt_type asaxt[Bit_cardinality];
+} saxt_only;
 
 typedef struct {
   ts_type ts[Ts_length];

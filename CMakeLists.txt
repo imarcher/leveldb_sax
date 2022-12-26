@@ -297,10 +297,15 @@ target_link_libraries(leveldb sax zsbtree)
 #)
 #target_link_libraries(leveldbutil leveldb)
 
+include_directories(jni)
+include_directories(jni/include)
+include_directories(jni/include/linux)
+add_library(leveldbj SHARED jni/leveldb_sax_db.cc jni/leveldb_sax_db.h)
+target_link_libraries(leveldbj leveldb)
+
 add_executable(test_main
         "test_main.cc" "threadPool_2.h"
         )
-
 target_link_libraries(test_main leveldb)
 
 
