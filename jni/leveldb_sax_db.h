@@ -10,10 +10,10 @@ extern "C" {
 /*
  * Class:     leveldb_sax_db
  * Method:    saxt_from_ts
- * Signature: ([B)[B
+ * Signature: ([B[B)V
  */
-JNIEXPORT jbyteArray JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
-  (JNIEnv *, jobject, jbyteArray);
+JNIEXPORT void JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
+  (JNIEnv *, jobject, jbyteArray, jbyteArray);
 
 /*
  * Class:     leveldb_sax_db

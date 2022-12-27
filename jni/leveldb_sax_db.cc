@@ -10,15 +10,17 @@ static leveldb::DB* db;
 static leveldb::WriteOptions writeOptions;
 static leveldb::ReadOptions readOptions;
 
-JNIEXPORT jbyteArray JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
-    (JNIEnv *env, jobject, jbyteArray ts) {
+JNIEXPORT void JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
+    (JNIEnv *env, jobject, jbyteArray ts, jbyteArray saxt_out) {
   ts_only tsArr;
   saxt_only saxtArr;
-  env->GetByteArrayRegion(ts, 0, sizeof(ts_only), (jbyte*)&tsArr);
+  env->GetByteArrayRegion(ts, 0, sizeof(ts_only), (jbyte*)tsArr.ts);
   saxt_from_ts(tsArr.ts, saxtArr.asaxt);
-  jbyteArray newArr = env->NewByteArray(sizeof(saxt_only));
-  env->SetByteArrayRegion(newArr, 0, sizeof(saxt_only), (jbyte*)saxtArr.asaxt);
-  return newArr;
+  saxt_print(saxtArr.asaxt);
+//  jbyteArray newArr = env->NewByteArray(sizeof(saxt_only));
+//  env->SetByteArrayRegion(newArr, 0, sizeof(saxt_only), (jbyte*)saxtArr.asaxt);
+  env->SetByteArrayRegion(saxt_out, 0, sizeof(saxt_only), (jbyte*)saxtArr.asaxt);
+//  return newArr;
 }
 
 
