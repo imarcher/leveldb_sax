@@ -84,82 +84,79 @@ static inline int get_1_Num(int x) {
 }
 
 
-static int get_drange_rebalance(vector<int> &memNum_period){
+static vector<pair<int, int>> get_drange_rebalance(vector<int> &memNum_period){
   int m = memNum_period.size();
   //平均值
-  int nd = 0;
+  float nd = 0;
   for(auto item: memNum_period) {
     nd += item;
   }
   nd /= m;
-  //调用重构
-  //遍历每一个不平衡的结点
-  //百分比 1.2，0.8
-  vector<float> percentage;
+  vector<bool> istoRebalance;
+  istoRebalance.reserve(m + 1);
+  istoRebalance.push_back(false);
   //从低到高
-  int mark = 0;
-  int pos = 1;
+  bool mark = false;
   for(auto item: memNum_period) {
-    float per = (float)item / nd;
-    if (abs(per - 1) > 0.2) mark |= pos;
-    percentage.push_back((float)item / nd);
-    pos <<= 1;
+    if (abs(item - nd) > 0.2 * nd) mark = true, istoRebalance.push_back(true);
+    else istoRebalance.push_back(false);
   }
-
   //本来就平衡了
-  if (!mark) return 0;
+  vector<pair<int, int>> res;
+  if (!mark) return res;
 
-  //初始化答案
-  int res = 1;
-  for(int i=0;i<m-1;i++){
-    res = (res << 1) | 1;
+  //首先求前缀和
+  vector<int> prefix;
+  prefix.reserve(m + 1);
+  prefix.push_back(0);
+  for(auto item: memNum_period) {
+    prefix.push_back(prefix.back() + item);
   }
-  int resNum = m;
-  //与mark一定会要等于mark，然后不能出现单独的1，
-  for (int i = 1; i < 1 << m; i++) {
-    if ((i & mark) == mark) {
-      if ((i & 3) == 1) continue;
-      bool flag = true;
-      for (int j = 0; j < m - 1; j++) {
-        if (((i >> j) & 7) == 2) {
-          flag = false;
-          break;
+
+//    for (int j = 1; j < m+1; ++j) {
+//        cout<<istoRebalance[j]<<endl;
+//    }
+
+  const int INF = 0x3f3f3f3f;
+  //数量
+  int* f = (int*)malloc(sizeof(int) * (m+1));
+  //从哪个状态转移的
+  int* g = (int*)malloc(sizeof(int) * (m+1));
+  f[0] = 0;
+  for(int i=1;i<=m;i++){
+    if (!istoRebalance[i]) {
+      //不选
+      f[i] = f[i-1];
+      g[i] = i-1;
+      //选
+      for(int l=1;l<i;l++){
+        int addnum = i - l + 1;
+        if ((float )abs((prefix[i] - prefix[l-1])/addnum - nd) > 0.2 * nd) continue;
+        if (addnum + f[l-1] < f[i]) {
+          f[i] = addnum + f[l-1];
+          g[i] = l-1;
         }
       }
-      if (!flag) continue;
-      int num_1 = get_1_Num(i);
-      if (num_1 >= resNum) continue;
-      //格式不合格的排完了
-      unsigned int ans = i;
-      bool isRight = true;
-      int ans_id = 0;
-      while (ans) {
-        if (!(ans & 1)) {
-          ans_id++;
-          ans >>= 1;
-          continue;
+
+    } else {
+      f[i] = INF;
+      for(int l=1;l<i;l++){
+        int addnum = i - l + 1;
+        if ((float )abs((prefix[i] - prefix[l-1])/addnum - nd) > 0.2 * nd) continue;
+        if (addnum + f[l-1] < f[i]) {
+          f[i] = addnum + f[l-1];
+          g[i] = l-1;
         }
-        float mean_set = 0;
-        int mean_set_num = 0;
-        while (ans & 1) {
-          mean_set += percentage[ans_id];
-          mean_set_num++;
-          ans_id++;
-          ans >>= 1;
-        }
-        if(abs(mean_set / mean_set_num - 1) > 0.2) {
-          //错误方案
-          isRight = false;
-          break;
-        }
-      }
-      if (isRight) {
-        resNum = num_1;
-        res = i;
       }
     }
   }
 
+  for(int i = m;i; i = g[i]){
+    if (i - g[i] >= 2) {
+      res.emplace_back(g[i], i-1);
+    }
+  }
+  reverse(res.begin(), res.end());
   return res;
 }
 

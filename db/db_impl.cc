@@ -1472,37 +1472,29 @@ Status DBImpl::RebalanceDranges() {
 
   free(st);
 
-  int res = get_drange_rebalance(memNum_period);
+  vector<pair<int, int>> res = get_drange_rebalance(memNum_period);
 
-  if (res) {
-    int ans = res;
-    int ans_id = 0;
-    while (ans) {
-      if (!(ans & 1)) {
-        //不重构这个区域
-        memNum_period[ans_id] = 0;
-        write_mutex[ans_id].Unlock();
-        ans_id++;
-        ans >>= 1;
-        continue;
-      }
+  //先解锁不用的区域
+  int todoid = 0;
+  for (auto item: res) {
+    for(;todoid<item.first;todoid++){
+      memNum_period[todoid] = 0;
+      write_mutex[todoid].Unlock();
+    }
+    todoid = item.second + 1;
+  }
+  while (todoid < memNum_period.size()) memNum_period[todoid] = 0, write_mutex[todoid++].Unlock();
 
-      vector<int> todo_dranges;
-      while (ans & 1) {
-        todo_dranges.push_back(ans_id);
-        ans_id++;
-        ans >>= 1;
-      }
-      //理论上可以多线程来重建，上面的初始化也是一样
-      RebalanceDranges(todo_dranges);
-      for(int j : todo_dranges) {
-        memNum_period[j] = 0;
-        write_mutex[j].Unlock();
-      }
+
+  for (auto item: res) {
+    vector<int> todo_dranges;
+    for(int i=item.first;i<=item.second;i++) todo_dranges.push_back(i);
+    RebalanceDranges(todo_dranges);
+    for(int j : todo_dranges) {
+      memNum_period[j] = 0;
+      write_mutex[j].Unlock();
     }
   }
-
-
 
   return Status();
 }
