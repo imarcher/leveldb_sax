@@ -6,6 +6,12 @@ cmake_minimum_required(VERSION 3.9)
 # Keep the version below in sync with the one in db.h
 project(leveldb VERSION 1.23.0 LANGUAGES C CXX)
 
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(CMAKE_USE_WIN32_THREADS_INIT 0)
+set(CMAKE_USE_PTHREADS_INIT 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+
 
 # C standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_C_STANDARD)
@@ -127,7 +133,7 @@ add_library(leveldb SHARED "")
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
-    "jni/send_master.h"
+#    "jni/send_master.h"
     "db/dbformat.cc"
     "db/dbformat.h"
     "db/ST_Compaction.cc"

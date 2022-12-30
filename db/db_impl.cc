@@ -37,7 +37,7 @@
 #include "util/mutexlock.h"
 
 #include "zsbtree/newVector.h"
-#include "send_master.h"
+//#include "send_master.h"
 namespace leveldb {
 
 const int kNumNonTableCacheFiles = 10;
@@ -609,21 +609,21 @@ void DBImpl::CompactMemTable() {
     nowversion->Ref();
     version_map[++versionid] = nowversion;
     // 发送 versionid, amV_id, edit.new_files_ 3样东西
-    char* to_send = (char*)malloc(send_size1);
-    char* tmp_to_send = to_send;
-    tmp_to_send[0] = 0;
-    tmp_to_send++;
-    charcpy(tmp_to_send, &versionid, sizeof(int));
-    charcpy(tmp_to_send, &amV_id, sizeof(int));
-    FileMetaData& metaData = edit.new_files_[0].second;
-    charcpy(tmp_to_send, &metaData.number, sizeof(uint64_t));
-    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
-    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
-    send_master(to_send, send_size1);
+//    char* to_send = (char*)malloc(send_size1);
+//    char* tmp_to_send = to_send;
+//    tmp_to_send[0] = 0;
+//    tmp_to_send++;
+//    charcpy(tmp_to_send, &versionid, sizeof(int));
+//    charcpy(tmp_to_send, &amV_id, sizeof(int));
+//    FileMetaData& metaData = edit.new_files_[0].second;
+//    charcpy(tmp_to_send, &metaData.number, sizeof(uint64_t));
+//    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
+//    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
+//    send_master(to_send, send_size1);
     //等待返回接到回复
-    free(to_send);
+//    free(to_send);
     //
     imm_ = nullptr;
     has_imm_.store(false, std::memory_order_release);
@@ -983,29 +983,29 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
   int delsize = edit->deleted_files_Meta.size();
   int addsize = edit->new_files_.size();
   size_t mallocsize = send_size2+delsize*send_size2_del+addsize*send_size2_add;
-  char* to_send = (char*)malloc(mallocsize);
-  char* tmp_to_send = to_send;
-  tmp_to_send[0] = 1;
-  tmp_to_send++;
-  charcpy(tmp_to_send, &versionid, sizeof(int));
-  charcpy(tmp_to_send, &delsize, sizeof(int));
-  for(auto metaData: edit->deleted_files_Meta) {
-    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
-    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
-  }
-  charcpy(tmp_to_send, &addsize, sizeof(int));
-  for(auto item: edit->new_files_) {
-    FileMetaData& metaData = item.second;
-    charcpy(tmp_to_send, &metaData.number, sizeof(uint64_t));
-    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
-    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
-    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
-  }
-  send_master(to_send, mallocsize);
-  free(to_send);
+//  char* to_send = (char*)malloc(mallocsize);
+//  char* tmp_to_send = to_send;
+//  tmp_to_send[0] = 1;
+//  tmp_to_send++;
+//  charcpy(tmp_to_send, &versionid, sizeof(int));
+//  charcpy(tmp_to_send, &delsize, sizeof(int));
+//  for(auto metaData: edit->deleted_files_Meta) {
+//    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
+//    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
+//  }
+//  charcpy(tmp_to_send, &addsize, sizeof(int));
+//  for(auto item: edit->new_files_) {
+//    FileMetaData& metaData = item.second;
+//    charcpy(tmp_to_send, &metaData.number, sizeof(uint64_t));
+//    charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
+//    charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
+//    charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
+//  }
+//  send_master(to_send, mallocsize);
+//  free(to_send);
   //等待返回接到回复
   //
   return res;
