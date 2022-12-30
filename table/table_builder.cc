@@ -172,17 +172,21 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
   new_p.reserve(nonLeaf->num);
 
   if (nonLeaf->isleaf) {
+    Leaf* tmpleaf = (Leaf*)malloc(sizeof(Leaf)*nonLeaf->num);
     for(int i=0;i<nonLeaf->num;i++){
+      LeafKey* copyleaf = (LeafKey*)(tmpleaf + i);
       Leaf* aleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
-      aleaf->sort();
-      r->data_block.Add(aleaf);
+      aleaf->sort(copyleaf);
+      r->data_block.Add(aleaf, copyleaf);
       //取消了手动flush，改成每4kb写入了
       Flush();
 //      out("handle");
 //          out(r->pending_handle.GetSize());
 //          out(r->pending_handle.GetOffset());
       new_p.push_back(r->pending_handle.Get());
+
     }
+    free(tmpleaf);
   } else {
     for(int i=0;i<nonLeaf->num;i++) {
       NonLeaf* anonLeaf = (NonLeaf*)nonLeaf->nonLeafKeys[i].p;

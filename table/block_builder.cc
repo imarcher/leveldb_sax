@@ -30,9 +30,11 @@
 
 #include <algorithm>
 #include <cassert>
+#include <zsbtree/STkeyinfo.h>
 
 #include "leveldb/comparator.h"
 #include "leveldb/options.h"
+
 #include "util/coding.h"
 
 namespace leveldb {
@@ -95,13 +97,13 @@ Slice BlockBuilder::Finish() {
 //}
 
 
-void BlockBuilder::Add(Leaf* leaf) {
+void BlockBuilder::Add(Leaf* leaf, LeafKey* copyleaf) {
   cod co_d = leaf->co_d;
   size_t co_saxt_size = co_d * sizeof(saxt_type);
   size_t noco_saxt_size = saxt_size - co_saxt_size + 8;
   //把共享的压缩掉
   for(int i=0;i<leaf->num;i++){
-    buffer_.append(((char*)leaf->leafKeys[i].asaxt) + co_saxt_size, noco_saxt_size);
+    buffer_.append(((char*)(copyleaf[i].asaxt)) + co_saxt_size, noco_saxt_size);
   }
 
 }

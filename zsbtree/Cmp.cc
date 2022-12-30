@@ -31,3 +31,10 @@ bool saxt_cmp(saxt a, saxt b, cod co_d) {
     }
     return true;
 }
+
+bool saxt_cmp(saxt a, saxt b) {
+    for (int d = 0;d<Bit_cardinality;d++) {
+        if (a[d] != b[d]) return a[d] < b[d];
+    }
+    return true;
+}

@@ -9,6 +9,11 @@
 #include "zsbtree_LeafBuild.h"
 #include "zsbtree_NonLeafBuild.h"
 
+typedef struct {
+  NonLeaf* root;
+  int leafNum;
+} zsbtree_table_mem;
+
 static NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, const int m, int &leafNum) {
   vector<NonLeafKey> nonLeafKeys[2];
 
@@ -75,6 +80,11 @@ static NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
     cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
     return new NonLeaf(nonLeafKeys_rep[out_1].size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys_rep[out_1].data());
   }
+}
+
+
+static zsbtree_table_mem BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
+  return {build_tree_from_nonleaf(nonLeafKeys), (int)(nonLeafKeys.size())};
 }
 
 static inline int get_1_Num(int x) {

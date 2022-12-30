@@ -157,7 +157,7 @@ enum response saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out) {
         }
         paa[s] /= Ts_values_per_segment;
 //#ifdef DEBUG
-        //printf("%d: %lf\n", s, paa[s]);
+//        printf("%d: %lf\n", s, paa[s]);
 //#endif
     }
 
@@ -187,11 +187,11 @@ enum response saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out) {
             sax_out[si] = (sax_type) (Cardinality-1);
     }
 
-    //sax_print(sax_out, segments, cardinality);
+
     free(paa);
     for(int i=0; i<Bit_cardinality; i++) {
         for(int j=0; j<Segments; j++) {
-            saxt_out[i] |= (sax_out[j]>>(Bit_cardinality-i-1) & 1) << (Segments-j-1);
+          saxt_out[i] |= ((sax_out[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
         }
     }
     free(sax_out);
@@ -202,7 +202,7 @@ enum response saxt_from_sax(sax_type *sax_in, saxt_type *saxt_out) {
 
     for(int i=0; i<Bit_cardinality; i++) {
         for(int j=0; j<Segments; j++) {
-            saxt_out[i] |= (sax_in[j]>>(Bit_cardinality-i-1) & 1) << (Segments-j-1);
+            saxt_out[i] |= ((sax_in[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
         }
     }
     return SUCCESS;

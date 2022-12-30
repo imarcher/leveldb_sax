@@ -73,12 +73,21 @@ class VersionEdit {
     f.largest = largest;
     f.startTime = startTime;
     f.endTime = endTime;
-    new_files_.push_back(std::make_pair(level, f));
+    new_files_.emplace_back(level, f);
   }
 
   // Delete the specified "file" from the specified "level".
-  void RemoveFile(int level, uint64_t file) {
+  void RemoveFile(int level, uint64_t file, uint64_t file_size,
+                  const InternalKey& smallest, const InternalKey& largest, const ts_time startTime, const ts_time endTime) {
+    FileMetaData f;
+    f.number = file;
+    f.file_size = file_size;
+    f.smallest = smallest;
+    f.largest = largest;
+    f.startTime = startTime;
+    f.endTime = endTime;
     deleted_files_.insert(std::make_pair(level, file));
+    deleted_files_Meta.push_back(f);
   }
 
   void EncodeTo(std::string* dst) const;
@@ -104,6 +113,10 @@ class VersionEdit {
 
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
   DeletedFileSet deleted_files_;
+
+ public:
+  //要传给master的
+  std::vector<FileMetaData> deleted_files_Meta;
   std::vector<std::pair<int, FileMetaData>> new_files_;
 };
 

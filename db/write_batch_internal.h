@@ -7,10 +7,12 @@
 
 #include "db/dbformat.h"
 #include "leveldb/write_batch.h"
+#include "mem_version_set.h"
 
 namespace leveldb {
 
 class MemTable;
+
 
 // WriteBatchInternal provides static methods for manipulating a
 // WriteBatch that we don't want in the public WriteBatch interface.
@@ -35,7 +37,7 @@ class WriteBatchInternal {
 
   static void SetContents(WriteBatch* batch, const Slice& contents);
 
-  static Status InsertInto(const WriteBatch* batch, MemTable*& memtable, int memNum);
+  static Status InsertInto(const WriteBatch* b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet);
 
   static void Append(WriteBatch* dst, const WriteBatch* src);
 };

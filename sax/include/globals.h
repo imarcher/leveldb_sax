@@ -61,8 +61,12 @@ static const int Leaf_rebuildnum = Leaf_maxnum * 1.5;
 static const int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
 
 static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
-static const size_t leaf_key_size = saxt_size + sizeof(void *);
-static const size_t nonleaf_key_size = 32;
+
+
+static const size_t send_size1 = 1+sizeof(int)*2+sizeof(uint64_t)+saxt_size*2+sizeof(ts_time)*2;
+static const size_t send_size2 = 1+sizeof(int)*3;
+static const size_t send_size2_del = saxt_size*2 + sizeof(ts_time)*2;
+static const size_t send_size2_add = sizeof(uint64_t) + saxt_size*2 + sizeof(ts_time)*2;
 
 typedef struct {
   ts_type ts[Ts_length];

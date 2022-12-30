@@ -22,6 +22,8 @@
 #include "ST_Compaction.h"
 #include "ST_merge.h"
 #include "globals.h"
+#include "mem_version_set.h"
+#include <shared_mutex>
 
 namespace leveldb {
 
@@ -110,8 +112,6 @@ class DBImpl : public DB {
 
   //重平衡
   void RebalanceDranges(vector<int>& table_rebalanced);
-  //插入时选择表
-  int root_Choose(const LeafKey& key);
 
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
@@ -193,11 +193,22 @@ class DBImpl : public DB {
 //  uint64_t logfile_number_ GUARDED_BY(mutex_);
 //  log::Writer* log_;
 //  uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
+  //磁盘版本锁
   port::Mutex mutex_;
+  //内存版本锁
+  port::Mutex mutex_Mem;
+  //要删除的表数组
+  mems_todel memsTodel;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
   //写锁
   vector<port::Mutex> write_mutex;
+  //选表锁
+//  std::shared_mutex range_mutex;
+  //边界
+  vector<saxt_only> bounds;
+  //内存版本
+  mem_version_set memSet;
   //表
   vector<MemTable*> mems;
   //mem中现有的key数量
@@ -230,7 +241,10 @@ class DBImpl : public DB {
 
   ManualCompaction* manual_compaction_ GUARDED_BY(mutex_);
 
-  VersionSet* const versions_ ;
+  VersionSet* const versions_ GUARDED_BY(mutex_);
+  // 当前磁盘版本号
+  int versionid;
+  unordered_map<int, Version*> version_map;
 
   // Have we encountered a background error in paranoid mode?
   Status bg_error_ ;

@@ -8,6 +8,7 @@
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
 #include "util/coding.h"
+#include "mem_version_set.h"
 
 namespace leveldb {
 
@@ -18,9 +19,9 @@ static Slice GetLengthPrefixedSlice(const char* data) {
   return Slice(p, len);
 }
 
-MemTable::MemTable() :refs_(0),table_(),startTime(starttime_init),endTime(endtime_init){}
+MemTable::MemTable(mems_todel* memsTodel) :refs_(0),startTime(starttime_init),endTime(endtime_init),memsTodel(memsTodel){}
 
-MemTable::MemTable(ts_time starttime, ts_time endtime) :refs_(0),table_(),startTime(starttime),endTime(endtime){}
+MemTable::MemTable(ts_time starttime, ts_time endtime, mems_todel* memsTodel) :refs_(0),startTime(starttime),endTime(endtime),memsTodel(memsTodel){}
 
 MemTable::~MemTable() { assert(refs_ == 0);}
 
@@ -74,7 +75,7 @@ class MemTableIterator : public Iterator {
 //  std::string tmp_;  // For passing to EncodeKey
 };
 
-Iterator* MemTable::NewIterator() { return nullptr; }
+
 
 bool MemTable::Add(LeafKey& key) {
   //这里待改，返回false重组
@@ -85,20 +86,26 @@ void MemTable::Get(saxt key, vector<LeafKey>& leafKeys) {
   table_.GetLeafKeys(key, leafKeys);
 }
 
-MemTable* MemTable::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
-  return new MemTable(table_.BuildTree_new(nonLeafKeys), starttime_init, endtime_init);
-}
+
 saxt MemTable::Getlsaxt() { return table_.root->lsaxt; }
 saxt MemTable::Getrsaxt() { return table_.root->rsaxt; }
 cod MemTable::Getcod() { return table_.root->co_d; }
 MemTable* MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
-  return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt), startTime, endTime);
+  return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt), startTime, endTime, memsTodel);
 }
 int MemTable::GetleafNum() { return table_.leafNum; }
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
 
-MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_),startTime(starttime_init),endTime(endtime_init){}
-MemTable::MemTable(zsbtree_table_mem table_mem, ts_time starttime, ts_time endtime) :refs_(0),table_(table_mem), startTime(starttime), endTime(endtime){}
-
+MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_),startTime(starttime_init),endTime(endtime_init),memsTodel(im->memsTodel){}
+MemTable::MemTable(zsbtree_table_mem table_mem, ts_time starttime, ts_time endtime, mems_todel* memsTodel) :refs_(0),table_(table_mem), startTime(starttime), endTime(endtime),memsTodel(memsTodel){}
+void MemTable::Unref() {
+  --refs_;
+  assert(refs_ >= 0);
+  if (refs_ <= 0) {
+    //删除一个表是有代价的，但是unref一个表一定是来自一个版本，可以延迟删除，放入一个db的删除vector
+    memsTodel->push(this);
+  }
+}
+MemTable::MemTable(zsbtree_table_mem table_mem, mems_todel* memsTodel):refs_(0),table_(table_mem),startTime(starttime_init),endTime(endtime_init),memsTodel(memsTodel) {}
 
 }  // namespace leveldb

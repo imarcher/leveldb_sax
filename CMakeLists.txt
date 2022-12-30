@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 3.9)
 # Keep the version below in sync with the one in db.h
 project(leveldb VERSION 1.23.0 LANGUAGES C CXX)
 
+
 # C standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_C_STANDARD)
   # This project can use C11, but will gracefully decay down to C89.
@@ -41,6 +42,7 @@ include(CheckLibraryExists)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
 check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
+
 
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
@@ -125,12 +127,15 @@ add_library(leveldb SHARED "")
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+    "jni/send_master.h"
     "db/dbformat.cc"
     "db/dbformat.h"
     "db/ST_Compaction.cc"
     "db/ST_Compaction.h"
     "db/ST_merge.cc"
     "db/ST_merge.h"
+    "db/mem_version_set.cc"
+    "db/mem_version_set.h"
     "db/builder.cc"
     "db/builder.h"
 #    "db/c.cc"

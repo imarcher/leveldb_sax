@@ -21,7 +21,7 @@ void ZsbTree_finder::l_Get_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, boo
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     simi_leakKeys.reserve(leaf.num);
     simi_leakKeys.resize(leaf.num);
-    memcpy(simi_leakKeys.data(), leaf.leafKeys, leaf_key_size * leaf.num);
+    memcpy(simi_leakKeys.data(), leaf.leafKeys, sizeof(LeafKey) * leaf.num);
   } else {
     NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
     l_Get_NonLeaf(nonLeaf.nonLeafKeys[0], leafKey, nonLeaf.isleaf);
@@ -33,7 +33,7 @@ void ZsbTree_finder::r_Get_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, boo
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     simi_leakKeys.reserve(leaf.num);
     simi_leakKeys.resize(leaf.num);
-    memcpy(simi_leakKeys.data(), leaf.leafKeys, leaf_key_size * leaf.num);
+    memcpy(simi_leakKeys.data(), leaf.leafKeys, sizeof(LeafKey) * leaf.num);
   } else {
     NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
     l_Get_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1], leafKey, nonLeaf.isleaf);
@@ -44,7 +44,7 @@ void ZsbTree_finder::r_Get_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, boo
 inline void ZsbTree_finder::leaf_Get(Leaf &leaf, LeafKey &leafKey) {
   simi_leakKeys.reserve(leaf.num);
   simi_leakKeys.resize(leaf.num);
-  memcpy(simi_leakKeys.data(), leaf.leafKeys, leaf_key_size * leaf.num);
+  memcpy(simi_leakKeys.data(), leaf.leafKeys, sizeof(LeafKey) * leaf.num);
 }
 
 

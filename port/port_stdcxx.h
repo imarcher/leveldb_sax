@@ -51,8 +51,8 @@ class LOCKABLE Mutex {
 
   Mutex(const Mutex&) {};
   Mutex& operator=(const Mutex&) = delete;
-  void Lock1() EXCLUSIVE_LOCK_FUNCTION() { mu_.lock();out("上锁"); }
-  void Unlock1() UNLOCK_FUNCTION() { mu_.unlock();out("解锁"); }
+//  void Lock1() EXCLUSIVE_LOCK_FUNCTION() { mu_.lock();out("上锁"); }
+//  void Unlock1() UNLOCK_FUNCTION() { mu_.unlock();out("解锁"); }
   void Lock() EXCLUSIVE_LOCK_FUNCTION() { mu_.lock(); }
   void Unlock() UNLOCK_FUNCTION() { mu_.unlock(); }
   void AssertHeld() ASSERT_EXCLUSIVE_LOCK() {}

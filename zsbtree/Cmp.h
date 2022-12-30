@@ -16,5 +16,8 @@ bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b);
 // <=
 bool saxt_cmp(saxt a, saxt b, cod co_d);
 
+// <=
+bool saxt_cmp(saxt a, saxt b);
+
 
 #endif //TODOZSBTREE_CMP_H

@@ -10,6 +10,8 @@
 #include "leveldb/iterator.h"
 #include "zsbtree/zsbtree_table.h"
 #include "stack"
+#include "STNonLeaf.h"
+#include "STLeaf.h"
 
 namespace leveldb {
 

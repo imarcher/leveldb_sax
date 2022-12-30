@@ -16,14 +16,15 @@
 #include "leveldb/write_batch.h"
 
 #include "db/dbformat.h"
-#include "db/memtable.h"
+
 #include "db/write_batch_internal.h"
 #include <util/mutexlock.h>
 
-#include "leveldb/db.h"
-#include "zsbtree/zsbtree_table.h"
+
+
 #include "util/coding.h"
 #include "iostream"
+
 
 namespace leveldb {
 
@@ -116,8 +117,11 @@ class MemTableInserter : public WriteBatch::Handler {
  public:
 //  SequenceNumber sequence_;
   MemTable*& mem_;
-
-  MemTableInserter(MemTable*& mem) : mem_(mem) {}
+  port::Mutex* mutex_;
+  mem_version_set* versionSet;
+  int memId;
+  MemTableInserter(MemTable*& mem, port::Mutex* mutex, int memId, mem_version_set* versionSet)
+      : mem_(mem), mutex_(mutex), memId(memId), versionSet(versionSet){}
 
   bool Put(LeafKey& key) override {
     return mem_->Add(key);
@@ -131,9 +135,10 @@ class MemTableInserter : public WriteBatch::Handler {
 
   void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) override {
     MemTable *oldmem = mem_;
-    mem_ = oldmem->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
-    mem_->Ref();
-    oldmem->Unref();
+    MemTable *newmem = oldmem->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
+    MutexLock l(mutex_);
+    mem_ = newmem;
+    versionSet->newversion_small(mem_, memId);
   }
 
 
@@ -144,8 +149,8 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable*& memtable, int memNum) {
-  MemTableInserter inserter(memtable);
+Status WriteBatchInternal::InsertInto(const WriteBatch* b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
+  MemTableInserter inserter(memtable, mutex, memId, versionSet);
   return b->Iterate(&inserter, memNum);
 }
 
@@ -159,5 +164,6 @@ void WriteBatchInternal::Append(WriteBatch* dst, const WriteBatch* src) {
   assert(src->rep_.size() >= kHeader);
   dst->rep_.append(src->rep_.data() + kHeader, src->rep_.size() - kHeader);
 }
+
 
 }  // namespace leveldb

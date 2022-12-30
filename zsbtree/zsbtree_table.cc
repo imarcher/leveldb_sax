@@ -3,7 +3,7 @@
 //
 
 #include "zsbtree_table.h"
-
+#include "zsbtree_finder.h"
 
 
 
@@ -20,10 +20,6 @@ void zsbtree_table::BuildTree(newVector<NonLeafKey>& nonLeafKeys) {
   root = build_tree_from_nonleaf(nonLeafKeys);
 }
 
-//平衡用
-zsbtree_table_mem zsbtree_table::BuildTree_new(newVector<NonLeafKey>& nonLeafKeys) {
-  return {build_tree_from_nonleaf(nonLeafKeys), (int)(nonLeafKeys.size())};
-}
 
 zsbtree_table_mem zsbtree_table::Rebalance(int tmp_leaf_maxnum,
                                            int tmp_leaf_minnum, int Nt) {
@@ -46,10 +42,9 @@ void zsbtree_table::Rebalance_dfs(NonLeaf* nonLeaf,
     for (int i = 0; i < nonLeaf->num; i++) {
       Leaf* tmpleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
       if (tmpleaf->num) {
-        tmpleaf->sort();
         auto dst = sortleafKeys.data() + sortleafKeys.size();
         sortleafKeys.resize(sortleafKeys.size() + tmpleaf->num);
-        mempcpy(dst, tmpleaf->leafKeys, leaf_key_size * tmpleaf->num);
+        tmpleaf->sort(dst);
       }
     }
   } else {
@@ -71,7 +66,7 @@ void zsbtree_table::LoadNonLeafKeys_dfs(NonLeaf* nonLeaf,
   if (nonLeaf->isleaf) {
     auto dst = nonLeafKeys.data() + nonLeafKeys.size();
     nonLeafKeys.resize(nonLeafKeys.size() + nonLeaf->num);
-    mempcpy(dst, nonLeaf->nonLeafKeys, nonleaf_key_size * nonLeaf->num);
+    mempcpy(dst, nonLeaf->nonLeafKeys, sizeof(NonLeafKey) * nonLeaf->num);
   } else {
     //遍历子结点
     for (int i = 0; i < nonLeaf->num; i++) {

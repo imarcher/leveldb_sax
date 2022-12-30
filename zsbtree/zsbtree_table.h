@@ -5,19 +5,16 @@
 #ifndef LEVELDB_ZSBTREE_TABLE_H
 #define LEVELDB_ZSBTREE_TABLE_H
 
-#include "STLeaf.h"
-#include "STNonLeaf.h"
-#include "STkeyinfo.h"
-#include "STpos.h"
+//#include "STLeaf.h"
+//#include "STNonLeaf.h"
+//#include "STkeyinfo.h"
+//#include "STpos.h"
 #include "zsbtree_Build.h"
-#include "zsbtree_Insert.h"
-#include "zsbtree_finder.h"
+//#include "zsbtree_Insert.h"
+//#include "zsbtree_finder.h"
 namespace leveldb {
 
-typedef struct {
-  NonLeaf* root;
-  int leafNum;
-} zsbtree_table_mem;
+
 
 class zsbtree_table {
  public:
@@ -35,7 +32,7 @@ class zsbtree_table {
 
   void BuildTree(newVector<NonLeafKey>& nonLeafKeys);
 
-  zsbtree_table_mem BuildTree_new(newVector<NonLeafKey>& nonLeafKeys);
+
 
   zsbtree_table_mem Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
 

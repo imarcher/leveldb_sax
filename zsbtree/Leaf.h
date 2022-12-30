@@ -25,7 +25,8 @@ public:
     void setLeafKeys(LeafKey *leafKeys);
     void setLsaxt(saxt saxt_);
     void setRsaxt(saxt saxt_);
-    void sort();
+    //先复制然后在复制的内存中排序
+    void sort(LeafKey* dst);
     void set(NonLeafKey& nonLeafKey);
     //有几个
     int num = 0;

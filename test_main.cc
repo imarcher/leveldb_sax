@@ -60,8 +60,8 @@ void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
 
 void test_rebalance_small(vector<LeafTimeKey>& leafKeys){
-  for(int i=0;i<90;i++){
-    db->Put(leveldb::WriteOptions(), leafKeys[i%30]);
+  for(int i=920000;i<1000000;i++){
+    db->Put(leveldb::WriteOptions(), leafKeys[920000+i%30]);
   }
   over("rebalance_small");
 }
@@ -132,13 +132,13 @@ int main(){
   //一组测试
 //  test_put(leafKeys);
 //  test_put_multithread(leafKeys);
-//  test_rebalance_small(leafKeys);
-  test_st_compaction_0(leafKeys);
+  test_rebalance_small(leafKeys);
+//  test_st_compaction_0(leafKeys);
 
 
 //  test_get_mem(leafKeys);
 //  sleep(10);
-  test_get_st(leafKeys);
+//  test_get_st(leafKeys);
 //
 //  sleep(5);
   out("finished");

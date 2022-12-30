@@ -5,19 +5,20 @@
 #ifndef STORAGE_LEVELDB_DB_MEMTABLE_H_
 #define STORAGE_LEVELDB_DB_MEMTABLE_H_
 
-#include <string>
+//#include <string>
 
-#include "db/dbformat.h"
-#include "db/skiplist.h"
-#include "leveldb/db.h"
+//#include "db/dbformat.h"
 
+//#include "leveldb/db.h"
+//#include "mem_version_set.h"
 #include "zsbtree/zsbtree_table.h"
 
 namespace leveldb {
 
 class InternalKeyComparator;
 class MemTableIterator;
-typedef uint64_t SequenceNumber;
+class mems_todel;
+
 #define starttime_init 0x3f3f3f3f3f3f3f3f
 #define endtime_init 0
 class MemTable {
@@ -25,25 +26,21 @@ class MemTable {
  public:
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
-  MemTable();
-  MemTable(ts_time starttime, ts_time endtime);
+  MemTable(mems_todel* memsTodel);
+  MemTable(ts_time starttime, ts_time endtime, mems_todel* memsTodel);
   MemTable(MemTable* im);
-  MemTable(zsbtree_table_mem table_mem, ts_time starttime, ts_time endtime);
+  MemTable(zsbtree_table_mem table_mem, mems_todel* memsTodel);
+  MemTable(zsbtree_table_mem table_mem, ts_time starttime, ts_time endtime, mems_todel* memsTodel);
 
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
-
+  ~MemTable();
   // Increase reference count.
   void Ref() { ++refs_; }
 
   // Drop reference count.  Delete if no more references exist.
-  void Unref() {
-    --refs_;
-    assert(refs_ >= 0);
-    if (refs_ <= 0) {
-      delete this;
-    }
-  }
+  void Unref() ;
+
 
   // Returns an estimate of the number of bytes of data in use by this
   // data structure. It is safe to call when MemTable is being modified.
@@ -55,7 +52,7 @@ class MemTable {
   // while the returned iterator is live.  The keys returned by this
   // iterator are internal keys encoded by AppendInternalKey in the
   // db/format.{h,cc} module.
-  Iterator* NewIterator();
+//  Iterator* NewIterator();
 
   // Add an entry into memtable that maps key to value at the
   // specified sequence number and with the specified type.
@@ -68,7 +65,7 @@ class MemTable {
   // Else, return false.
   void Get(const saxt key, vector<LeafKey>& leafKeys);
 
-  MemTable* BuildTree_new(newVector<NonLeafKey>& nonLeafKeys);
+
   saxt Getlsaxt();
   saxt Getrsaxt();
   cod Getcod();
@@ -90,11 +87,11 @@ class MemTable {
 
 
 
-  ~MemTable();  // Private since only Unref() should be used to delete it
 
 
 //  KeyComparator comparator_;
   int refs_;
+  mems_todel* memsTodel;
 
  public:
 
