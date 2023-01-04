@@ -82,8 +82,8 @@ bool MemTable::Add(LeafKey& key) {
   return table_.Insert(key);
 }
 
-void MemTable::Get(saxt key, vector<LeafKey>& leafKeys) {
-  table_.GetLeafKeys(key, leafKeys);
+NonLeaf* MemTable::GetRoot() {
+  return table_.root;
 }
 
 

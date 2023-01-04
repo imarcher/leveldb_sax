@@ -151,12 +151,7 @@ void zsbtree_table::DelTree_dfs_2(NonLeaf* nonLeaf) {
   }
 }
 
-//查
-void zsbtree_table::GetLeafKeys(saxt key, vector<LeafKey>& leafKeys) {
-  ZsbTree_finder zsbTreeFinder(leafKeys);
-  LeafKey leafKey(key);
-  zsbTreeFinder.root_Get(*root, leafKey);
-}
+
 
 
 }

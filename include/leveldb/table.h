@@ -67,7 +67,7 @@ class LEVELDB_EXPORT Table {
  private:
   friend class TableCache;
   struct Rep;
-  class ST_finder;
+
 
 
 
@@ -89,16 +89,25 @@ class LEVELDB_EXPORT Table {
 
   Rep* const rep_;
 
-
-
-
+ public:
   class ST_finder{
    public:
-    ST_finder(Rep* rep, vector<LeafKey>& simiLeakKeys) : simi_leakKeys(simiLeakKeys), rep_(rep) {}
+    ST_finder(Table* rep, saxt saxt_, ts_type* paa_) : rep_(rep->rep_) {
+      memcpy(leafkey, saxt_, sizeof(saxt_only));
+      memcpy(paa, paa_, sizeof(ts_type) * Segments);
+    }
+
+    ~ST_finder() { delete to_find_nonleaf; }
 
    public:
 
-    void root_Get(LeafKey &leafKey);
+    void root_Get();
+
+    void find_One(LeafKey* res, int& res_num);
+
+    inline void find_One(LeafKey* res, int& res_num, int id);
+
+    void sort();
 
    private:
 
@@ -107,20 +116,27 @@ class LEVELDB_EXPORT Table {
     inline int whereofKey(saxt lsaxt, saxt rsaxt, saxt leafKey, cod co_d);
     bool saxt_cmp(saxt a, saxt b, cod co_d);
     cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d);
-    void l_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey &leafKey);
+    void l_Get_NonLeaf(STNonLeaf& nonLeaf1, int i);
 
-    void r_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey &leafKey);
+    void r_Get_NonLeaf(STNonLeaf& nonLeaf1, int i);
 
-    inline void leaf_Get(STLeaf& leaf, LeafKey &leafKey);
+    inline void leaf_Get(STLeaf& leaf, LeafKey* res);
 
 // 在nonLeaf的范围里, 才调用
-    void nonLeaf_Get(STNonLeaf& nonLeaf, LeafKey &leafKey);
+    bool nonLeaf_Get(STNonLeaf& nonLeaf);
+
+   public:
+    vector<pair<float, int>> has_cod;
+    vector<int> no_has_cod;
    private:
+    saxt_type leafkey[Bit_cardinality];
+    ts_type paa[Segments];
+    STNonLeaf* to_find_nonleaf;
+    int oneId;//叶子在非叶结点中的位置
     Rep* const rep_;
-    vector<LeafKey> &simi_leakKeys;
   };
 
- public:
+
   class ST_Iter{
    public:
     ST_Iter(Table* table);

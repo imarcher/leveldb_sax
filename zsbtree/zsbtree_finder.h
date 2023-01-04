@@ -13,26 +13,43 @@
 class ZsbTree_finder{
  public:
   
-  explicit ZsbTree_finder(vector<LeafKey>& simiLeakKeys) : simi_leakKeys(simiLeakKeys) {}
+  ZsbTree_finder(saxt saxt_, ts_type* paa_) {
+    memcpy(leafkey, saxt_, sizeof(saxt_only));
+    memcpy(paa, paa_, sizeof(ts_type) * Segments);
+  }
 
- public:
 
-  void root_Get(NonLeaf &nonLeaf, LeafKey &leafKey);
+  // 从根节点查到一个叶节点的上一层非叶节点
+  void root_Get(NonLeaf &nonLeaf);
+
+  // 根据非叶节点找到最合理的点，并把leafkey返回给res
+  void find_One(LeafKey* res, int& res_num);
+
+  inline void find_One(LeafKey* res, int& res_num, Leaf *leaf);
+
+  // 找到一个结点不够，按paa排序
+  void sort();
 
  private:
-  void l_Get_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, bool isleaf);
 
-  void r_Get_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, bool isleaf);
+  void l_Get_NonLeaf(NonLeafKey &nonLeafKey);
 
-  inline void leaf_Get(Leaf &leaf, LeafKey &leafKey);
+  void r_Get_NonLeaf(NonLeafKey &nonLeafKey);
+
+  inline void leaf_Get(Leaf *leaf, int id, LeafKey* res, int& res_num);
 
 // 在nonLeaf的范围里, 才调用
-  void nonLeaf_Get(NonLeaf &nonLeaf, LeafKey &leafKey);
+  void nonLeaf_Get(NonLeaf &nonLeaf);
 
 
-
+ public:
+  vector<dist_p> has_cod;
+  vector<void*> no_has_cod;
  private:
-  vector<LeafKey> &simi_leakKeys;
+  saxt_type leafkey[Bit_cardinality];
+  ts_type paa[Segments];
+  NonLeaf* to_find_nonleaf;
+  int oneId;//叶子在非叶结点中的位置
 
 };
 

@@ -10,6 +10,7 @@ STNonLeaf::STNonLeaf(unsigned short num, cod co_d, size_t size) {
   this->co_d = co_d;
   co_size = co_d * sizeof(saxt_type);
   lkey_size = saxt_size - co_size;
+  s_co_size = lkey_size;
   pos_size = (lkey_size << 1) + 2;
   lkey_size += 2;
   noco_size = pos_size + 8;
@@ -30,6 +31,7 @@ void STNonLeaf::Set(unsigned short num, cod co_d, size_t size) {
   this->co_d = co_d;
   co_size = co_d * sizeof(saxt_type);
   lkey_size = saxt_size - co_size;
+  s_co_size = lkey_size;
   pos_size = (lkey_size << 1) + 2;
   lkey_size += 2;
   noco_size = pos_size + 8;
@@ -78,3 +80,7 @@ void STNonLeaf::Setprefix(saxt prefix1) {
   memcpy(prefix, prefix1, saxt_size);
 }
 
+void STNonLeaf::SetSaxt(saxt dst, saxt saxt_) {
+  memcpy(dst, prefix, co_size);
+  memcpy(((char*)dst) + co_size, saxt_, s_co_size);
+}

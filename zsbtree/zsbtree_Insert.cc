@@ -20,8 +20,8 @@ bool l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
   if (isleaf) {
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     leaf.setLsaxt(leafKey.asaxt);
-    leaf.co_d = nonLeafKey.co_d;
     leaf.add(leafKey);
+    leaf.co_d = nonLeafKey.co_d;
     nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
   } else {
@@ -38,15 +38,15 @@ bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d, bool i
   if (isleaf) {
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     leaf.setRsaxt(leafKey.asaxt);
-    leaf.co_d = nonLeafKey.co_d;
     leaf.add(leafKey);
+    leaf.co_d = nonLeafKey.co_d;
     nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
   } else {
     NonLeaf &nonLeaf = *((NonLeaf *)nonLeafKey.p);
     nonLeaf.setRsaxt(leafKey.asaxt);
     nonLeaf.co_d = nonLeafKey.co_d;
-    return l_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
+    return r_Insert_NonLeaf(nonLeaf.nonLeafKeys[nonLeaf.num-1], leafKey, nonLeafKey.co_d, nonLeaf.isleaf);
   }
 }
 

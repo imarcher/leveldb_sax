@@ -113,6 +113,8 @@ class Version {
   // Return a human readable string that describes this version's contents.
   std::string DebugString() const;
 
+  uint64_t GetSize(uint64_t number);
+
  private:
   friend class Compaction;
   friend class VersionSet;
@@ -268,6 +270,7 @@ class VersionSet {
   };
   const char* LevelSummary(LevelSummaryStorage* scratch) const;
 
+  TableCache* const table_cache_;
  private:
   class Builder;
 
@@ -296,7 +299,6 @@ class VersionSet {
   Env* const env_;
   const std::string dbname_;
   const Options* const options_;
-  TableCache* const table_cache_;
   const InternalKeyComparator icmp_;
   uint64_t next_file_number_;
   uint64_t manifest_file_number_;

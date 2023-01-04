@@ -198,6 +198,62 @@ enum response saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out) {
     return SUCCESS;
 }
 
+enum response paa_saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out, ts_type *paa) {
+  // Create PAA representation
+  sax_type *sax_out = static_cast<sax_type *>(malloc(sizeof(sax_type) * Segments));
+  if(paa == NULL) {
+    fprintf(stderr,"error: could not allocate memory for PAA representation.\n");
+    return FAILURE;
+  }
+
+  int s, i;
+  for (s=0; s<Segments; s++) {
+    paa[s] = 0;
+    for (i=0; i<Ts_values_per_segment; i++) {
+      paa[s] += ts_in[(s * Ts_values_per_segment)+i];
+    }
+    paa[s] /= Ts_values_per_segment;
+//#ifdef DEBUG
+//        printf("%d: %lf\n", s, paa[s]);
+//#endif
+  }
+
+  // Convert PAA to SAX
+  // Note: Each cardinality has cardinality - 1 break points if c is cardinality
+  //       the breakpoints can be found in the following array positions:
+  //       FROM (c - 1) * (c - 2) / 2
+  //       TO   (c - 1) * (c - 2) / 2 + c - 1
+  //printf("FROM %lf TO %lf\n", sax_breakpoints[offset], sax_breakpoints[offset + cardinality - 2]);
+
+  int si;
+  for (si=0; si<Segments; si++) {
+    sax_out[si] = 0;
+
+    // First object = sax_breakpoints[offset]
+    // Last object = sax_breakpoints[offset + cardinality - 2]
+    // Size of sub-array = cardinality - 1
+
+    float *res = (float *) bsearch(&paa[si], &sax_breakpoints[sax_offset], Cardinality - 1,
+                                   sizeof(ts_type), compare);
+    if(res != NULL)
+    {
+      //sax_out[si] = (int) (res -  &sax_breakpoints[offset]);
+      sax_out[si] = (sax_type) (res -  &sax_breakpoints[sax_offset]);
+    }
+    else if (paa[si] > 0)
+      sax_out[si] = (sax_type) (Cardinality-1);
+  }
+
+
+  for(int i=0; i<Bit_cardinality; i++) {
+    for(int j=0; j<Segments; j++) {
+      saxt_out[i] |= ((sax_out[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
+    }
+  }
+  free(sax_out);
+  return SUCCESS;
+}
+
 enum response saxt_from_sax(sax_type *sax_in, saxt_type *saxt_out) {
 
     for(int i=0; i<Bit_cardinality; i++) {
@@ -288,6 +344,64 @@ void saxt_print(saxt_type *saxt, saxt_type *prefix, cod co_d) {
     printf("\n");
 }
 
+float minidist_paa_to_saxt(ts_type *paa, saxt saxt_, cod co_d) {
+    ts_type distance = 0;
+    // TODO: Store offset in index settings. and pass index settings as parameter.
+
+    int offset = sax_offset_i[co_d];
+    sax_type sax[Segments];
+    memset(sax, 0, sizeof sax);
+    // For each sax record find the break point
+
+    for (int i=0; i<Segments; i++) {
+        for(int j=0; j<co_d; j++) {
+          sax[i] |= (saxt_[j]>>(Segments-i-1) & 1) << (co_d-j-1);
+        }
+        sax_type region = sax[i];
+
+        /*
+            int region_lower = v << (c_m - c_c);
+            int region_upper = (~((int)MAXFLOAT << (c_m - c_c)) | region_lower);
+        */
+
+        ts_type breakpoint_lower; // <-- TODO: calculate breakpoints.
+        ts_type breakpoint_upper; // <-- - || -
+
+        if (region == 0) {
+            breakpoint_lower = MINFLOAT;
+        }
+        else
+        {
+            breakpoint_lower = sax_breakpoints[offset + region - 1];
+        }
+        if (region == cardinality_1_i[co_d]) {
+            breakpoint_upper = MAXFLOAT;
+        }
+        else
+        {
+            breakpoint_upper = sax_breakpoints[offset + region];
+        }
+        //printf("FROM: \n");
+        //sax_print(&region_lower, 1, c_m);
+        //printf("TO: \n");
+        //sax_print(&region_upper, 1, c_m);
+        //printf("\n%d.%d is from %d to %d, %lf - %lf\n", v, c_c, region_lower, region_upper,
+        //       breakpoint_lower, breakpoint_upper);
+
+        if (breakpoint_lower > paa[i]) {
+            distance += pow(breakpoint_lower - paa[i], 2);
+        }
+        else if(breakpoint_upper < paa[i]) {
+            distance += pow(breakpoint_upper - paa[i], 2);
+        }
+//        else {
+//            printf("%lf is between: %lf and %lf\n", paa[i], breakpoint_lower, breakpoint_upper);
+//        }
+    }
+
+    //distance = ratio_sqrt * sqrtf(distance);
+    return nchuw * distance;
+}
 
 ts_type minidist_paa_to_isax(ts_type  *paa, sax_type *sax,
                              sax_type *sax_cardinalities,
@@ -301,7 +415,7 @@ ts_type minidist_paa_to_isax(ts_type  *paa, sax_type *sax,
 
     ts_type distance = 0;
     // TODO: Store offset in index settings. and pass index settings as parameter.
-    
+
     int offset = ((max_cardinality - 1) * (max_cardinality - 2)) / 2;
     
     // For each sax record find the break point

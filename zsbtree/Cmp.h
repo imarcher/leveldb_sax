@@ -7,17 +7,21 @@
 
 
 #include "LeafKey.h"
+#include "globals.h"
+
 
 //排序用
-bool LeafKey_cmp(const LeafKey &a, const LeafKey &b);
+static bool LeafKey_cmp(const LeafKey &a, const LeafKey &b);
 
-bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b);
-
-// <=
-bool saxt_cmp(saxt a, saxt b, cod co_d);
+static bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b);
 
 // <=
-bool saxt_cmp(saxt a, saxt b);
+static bool saxt_cmp(saxt a, saxt b, cod co_d);
+
+// <=
+static bool saxt_cmp(saxt a, saxt b);
+
+static void get_dist_and_sort(ts_type* paa, LeafKey* leafKeys, int num, dist_p* dist_ps);
 
 
 #endif //TODOZSBTREE_CMP_H

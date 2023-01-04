@@ -7,6 +7,7 @@
 
 #include <globals.h>
 #include "cstring"
+#include "LeafKey.h"
 
 class STLeaf {
  public:
@@ -19,6 +20,7 @@ class STLeaf {
   void Set(unsigned short num, cod co_d);
   void Setprefix(saxt prefix, saxt stleafkey, cod co_size, cod noco_size);
   void Setprefix(saxt prefix1);
+  inline void SetLeafKey(LeafKey* dst, int id);
   ~STLeaf();
 
   char* Get_rep(int i);

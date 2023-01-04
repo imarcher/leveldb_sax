@@ -37,6 +37,8 @@ else (WIN32)
   set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_POSIX)
 endif (WIN32)
 
+
+
 option(LEVELDB_BUILD_TESTS "Build LevelDB's unit tests" ON)
 option(LEVELDB_BUILD_BENCHMARKS "Build LevelDB's benchmarks" ON)
 option(LEVELDB_INSTALL "Install LevelDB's header and library" ON)
@@ -123,6 +125,14 @@ endif(BUILD_SHARED_LIBS)
 
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 
+find_package(Boost REQUIRED COMPONENTS thread)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+  MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
+  MESSAGE( STATUS "Boost_LIBRARIES = ${Boost_LIBRARIES}.")
+  MESSAGE( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}.")
+endif(Boost_FOUND)
+
 include(GNUInstallDirs)
 include_directories(sax/include)
 include_directories(zsbtree)
@@ -133,7 +143,9 @@ add_library(leveldb SHARED "")
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
-#    "jni/send_master.h"
+    "jni/send_master.h"
+    "db/query_heap.cc"
+    "db/query_heap.h"
     "db/dbformat.cc"
     "db/dbformat.h"
     "db/ST_Compaction.cc"
@@ -301,7 +313,7 @@ endif(HAVE_TCMALLOC)
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
 
-target_link_libraries(leveldb sax zsbtree)
+target_link_libraries(leveldb sax zsbtree ${Boost_LIBRARIES})
 
 #add_executable(leveldbutil
 #  "db/leveldbutil.cc"

@@ -15,6 +15,9 @@
 #ifndef isax_globals_h
 #define isax_globals_h
 
+// 0, 1, 2 代表 一个，一部分，一个叶
+#define lookupi 2
+
 ///// TYPES /////
 #define out(a) std::cout<<a<<std::endl
 //这里基数256变为512则用short
@@ -37,6 +40,7 @@ typedef unsigned char cod;
 #define Cardinality 256
 #define Bit_cardinality 8
 #define Segments 8
+#define nchuw 32 // Ts_length / Segments
 #define Ts_values_per_segment 32
 #define Ts_length 256
 #define Leaf_maxnum 64
@@ -59,6 +63,8 @@ static const int Leaf_rebuildnum = Leaf_maxnum * 1.5;
 //static int segments = 8;
 
 static const int sax_offset = ((Cardinality - 1) * (Cardinality - 2)) / 2;
+static int sax_offset_i[Bit_cardinality+1] = {0,0,3,21,105,465,1953,8001,32385};
+static int cardinality_1_i[Bit_cardinality+1] = {0,1,3,7,15,31,63,127,255};
 
 static const size_t saxt_size = sizeof(saxt_type)*Bit_cardinality;
 
@@ -77,6 +83,10 @@ typedef struct {
 } saxt_only;
 
 typedef struct {
+  ts_type apaa[Segments];
+} paa_only;
+
+typedef struct {
   ts_type ts[Ts_length];
   ts_time tsTime;
 } tsKey;
@@ -87,8 +97,37 @@ typedef struct {
   saxt_type asaxt[Bit_cardinality];
 } putKey;
 
-static const size_t tsKey_size = sizeof(tsKey);
-static const size_t putKey_size = sizeof(putKey);
+typedef struct {
+  ts_type ts[Ts_length];
+  ts_time startTime;
+  ts_time endTime;
+} aquery_rep;
+
+typedef struct {
+  aquery_rep rep;
+  int k;
+  ts_type paa[Segments];
+  saxt_type asaxt[Bit_cardinality];
+} aquery;
+
+
+
+
+
+typedef struct ares{
+  tsKey atskey;
+  float dist;
+
+  bool operator< (const ares& a) const {
+    return dist < a.dist;
+  }
+  bool operator> (const ares& a) const {
+    return dist > a.dist;
+  }
+} ares;
+
+typedef std::pair<float, void*> dist_p;
+
 
 
 

@@ -17,6 +17,8 @@ public:
     void setRsaxt(saxt saxt_);
     void Set(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p);
 
+
+
     int num;
     cod co_d;
     saxt_type lsaxt[Bit_cardinality];

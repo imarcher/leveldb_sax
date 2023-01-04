@@ -24,6 +24,8 @@ class STNonLeaf {
   void Setprefix(saxt prefix1);
   ~STNonLeaf();
 
+  inline void SetSaxt(saxt dst, saxt saxt_);
+
 
   cod Get_co_d(int i);
   int Getnum(int i);
@@ -37,6 +39,7 @@ class STNonLeaf {
   unsigned short num;
   cod co_d;
   cod co_size;
+  cod s_co_size;
   cod lkey_size;
   cod pos_size;
   cod noco_size;

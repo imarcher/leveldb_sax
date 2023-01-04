@@ -17,6 +17,14 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
 
 /*
  * Class:     leveldb_sax_db
+ * Method:    paa_saxt_from_ts
+ * Signature: ([B[B[F)V
+ */
+JNIEXPORT void JNICALL Java_leveldb_1sax_db_paa_1saxt_1from_1ts
+  (JNIEnv *, jobject, jbyteArray, jbyteArray, jfloatArray);
+
+/*
+ * Class:     leveldb_sax_db
  * Method:    open
  * Signature: (Ljava/lang/String;)V
  */
@@ -46,6 +54,30 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_init
  */
 JNIEXPORT void JNICALL Java_leveldb_1sax_db_put
   (JNIEnv *, jobject, jbyteArray);
+
+/*
+ * Class:     leveldb_sax_db
+ * Method:    Get
+ * Signature: ([BZII[J)[B
+ */
+JNIEXPORT jbyteArray JNICALL Java_leveldb_1sax_db_Get
+  (JNIEnv *, jobject, jbyteArray, jboolean, jint, jint, jlongArray);
+
+/*
+ * Class:     leveldb_sax_db
+ * Method:    unref_am
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_leveldb_1sax_db_unref_1am
+  (JNIEnv *, jobject, jint);
+
+/*
+ * Class:     leveldb_sax_db
+ * Method:    unref_st
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_leveldb_1sax_db_unref_1st
+  (JNIEnv *, jobject, jint);
 
 #ifdef __cplusplus
 }

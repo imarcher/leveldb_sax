@@ -227,8 +227,11 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, vector<Lea
   Status s;
   saxt key = (saxt)k.data();
   LeafKey leafKey(key);
-  ST_finder stFinder(rep_, leafKeys);
-  stFinder.root_Get(leafKey);
+  assert(0);
+//  ST_finder stFinder(this, leafKeys);
+//  stFinder.root_Get(leafKey);
+
+
 //  Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
 //  iiter->Seek(k);
 //  if (iiter->Valid()) {
@@ -284,7 +287,7 @@ uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
 
 
 
-void Table::ST_finder::root_Get(LeafKey& leafKey) {
+void Table::ST_finder::root_Get() {
   STNonLeaf *root = rep_->stNonLeaf;
   out("===========");
   out("开始查");
@@ -301,99 +304,98 @@ void Table::ST_finder::root_Get(LeafKey& leafKey) {
 //    saxt_print(root->Get_lsaxt(i));
 //    saxt_print(root->Get_rsaxt(i));
 //  }
-  int pos = whereofKey(root->prefix, rep_->rsaxt, leafKey.asaxt, 0);
-  if (pos==0) nonLeaf_Get(*root, leafKey);
+  if (root->isleaf) {
+    to_find_nonleaf = root;
+    return;
+  }
+  int pos = whereofKey(root->prefix, rep_->rsaxt, leafkey, 0);
+  if (pos==0) nonLeaf_Get(*root);
   else if (pos==-1) {
-    l_Get_NonLeaf(*root, 0, leafKey);
+    l_Get_NonLeaf(*root, 0);
   } else {
-    r_Get_NonLeaf(*root, root->num-1, leafKey);
+    r_Get_NonLeaf(*root, root->num-1);
   }
 }
 
 //leafkey都是没用的
-void Table::ST_finder::l_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey& leafKey) {
-  if (nonLeaf.isleaf) {
-    STLeaf* stLeaf = getSTLeaf(nonLeaf, i);
-    leaf_Get(*stLeaf, leafKey);
-    delete stLeaf;
-  } else {
-    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, i);
-    l_Get_NonLeaf(*stNonLeaf, 0, leafKey);
-    delete stNonLeaf;
+void Table::ST_finder::l_Get_NonLeaf(STNonLeaf& nonLeaf1, int i) {
+  STNonLeaf* nonLeaf = getSTNonLeaf(nonLeaf1, i);
+  if (nonLeaf->isleaf) {
+    to_find_nonleaf = nonLeaf;
+    return;
   }
+  l_Get_NonLeaf(*nonLeaf, 0);
+  delete nonLeaf;
+
+//  if (nonLeaf.isleaf) {
+//    STLeaf* stLeaf = getSTLeaf(nonLeaf, i);
+//    leaf_Get(*stLeaf, leafKey);
+//    delete stLeaf;
+//  } else {
+//    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, i);
+//    l_Get_NonLeaf(*stNonLeaf, 0, leafKey);
+//    delete stNonLeaf;
+//  }
 }
 
-void Table::ST_finder::r_Get_NonLeaf(STNonLeaf& nonLeaf, int i, LeafKey& leafKey) {
-  if (nonLeaf.isleaf) {
-    STLeaf* stLeaf = getSTLeaf(nonLeaf, i);
-    leaf_Get(*stLeaf, leafKey);
-    delete stLeaf;
-  } else {
-    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, i);
-    r_Get_NonLeaf(*stNonLeaf, stNonLeaf->num-1, leafKey);
-    delete stNonLeaf;
+void Table::ST_finder::r_Get_NonLeaf(STNonLeaf& nonLeaf1, int i) {
+  STNonLeaf* nonLeaf = getSTNonLeaf(nonLeaf1, i);
+  if (nonLeaf->isleaf) {
+    to_find_nonleaf = nonLeaf;
+    return;
   }
+  r_Get_NonLeaf(*nonLeaf, nonLeaf->num-1);
+  delete nonLeaf;
 }
 
-void Table::ST_finder::leaf_Get(STLeaf& leaf, LeafKey& leafKey) {
-  simi_leakKeys.reserve(leaf.num);
+void Table::ST_finder::leaf_Get(STLeaf& leaf, LeafKey* res) {
   for(int i=0;i<leaf.num;i++){
-    simi_leakKeys.emplace_back(leaf.prefix, leaf.Get_rep(i), leaf.co_size, leaf.noco_size);
+    leaf.SetLeafKey(res+i, i);
   }
 }
 
-void Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf, LeafKey& leafKey) {
-
+bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
 //
 //  out("查看每一个范围=================");
 //  for(int i=0;i<nonLeaf.num;i++){
 //    out("最大最小");
 //  }
 //  out("查看每一个范围结束=================");
+  if (nonLeaf.isleaf) {
+    to_find_nonleaf = &nonLeaf;
+    return false;
+  }
   int l=0;
   int r=nonLeaf.num-1;
   while (l<r) {
     int mid = (l + r) / 2;
-    if (saxt_cmp(leafKey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+    if (saxt_cmp(leafkey + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
     else l = mid + 1;
   }
-  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-//  out("pos");
-//  out(pos);
-//  out(l);
-//  saxt_print(nonLeaf.Get_lsaxt(l), nonLeaf.prefix, nonLeaf.co_d);
-//  saxt_print(nonLeaf.Get_rsaxt(l), nonLeaf.prefix, nonLeaf.co_d);
+  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey + nonLeaf.co_d, nonLeaf.co_d);
   if (pos==0) {
     //里面
-    if(nonLeaf.isleaf) {
-      STLeaf* stLeaf  = getSTLeaf(nonLeaf, l);
-      leaf_Get(*stLeaf, leafKey);
-      delete stLeaf;
-    }
-    else {
-      STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, l);
-      nonLeaf_Get(*stNonLeaf, leafKey);
-      delete stNonLeaf;
-    }
+    STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, l);
+    if (nonLeaf_Get(*stNonLeaf)) delete stNonLeaf;
   } else if (pos==-1){
     //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
     cod preco_d = nonLeaf.Get_co_d(l-1);
     saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
     cod nextco_d = nonLeaf.Get_co_d(l);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafKey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
-      r_Get_NonLeaf(nonLeaf, l-1, leafKey);
+      r_Get_NonLeaf(nonLeaf, l-1);
     } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
       //跟后面
-      l_Get_NonLeaf(nonLeaf, l, leafKey);
+      l_Get_NonLeaf(nonLeaf, l);
     } else {
       if (co_d1 <= co_d2) {
-        r_Get_NonLeaf(nonLeaf, l-1,  leafKey);
+        r_Get_NonLeaf(nonLeaf, l-1);
       } else {
-        l_Get_NonLeaf(nonLeaf, l , leafKey);
+        l_Get_NonLeaf(nonLeaf, l);
       }
     }
 
@@ -403,22 +405,159 @@ void Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf, LeafKey& leafKey) {
     saxt prelsaxt = nonLeaf.Get_lsaxt(l);
     cod nextco_d = nonLeaf.Get_co_d(l+1);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafKey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafKey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
-      r_Get_NonLeaf(nonLeaf, l, leafKey);
+      r_Get_NonLeaf(nonLeaf, l);
     } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
       //跟后面
-      l_Get_NonLeaf(nonLeaf, l+1, leafKey);
+      l_Get_NonLeaf(nonLeaf, l+1);
     } else {
       if (co_d1 <= co_d2) {
-        r_Get_NonLeaf(nonLeaf, l, leafKey);
+        r_Get_NonLeaf(nonLeaf, l);
       } else {
-        l_Get_NonLeaf(nonLeaf, l+1, leafKey);
+        l_Get_NonLeaf(nonLeaf, l+1);
       }
     }
   }
+  return true;
+}
+
+void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
+  STNonLeaf& nonLeaf = *to_find_nonleaf;
+  saxt_only rsaxt;
+  nonLeaf.SetSaxt(rsaxt.asaxt, nonLeaf.Get_rsaxt(nonLeaf.num-1));
+  int pos = whereofKey(nonLeaf.prefix, rsaxt.asaxt, leafkey, 0);
+  if (pos==0) {
+    int l=0;
+    int r=nonLeaf.num-1;
+    while (l<r) {
+      int mid = (l + r) / 2;
+      if (saxt_cmp(leafkey + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+      else l = mid + 1;
+    }
+    pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey + nonLeaf.co_d, nonLeaf.co_d);
+    if (pos==0) {
+      //里面
+      STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
+      oneId = l;
+      leaf_Get(*stLeaf, res);
+      res_num = stLeaf->num;
+      delete stLeaf;
+    } else if (pos==-1){
+      //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
+      cod preco_d = nonLeaf.Get_co_d(l-1);
+      saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
+      cod nextco_d = nonLeaf.Get_co_d(l);
+      saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      if ((preco_d - co_d1) < (nextco_d - co_d2)) {
+        // 跟前面
+        STLeaf* stLeaf = getSTLeaf(nonLeaf, l-1);
+        oneId = l-1;
+        leaf_Get(*stLeaf, res);
+        res_num = stLeaf->num;
+        delete stLeaf;
+      } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
+        //跟后面
+        STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
+        oneId = l;
+        leaf_Get(*stLeaf, res);
+        res_num = stLeaf->num;
+        delete stLeaf;
+      } else {
+        if (co_d1 <= co_d2) {
+          STLeaf* stLeaf = getSTLeaf(nonLeaf, l-1);
+          oneId = l-1;
+          leaf_Get(*stLeaf, res);
+          res_num = stLeaf->num;
+          delete stLeaf;
+        } else {
+          STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
+          oneId = l;
+          leaf_Get(*stLeaf, res);
+          res_num = stLeaf->num;
+          delete stLeaf;
+        }
+      }
+
+    } else {
+      //后面有
+      cod preco_d = nonLeaf.Get_co_d(l);
+      saxt prelsaxt = nonLeaf.Get_lsaxt(l);
+      cod nextco_d = nonLeaf.Get_co_d(l+1);
+      saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      if ((preco_d - co_d1) < (nextco_d - co_d2)) {
+        // 跟前面
+        STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
+        oneId = l;
+        leaf_Get(*stLeaf, res);
+        res_num = stLeaf->num;
+        delete stLeaf;
+      } else if ((preco_d - co_d1) > (nextco_d - co_d2)) {
+        //跟后面
+        STLeaf* stLeaf = getSTLeaf(nonLeaf, l+1);
+        oneId = l+1;
+        leaf_Get(*stLeaf, res);
+        res_num = stLeaf->num;
+        delete stLeaf;
+      } else {
+        if (co_d1 <= co_d2) {
+          STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
+          oneId = l;
+          leaf_Get(*stLeaf, res);
+          res_num = stLeaf->num;
+          delete stLeaf;
+        } else {
+          STLeaf* stLeaf = getSTLeaf(nonLeaf, l+1);
+          oneId = l+1;
+          leaf_Get(*stLeaf, res);
+          res_num = stLeaf->num;
+          delete stLeaf;
+        }
+      }
+    }
+  }
+  else if (pos==-1) {
+    STLeaf* stLeaf = getSTLeaf(nonLeaf, 0);
+    oneId = 0;
+    leaf_Get(*stLeaf, res);
+    res_num = stLeaf->num;
+    delete stLeaf;
+  } else {
+    STLeaf* stLeaf = getSTLeaf(nonLeaf, nonLeaf.num-1);
+    oneId = nonLeaf.num-1;
+    leaf_Get(*stLeaf, res);
+    res_num = stLeaf->num;
+    delete stLeaf;
+  }
+}
+
+void Table::ST_finder::find_One(LeafKey* res, int& res_num, int id) {
+  STLeaf* stLeaf = getSTLeaf(*to_find_nonleaf, id);
+  leaf_Get(*stLeaf, res);
+  res_num = stLeaf->num;
+  delete stLeaf;
+}
+
+void Table::ST_finder::sort() {
+  for (int i=0;i<to_find_nonleaf->num;i++) {
+    if(i!=oneId) {
+      cod co_d = to_find_nonleaf->Get_co_d(i);
+      if (co_d) {
+        saxt_only saxtOnly;
+        to_find_nonleaf->SetSaxt(saxtOnly.asaxt, to_find_nonleaf->Get_lsaxt(i));
+        has_cod.emplace_back(minidist_paa_to_saxt(paa, saxtOnly.asaxt, co_d), i);
+      } else {
+        no_has_cod.push_back(i);
+      }
+    }
+  }
+  std::sort(has_cod.begin(), has_cod.end());
 }
 
 cod Table::ST_finder::get_co_d_from_saxt(saxt a, saxt b, cod pre_d) {
@@ -478,6 +617,7 @@ STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
 //  saxt_print(stNonLeaf->Get_rsaxt(1), stNonLeaf->prefix, stNonLeaf->co_d);
   return stNonLeaf;
 }
+
 
 Table::ST_Iter::ST_Iter(Table* table) :rep_(table->rep_),top(0),leaftop(0),stLeaf(sizeof(Leaf)) {
   st_nonleaf_stack.push_back(rep_->stNonLeaf);

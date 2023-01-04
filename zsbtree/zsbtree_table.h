@@ -38,8 +38,7 @@ class zsbtree_table {
 
   void LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys);
 
-  //查
-  void GetLeafKeys(saxt key, vector<LeafKey>& leafKeys);
+
 
 
 

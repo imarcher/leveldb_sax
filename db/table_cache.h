@@ -43,6 +43,8 @@ class TableCache {
   Status Get(const ReadOptions& options, uint64_t file_number,
              uint64_t file_size, const Slice& k, vector<LeafKey>& leafKeys);
 
+  Table* Get(uint64_t file_number, uint64_t file_size, Cache::Handle*& handle);
+
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number);
 
@@ -55,6 +57,8 @@ class TableCache {
   Env* const env_;
   const std::string dbname_;
   const Options& options_;
+
+ public:
   Cache* cache_;
 };
 

@@ -32,6 +32,26 @@ static void send_master(char* a, size_t size_) {
 }
 
 
+//out 要free, size_out是ares数量
+static void find_tskey(char* a, size_t size_, char*& out, size_t& size_out) {
+  //获取环境
+  JNIEnv *env;
+  assert(gs_jvm!= nullptr);
+  gs_jvm->AttachCurrentThread((void **)&env, NULL);
+//
+  jclass cls = env->FindClass("leveldb_sax/db_send");
+  jmethodID mid = env->GetStaticMethodID(cls, "find_tskey", "([B)[B");
+
+  jbyteArray newArr = env->NewByteArray(sizeof(size_));
+  env->SetByteArrayRegion(newArr, 0, sizeof(size_), (jbyte*)a);
+
+
+  jbyteArray resArr = (jbyteArray)(env->CallStaticObjectMethod(cls, mid, newArr));
+  size_out = env->GetArrayLength(resArr);
+  out = (char*)malloc(size_out);
+  env->GetByteArrayRegion(resArr, 0, size_out, (jbyte*)out);
+  size_out /= sizeof(ares);
+}
 
 
 

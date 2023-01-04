@@ -23,7 +23,8 @@
 #include "ST_merge.h"
 #include "globals.h"
 #include "mem_version_set.h"
-
+#include "boost/thread/shared_mutex.hpp"
+#include "query_heap.h"
 
 namespace leveldb {
 
@@ -48,9 +49,11 @@ class DBImpl : public DB {
   Status RebalanceDranges() override;
   Status Delete(const WriteOptions&, const Slice& key) override;
   Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;
-  Status Get_am(const ReadOptions& options, const saxt key, const int memId, vector<LeafKey>& leafKeys) override;
-  Status Get_im(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) override;
-  Status Get_st(const ReadOptions& options, const saxt key, vector<LeafKey>& leafKeys) override;
+  Status Get(const aquery &aquery1, bool is_use_am, int am_version_id, int st_version_id, const vector<uint64_t> &st_number, vector<ares>& results) override;
+  void Get_am(const aquery &aquery1, query_heap *res_heap, MemTable* to_find_mem);
+  void Get_st(const aquery &aquery1, query_heap *res_heap, uint64_t st_number, Version* this_ver);
+  void UnRef_am(int unref_version_id);
+  void UnRef_st(int unref_version_id);
   Iterator* NewIterator(const ReadOptions&) override;
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;
@@ -109,6 +112,7 @@ class DBImpl : public DB {
     int64_t bytes_read;
     int64_t bytes_written;
   };
+
 
   //重平衡
   void RebalanceDranges(vector<int>& table_rebalanced);
@@ -204,7 +208,7 @@ class DBImpl : public DB {
   //写锁
   vector<port::Mutex> write_mutex;
   //选表锁
-//  std::shared_mutex range_mutex;
+  boost::shared_mutex range_mutex;
   //边界
   vector<saxt_only> bounds;
   //内存版本

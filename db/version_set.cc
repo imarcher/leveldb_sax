@@ -576,6 +576,16 @@ std::string Version::DebugString() const {
   return r;
 }
 
+uint64_t Version::GetSize(uint64_t number) {
+  for(auto& f : files_){
+    for(auto& item: f) {
+      if (item->number == number) return item->file_size;
+    }
+  }
+  return 0;
+}
+
+
 // A helper class so we can efficiently apply a whole sequence
 // of edits to a particular state without creating intermediate
 // Versions that contain full copies of the intermediate state.
