@@ -3,12 +3,6 @@
 //
 
 #include "leveldb_sax_db.h"
-#include "leveldb/db.h"
-#include "send_master.h"
-
-static leveldb::DB* db;
-static leveldb::WriteOptions writeOptions;
-static leveldb::ReadOptions readOptions;
 
 
 
@@ -51,7 +45,7 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_open
   if(str == nullptr) return;
   leveldb::Options options;
   options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options, str, &db);
+  leveldb::Status status = leveldb::DB::Open(options, str, gs_jvm, &db);
   env->ReleaseStringUTFChars(dbname, str);
   assert(status.ok());
 }

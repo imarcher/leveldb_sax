@@ -9,35 +9,39 @@
 #include <jni.h>
 #include <chrono>
 
-static JavaVM* gs_jvm = nullptr;
+
 
 static inline void charcpy(char*& tmp_p, const void* obj, const size_t size_) {
   memcpy(tmp_p, obj, size_);
   tmp_p += size_;
 }
 
-static void send_master(char* a, size_t size_) {
+static void send_master(char* a, size_t size_, const void* gs_jvm) {
     //获取环境
     JNIEnv *env;
     assert(gs_jvm!= nullptr);
-    gs_jvm->AttachCurrentThread((void **)&env, NULL);
-//
+  ((JavaVM*)gs_jvm)->AttachCurrentThread((void **)&env, NULL);
+//    if (gs_jvm->GetEnv((void**)&env, JNI_VERSION_1_6) < 0) {
+//      out("211");
+//      gs_jvm->AttachCurrentThread((void**)&env, NULL);
+//    }
     jclass cls = env->FindClass("leveldb_sax/db_send");
     jmethodID mid = env->GetStaticMethodID(cls, "send_edit", "([B)V");
-
     jbyteArray newArr = env->NewByteArray(sizeof(size_));
     env->SetByteArrayRegion(newArr, 0, sizeof(size_), (jbyte*)a);
-
     env->CallStaticObjectMethod(cls, mid, newArr);
+//  if (isAttached) {
+//    sm_playerVM->DetachCurrentThread();
+//  }
 }
 
 
 //out 要free, size_out是ares数量
-static void find_tskey(char* a, size_t size_, char*& out, size_t& size_out) {
+static void find_tskey(char* a, size_t size_, char*& out, size_t& size_out, const void* gs_jvm) {
   //获取环境
   JNIEnv *env;
   assert(gs_jvm!= nullptr);
-  gs_jvm->AttachCurrentThread((void **)&env, NULL);
+  ((JavaVM*)gs_jvm)->AttachCurrentThread((void **)&env, NULL);
 //
   jclass cls = env->FindClass("leveldb_sax/db_send");
   jmethodID mid = env->GetStaticMethodID(cls, "find_tskey", "([B)[B");

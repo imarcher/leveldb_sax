@@ -24,7 +24,10 @@ class STNonLeaf {
   void Setprefix(saxt prefix1);
   ~STNonLeaf();
 
-  inline void SetSaxt(saxt dst, saxt saxt_);
+  inline void SetSaxt(saxt dst, saxt saxt_)  {
+    memcpy(dst, prefix, co_size);
+    memcpy(((char*)dst) + co_size, saxt_, s_co_size);
+  }
 
 
   cod Get_co_d(int i);

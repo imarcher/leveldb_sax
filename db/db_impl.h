@@ -36,7 +36,7 @@ class VersionSet;
 
 class DBImpl : public DB {
  public:
-  DBImpl(const Options& options, const std::string& dbname);
+  DBImpl(const Options& options, const std::string& dbname, const void* db_jvm);
 
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
@@ -197,6 +197,9 @@ class DBImpl : public DB {
 //  uint64_t logfile_number_ GUARDED_BY(mutex_);
 //  log::Writer* log_;
 //  uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
+
+
+  const void* db_jvm;
   //磁盘版本锁
   port::Mutex mutex_;
   //内存版本锁

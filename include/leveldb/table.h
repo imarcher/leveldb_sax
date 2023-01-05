@@ -105,7 +105,7 @@ class LEVELDB_EXPORT Table {
 
     void find_One(LeafKey* res, int& res_num);
 
-    inline void find_One(LeafKey* res, int& res_num, int id);
+    void find_One(LeafKey* res, int& res_num, int id);
 
     void sort();
 

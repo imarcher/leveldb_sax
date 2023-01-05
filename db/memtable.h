@@ -63,14 +63,14 @@ class MemTable {
   // If memtable contains a deletion for key, store a NotFound() error
   // in *status and return true.
   // Else, return false.
-  inline NonLeaf* GetRoot();
+  inline NonLeaf* GetRoot() { return table_.root; }
 
 
-  inline saxt Getlsaxt();
-  inline saxt Getrsaxt();
+  inline saxt Getlsaxt() { return table_.root->lsaxt; }
+  inline saxt Getrsaxt() { return table_.root->rsaxt; }
   inline cod Getcod();
   MemTable* Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
-  inline int GetleafNum();
+  inline int GetleafNum() { return table_.leafNum; }
   void LoadNonLeafKeys(vector<NonLeafKey> &nonLeafKeys);
 
  private:

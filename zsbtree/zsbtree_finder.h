@@ -25,7 +25,7 @@ class ZsbTree_finder{
   // 根据非叶节点找到最合理的点，并把leafkey返回给res
   void find_One(LeafKey* res, int& res_num);
 
-  inline void find_One(LeafKey* res, int& res_num, Leaf *leaf);
+  void find_One(LeafKey* res, int& res_num, Leaf *leaf);
 
   // 找到一个结点不够，按paa排序
   void sort();

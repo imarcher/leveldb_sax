@@ -52,7 +52,7 @@ class LEVELDB_EXPORT DB {
   // OK on success.
   // Stores nullptr in *dbptr and returns a non-OK status on error.
   // Caller should delete *dbptr when it is no longer needed.
-  static Status Open(const Options& options, const std::string& name,
+  static Status Open(const Options& options, const std::string& name, const void* db_jvm,
                      DB** dbptr);
 
   DB() = default;

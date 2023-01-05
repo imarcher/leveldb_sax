@@ -34,10 +34,7 @@ float query_heap::top() const {
 }
 
 bool query_heap::isk() const { return res_heap.size() == k; }
-void query_heap::readLock() { mutex_.lock_shared(); }
-void query_heap::readUnlock() { mutex_.unlock_shared(); }
-void query_heap::writeLock() { mutex_.lock_upgrade(); }
-void query_heap::writeUnlock() { mutex_.unlock_upgrade(); }
+
 
 bool query_heap::isfinish() {
   if (!use && res_heap.size() == k) {
@@ -46,14 +43,7 @@ bool query_heap::isfinish() {
   }
   return false;
 }
-void query_heap::subUse() { use--; }
-bool query_heap::subOver() {
-  if (!(--over)) {
-    cv.notify_one();
-    return true;
-  }
-  return false;
-}
+
 
 void query_heap::wait() {
   std::unique_lock<std::mutex> l(mu_);

@@ -17,6 +17,8 @@
 
 // 0, 1, 2 代表 一个，一部分，一个叶
 #define lookupi 2
+// 初始化时存入st
+#define init_st 1
 
 ///// TYPES /////
 #define out(a) std::cout<<a<<std::endl

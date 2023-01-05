@@ -130,7 +130,7 @@ static int TableCacheSize(const Options& sanitized_options) {
   return sanitized_options.max_open_files - kNumNonTableCacheFiles;
 }
 
-DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
+DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, const void* db_jvm)
     : env_(raw_options.env),
       internal_comparator_(raw_options.comparator),
       internal_filter_policy_(raw_options.filter_policy),
@@ -150,6 +150,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       log_(nullptr),
       seed_(0),
       versionid(0),
+      db_jvm(db_jvm),
 //      tmp_batch_(new WriteBatch),
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
@@ -624,7 +625,7 @@ void DBImpl::CompactMemTable() {
     charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
     charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
     charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
-    send_master(to_send, send_size1);
+    send_master(to_send, send_size1, db_jvm);
     //等待返回接到回复
     free(to_send);
     //
@@ -1007,7 +1008,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
     charcpy(tmp_to_send, &metaData.endTime, sizeof(ts_time));
   }
-  send_master(to_send, mallocsize);
+  send_master(to_send, mallocsize, db_jvm);
   free(to_send);
   //等待返回接到回复
   //
@@ -1433,7 +1434,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -1478,7 +1479,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -1518,7 +1519,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -1582,7 +1583,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1635,7 +1636,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1684,7 +1685,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1752,7 +1753,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1805,7 +1806,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1854,7 +1855,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -1942,7 +1943,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -1987,7 +1988,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -2027,7 +2028,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
       size_t out_size;
       char* out;
       size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size);
+      find_tskey(info, to_find_size, out, out_size, db_jvm);
       ares* ares_out = (ares*) out;
       // 写堆
       res_heap->writeLock();
@@ -2093,7 +2094,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2148,7 +2149,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2199,7 +2200,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2270,7 +2271,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2325,7 +2326,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2376,7 +2377,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
         size_t out_size;
         char* out;
         size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
         ares* ares_out = (ares*) out;
         // 写堆
         res_heap->writeLock();
@@ -2529,6 +2530,7 @@ Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
 
 
 Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
+
   Status status;
   LeafKey* leafkeys_rep = (LeafKey*)malloc(leafKeysNum*sizeof(LeafKey));
   ts_time* times_rep = (ts_time*)malloc(leafKeysNum*sizeof(ts_time));
@@ -2600,10 +2602,54 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
     last_r_saxt = newMem->Getrsaxt();
   }
   free(times_rep);
-
   //构建版本
   mem_version* newMemVersion = new mem_version(mems, new mems_boundary(bounds));
   memSet.newversion(newMemVersion);
+
+  if (init_st) {
+    out("初始化st");
+    for (int memId = 0; memId < mems.size(); memId++) {
+      out(memId);
+      while (true) {
+        delete_mems(memsTodel.get());
+        //      out("makeroom_to_st");
+        //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
+        MutexLock l(&mutex_);
+        if (imm_ != nullptr) {
+          //        out("waitim");
+          // We have filled up the current memtable, but the previous
+          // one is still being compacted, so we wait.
+          Log(options_.info_log, "Current memtable full; waiting...\n");
+          background_work_finished_signal_.Wait();
+          //        out("waitoverim");
+        } else if (versions_->NumLevelFiles(0) >=
+                   config::kL0_StopWritesTrigger) {
+          // There are too many level-0 files.
+          Log(options_.info_log, "Too many L0 files; waiting...\n");
+          background_work_finished_signal_.Wait();
+        } else {
+          //转为im
+          imm_ = mems[memId];
+          has_imm_.store(true, std::memory_order_release);
+          // 复制mem的树结构
+          MemTable* newmem = new MemTable(imm_);
+          // 修改版本
+          mutex_Mem.Lock();
+          mems[memId] = newmem;
+          memSet.newversion(
+              new mem_version(mems, memSet.CurrentVersion()->boundary));
+          mutex_Mem.Unlock();
+
+          memNum[memId] = 0;
+          MaybeScheduleCompaction();
+          break;
+        }
+      }
+    }
+  }
+
+
+  out("初始化完毕");
   return status;
 }
 
@@ -3075,10 +3121,10 @@ Status DB::Delete(const WriteOptions& opt, const Slice& key) {
 
 DB::~DB() = default;
 
-Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
+Status DB::Open(const Options& options, const std::string& dbname, const void* db_jvm, DB** dbptr) {
   *dbptr = nullptr;
 
-  DBImpl* impl = new DBImpl(options, dbname);
+  DBImpl* impl = new DBImpl(options, dbname, db_jvm);
   impl->mutex_.Lock();
   VersionEdit edit;
   // Recover handles create_if_missing, error_if_exists

@@ -82,18 +82,14 @@ bool MemTable::Add(LeafKey& key) {
   return table_.Insert(key);
 }
 
-NonLeaf* MemTable::GetRoot() {
-  return table_.root;
-}
 
 
-saxt MemTable::Getlsaxt() { return table_.root->lsaxt; }
-saxt MemTable::Getrsaxt() { return table_.root->rsaxt; }
+
 cod MemTable::Getcod() { return table_.root->co_d; }
 MemTable* MemTable::Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) {
   return new MemTable(table_.Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt), startTime, endTime, memsTodel);
 }
-int MemTable::GetleafNum() { return table_.leafNum; }
+
 void MemTable::LoadNonLeafKeys(vector<NonLeafKey>& nonLeafKeys) { table_.LoadNonLeafKeys(nonLeafKeys); }
 
 MemTable::MemTable(MemTable* im):refs_(0),table_(im->table_),startTime(starttime_init),endTime(endtime_init),memsTodel(im->memsTodel){}

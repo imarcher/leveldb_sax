@@ -323,7 +323,7 @@ target_link_libraries(leveldb sax zsbtree ${Boost_LIBRARIES})
 include_directories(jni)
 include_directories(jni/include)
 include_directories(jni/include/linux)
-add_library(leveldbj SHARED jni/leveldb_sax_db.cc jni/leveldb_sax_db.h)
+add_library(leveldbj SHARED jni/leveldb_sax_db.cc jni/leveldb_sax_db.h jni/send_master.h)
 target_link_libraries(leveldbj leveldb)
 
 add_executable(test_main

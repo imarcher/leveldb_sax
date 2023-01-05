@@ -20,7 +20,10 @@ class STLeaf {
   void Set(unsigned short num, cod co_d);
   void Setprefix(saxt prefix, saxt stleafkey, cod co_size, cod noco_size);
   void Setprefix(saxt prefix1);
-  inline void SetLeafKey(LeafKey* dst, int id);
+  inline void SetLeafKey(LeafKey* dst, int id) {
+    memcpy(dst, prefix, co_size);
+    memcpy(((char*)dst)+co_size, Get_rep(id), noco_size);
+  }
   ~STLeaf();
 
   char* Get_rep(int i);

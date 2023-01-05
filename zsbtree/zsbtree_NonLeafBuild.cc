@@ -15,7 +15,7 @@ typedef struct {
   saxt rsaxt;
 } method2_node;
 
-static int x = 0;
+
 
 inline saxt get_saxt_i(newVector<NonLeafKey> &leafKeys, int i){
   return leafKeys[i].lsaxt;
@@ -29,7 +29,6 @@ inline saxt get_saxt_i_r(newVector<NonLeafKey> &leafKeys, int i){
 //构造leaf和索引点
 inline void build_leaf_and_nonleafkey(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                                       int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt) {
-  if (x) out("163_b");
   //构造leaf
   NonLeaf *leaf = new NonLeaf(num, co_d, isleaf, lsaxt, rsaxt, leafKeys.data()+id);
   //构造nonleaf索引点
@@ -39,7 +38,6 @@ inline void build_leaf_and_nonleafkey(newVector<NonLeafKey> &leafKeys, vector<No
 //构造leaf和索引点,从中间平分
 inline void build_leaf_and_nonleafkey_two(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                                           int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt) {
-  if (x) out("163_bt");
   int tmpnum1 = num / 2;
   int tmpnum2 = num - tmpnum1;
   //构造leaf
@@ -58,7 +56,6 @@ inline void build_leaf_and_nonleafkey_two(newVector<NonLeafKey> &leafKeys, vecto
 //给一个叶子结点加一些key
 inline void add_nonleafkey(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id,
                            int num, cod co_d, saxt rsaxt) {
-  if (x) out("163_add");
   NonLeafKey *nonLeafKey = nonLeafKeys.data()+nonLeafKeys.size()-1;
   NonLeaf *leaf = (NonLeaf *)(nonLeafKey->p);
   leaf->co_d = co_d;
@@ -72,7 +69,6 @@ inline void add_nonleafkey(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
 //给一个叶子结点加一些key,到大于n了，平分
 inline void split_nonleafkey(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, int id, int allnum,
                              int num, cod co_d, bool isleaf, saxt rsaxt) {
-  if (x) out("163_spilt");
   NonLeafKey *nonLeafKey = nonLeafKeys.data()+nonLeafKeys.size()-1;
   NonLeaf *leaf = (NonLeaf *)(nonLeafKey->p);
   int tmpnum1 = allnum / 2;
@@ -392,10 +388,7 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
   for(method2_node anode: d1Arr) {
     int todonum = anode.id - todoid;
     if (todonum == 0) {
-//            out("laile");
-        if (x) {
-          out("163_1");
-        }
+
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
 //            out("laile2");
       todoid += anode.num;
@@ -410,7 +403,6 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
         //如果后面是d+1且加起来<=n，则合起来，不然不要了。这里直接合
         int tmpnum = todonum + anode.num;
         if (tmpnum <= n){
-            if (x) out("163_2");
           build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, window_co_d, isleaf, re_lsaxt, anode.rsaxt);
           todoid += tmpnum;
           continue;
@@ -442,7 +434,6 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
             //平分
             split_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, todonum, co_d1, isleaf, re_rsaxt);
           }
-            if (x) out("163_3");
           build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
           todoid = todoid + todonum + anode.num;
           continue;
@@ -450,7 +441,6 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
           //跟后面合
           int tmpnum = nextnum + todonum;
           if (tmpnum <= n) {
-              if (x) out("163_4");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, co_d2, isleaf, re_lsaxt, anode.rsaxt);
             todoid += tmpnum;
             continue;
@@ -466,12 +456,10 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
           int tmpnum2 = nextnum + todonum;
           if (tmpnum1 <= n && tmpnum2 > n) {
             add_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, co_d1, re_rsaxt);
-              if (x) out("163_5");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
             todoid = todoid + todonum + anode.num;
             continue;
           } else if (tmpnum1 > n && tmpnum2 <= n) {
-              if (x) out("163_6");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum2, co_d2, isleaf, re_lsaxt, anode.rsaxt);
             todoid += tmpnum2;
             continue;
@@ -482,7 +470,6 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
               todoid += tmpnum2;
               continue;
             } else {
-                if (x) out("163_7");
               split_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum1, todonum, co_d1, isleaf, re_rsaxt);
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
               todoid += tmpnum2;
@@ -491,12 +478,10 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
           } else {
             // 比相聚度
             if (co_d2 >= co_d1) {
-                if (x) out("163_8");
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum2, co_d2, isleaf, re_lsaxt, anode.rsaxt);
               todoid += tmpnum2;
               continue;
             } else {
-                if (x) out("163_9");
               add_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, co_d1, re_rsaxt);
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
               todoid += tmpnum2;
@@ -507,13 +492,11 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
       }
     } else if (todonum >m && todonum <= n) {
       //其实就是window_co_d
-        if (x) out("163_10");
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, get_co_d_from_saxt(re_lsaxt, re_rsaxt, window_co_d), isleaf, re_lsaxt, re_rsaxt);
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
       todoid = todoid + todonum + anode.num;
       continue;
     } else {
-        if (x) out("163_11");
       build_leaf_and_nonleafkey_two(leafKeys, nonLeafKeys, todoid, todonum, window_co_d, isleaf, re_lsaxt, re_rsaxt);
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
       todoid = todoid + todonum + anode.num;
@@ -522,7 +505,6 @@ int buildtree_window(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLea
   }
   if (todoid == 0) {
     //打包n个
-      if (x) out("163_12");
     build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, n, window_co_d, isleaf, first_saxt, get_saxt_i_r(leafKeys, n-1));
     todoid += n;
   }
@@ -790,10 +772,7 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
   for(method2_node anode: d1Arr) {
     int todonum = anode.id - todoid;
     if (todonum == 0) {
-//            out("laile");
-        if (x) {
-          out("163_1");
-        }
+
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
 //            out("laile2");
       todoid += anode.num;
@@ -808,7 +787,6 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
         //如果后面是d+1且加起来<=n，则合起来，不然不要了。这里直接合
         int tmpnum = todonum + anode.num;
         if (tmpnum <= n){
-            if (x) out("163_2");
           build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, window_co_d, isleaf, re_lsaxt, anode.rsaxt);
           todoid += tmpnum;
           continue;
@@ -840,7 +818,6 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
             //平分
             split_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, todonum, co_d1, isleaf, re_rsaxt);
           }
-            if (x) out("163_3");
           build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
           todoid = todoid + todonum + anode.num;
           continue;
@@ -848,7 +825,6 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
           //跟后面合
           int tmpnum = nextnum + todonum;
           if (tmpnum <= n) {
-              if (x) out("163_4");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, co_d2, isleaf, re_lsaxt, anode.rsaxt);
             todoid += tmpnum;
             continue;
@@ -864,12 +840,10 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
           int tmpnum2 = nextnum + todonum;
           if (tmpnum1 <= n && tmpnum2 > n) {
             add_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, co_d1, re_rsaxt);
-              if (x) out("163_5");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
             todoid = todoid + todonum + anode.num;
             continue;
           } else if (tmpnum1 > n && tmpnum2 <= n) {
-              if (x) out("163_6");
             build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum2, co_d2, isleaf, re_lsaxt, anode.rsaxt);
             todoid += tmpnum2;
             continue;
@@ -881,7 +855,6 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
               continue;
             } else {
               split_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum1, todonum, co_d1, isleaf, re_rsaxt);
-                if (x) out("163_7");
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
               todoid += tmpnum2;
               continue;
@@ -889,13 +862,11 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
           } else {
             // 比相聚度
             if (co_d2 >= co_d1) {
-                if (x) out("163_8");
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum2, co_d2, isleaf, re_lsaxt, anode.rsaxt);
               todoid += tmpnum2;
               continue;
             } else {
               add_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, co_d1, re_rsaxt);
-                if (x) out("163_9");
               build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
               todoid += tmpnum2;
               continue;
@@ -905,13 +876,11 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
       }
     } else if (todonum >m && todonum <= n) {
       //其实就是window_co_d
-        if (x) out("163_10");
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, get_co_d_from_saxt(re_lsaxt, re_rsaxt, window_co_d), isleaf, re_lsaxt, re_rsaxt);
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
       todoid = todoid + todonum + anode.num;
       continue;
     } else {
-        if (x) out("163_11");
       build_leaf_and_nonleafkey_two(leafKeys, nonLeafKeys, todoid, todonum, window_co_d, isleaf, re_lsaxt, re_rsaxt);
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, anode.id, anode.num, anode.co_d, isleaf, anode.lsaxt, anode.rsaxt);
       todoid = todoid + todonum + anode.num;
@@ -931,7 +900,7 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
     build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, window_co_d, isleaf, lsaxt, last_saxt);
   } else if (todonum > 0) {
     if (!nonLeafKeys.empty()) {
-      if (x) out("==============");
+
       //跟前面合
       saxt prelsaxt = nonLeafKeys.back().lsaxt;
       int prenum = nonLeafKeys.back().num;
@@ -940,16 +909,16 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
       if (todoid == 0) co_d1 = get_co_d_from_saxt(prelsaxt, last_saxt);
       else co_d1 = get_co_d_from_saxt(prelsaxt, last_saxt, window_co_d);
       if (tmpnum <= n) {
-        if (x) out("111111111");
+
         add_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, co_d1, last_saxt);
       } else {
         //平分
-        if (x) out("2222222222");
+
         split_nonleafkey(leafKeys, nonLeafKeys, todoid, tmpnum, todonum, co_d1, isleaf, last_saxt);
       }
     } else {
       //前面一个点没有直接打包
-        if (x) out("163_13");
+
       build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, todoid, todonum, window_co_d, isleaf, first_saxt, last_saxt);
     }
   }
@@ -957,7 +926,7 @@ void buildtree_window_last(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &
 
 //批量构建树，后面是两个流
 void buildtree(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys, bool isleaf, const int n, const int m) {
-  x = 0;
+
   //左闭右开
   int l = 0;
   int r = 2*n;
@@ -977,13 +946,10 @@ void buildtree(newVector<NonLeafKey> &leafKeys, vector<NonLeafKey> &nonLeafKeys,
     saxt rsaxt = leafKeys.back().rsaxt;
     build_leaf_and_nonleafkey(leafKeys, nonLeafKeys, l, num, get_co_d_from_saxt(lsaxt, rsaxt), isleaf, lsaxt, rsaxt);
   } else if (num > n) {
-    if (l<=1982 && r>=1982) {
-      x = 0;
-    }
     newVector<NonLeafKey> leafKey_window(leafKeys, l, leafKeys.size());
     buildtree_window_last(leafKey_window, nonLeafKeys, isleaf, num, n, m);
   }
-  x = 0;
+
 //        for (int i=0;i<10;i++) {
 //            out("l");
 //            saxt_print(nonLeafKeys[i].lsaxt);

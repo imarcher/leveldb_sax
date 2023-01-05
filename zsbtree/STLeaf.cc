@@ -48,8 +48,5 @@ void STLeaf::Setprefix(saxt prefix1) {
   memcpy(prefix, prefix1, saxt_size);
 }
 
-void STLeaf::SetLeafKey(LeafKey* dst, int id) {
-  memcpy(dst, prefix, co_size);
-  memcpy(((char*)dst)+co_size, Get_rep(id), noco_size);
-}
+
 

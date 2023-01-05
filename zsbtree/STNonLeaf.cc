@@ -80,7 +80,4 @@ void STNonLeaf::Setprefix(saxt prefix1) {
   memcpy(prefix, prefix1, saxt_size);
 }
 
-void STNonLeaf::SetSaxt(saxt dst, saxt saxt_) {
-  memcpy(dst, prefix, co_size);
-  memcpy(((char*)dst) + co_size, saxt_, s_co_size);
-}
+

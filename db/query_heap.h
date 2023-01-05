@@ -43,18 +43,25 @@ class query_heap {
 
   float top() const;
 
-  inline void readLock();
+  inline void readLock() { mutex_.lock_shared(); }
 
-  inline void readUnlock();
+  inline void readUnlock() { mutex_.unlock_shared(); }
 
-  inline void writeLock();
+  inline void writeLock() { mutex_.lock_upgrade(); }
 
-  inline void writeUnlock();
+  inline void writeUnlock() { mutex_.unlock_upgrade(); }
 
-  inline void subUse();
+
+  inline void subUse() { use--; }
 
   // 这个表结束了
-  inline bool subOver();
+  inline bool subOver() {
+    if (!(--over)) {
+      cv.notify_one();
+      return true;
+    }
+    return false;
+  }
 
   void wait();
 
