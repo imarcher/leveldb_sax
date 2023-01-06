@@ -48,12 +48,12 @@ class DBImpl : public DB {
   Status Init(LeafTimeKey* leafKeys, int leafKeysNum) override;
   Status RebalanceDranges() override;
   Status Delete(const WriteOptions&, const Slice& key) override;
-  Status Write(const WriteOptions& options, WriteBatch* updates, int memId) override;
+  Status Write(const WriteOptions& options, const LeafTimeKey& key, int memId) override;
   Status Get(const aquery &aquery1, bool is_use_am, int am_version_id, int st_version_id, const vector<uint64_t> &st_number, vector<ares>& results) override;
   void Get_am(const aquery &aquery1, query_heap *res_heap, MemTable* to_find_mem);
   void Get_st(const aquery &aquery1, query_heap *res_heap, uint64_t st_number, Version* this_ver);
-  void UnRef_am(int unref_version_id);
-  void UnRef_st(int unref_version_id);
+  void UnRef_am(int unref_version_id) override;
+  void UnRef_st(int unref_version_id) override;
   Iterator* NewIterator(const ReadOptions&) override;
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;
@@ -223,10 +223,10 @@ class DBImpl : public DB {
   //mem中统计一段时间内的插入数量
   vector<int> memNum_period;
   //写队列
-  vector<std::deque<Writer*>> writers_vec;
-  //写入的临时空间
-  vector<WriteBatch*> tmp_batchs;
-  MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
+  vector<vector<LeafTimeKey>> writers_vec_;
+  vector<bool> writers_is;
+  // im队列
+  std::deque<std::pair<MemTable*, int>> imms GUARDED_BY(mutex_);
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
   uint64_t logfile_number_ ;

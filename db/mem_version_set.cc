@@ -98,5 +98,10 @@ void mem_version_set::Unref(int id) {
 }
 
 int mem_version_set::CurrentVersionId() { return currentid; }
+void mem_version_set::UnrefAll() {
+  for(auto item: versions) {
+    item.second->Unref();
+  }
+}
 
 }

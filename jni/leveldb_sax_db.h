@@ -9,13 +9,9 @@
 extern "C" {
 #endif
 
-#include "leveldb/db.h"
 
 
-static leveldb::DB* db;
-static leveldb::WriteOptions writeOptions;
-static leveldb::ReadOptions readOptions;
-static JavaVM* gs_jvm;
+
 /*
  * Class:     leveldb_sax_db
  * Method:    saxt_from_ts

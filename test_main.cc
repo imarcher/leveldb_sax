@@ -12,15 +12,21 @@
 #include "sax.h"
 #include "threadPool_2.h"
 #include "zsbtree_table.h"
+#include <chrono>
+
+#define BOOST_NO_EXCEPTIONS
+#include <boost/throw_exception.hpp>
+void boost::throw_exception(std::exception const & e){
+//do nothing
+}
 
 #define over(a) std::cout<<a<<" finished"<<std::endl
 
 int datanum = 1000 * 1000;
 leveldb::DB* db;
 leveldb::Options options;
-
-
-
+std::chrono::steady_clock::time_point t1;
+std::chrono::steady_clock::time_point t2;
 
 
 void test_init(vector<LeafTimeKey>& leafKeys){
@@ -34,7 +40,12 @@ void test_init(vector<LeafTimeKey>& leafKeys){
 void test_put(vector<LeafTimeKey>& leafKeys){
   leveldb::WriteOptions writeOptions;
   int k=0;
-  for(int i=0;i<1;i++){
+  for(int i=0;i<1000000;i++) {
+    db->Put(writeOptions, leafKeys[i]);
+//    cout<<"finish:"<<k++<<endl;
+  }
+  over("put============");
+  for(int i=0;i<1000000;i++) {
     db->Put(writeOptions, leafKeys[i]);
 //    cout<<"finish:"<<k++<<endl;
   }
@@ -44,18 +55,18 @@ void test_put(vector<LeafTimeKey>& leafKeys){
 
 void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
-  ThreadPool pool(4);
+  ThreadPool pool(16);
   leveldb::WriteOptions writeOptions;
-
-  for(int i=0;i<10000;i++) {
+  t1 = std::chrono::steady_clock::now();
+  for(int i=0;i<1000000;i++) {
       pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
   }
-//  int j;
-//  for(int i=0;i<leafKeys.size();i=j) {
-//    for(int j=i;j<leafKeys.size();j+=Table_maxnum)
-//      pool.append(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[j]));
-//  }
+  for(int i=0;i<1000000;i++) {
+    pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
+  }
   over("put_multithread");
+//  ThreadPool pool(16);
+//  for(int i=0;i<10;i++) pool.enqueue(std::bind(&ea::add, &aa));
 }
 
 
@@ -83,7 +94,7 @@ void test_st_compaction_0(vector<LeafTimeKey>& leafKeys){
 
 void test_get_mem(vector<LeafTimeKey>& leafKeys){
   vector<LeafKey> res;
-  db->Get_am(leveldb::ReadOptions(), leafKeys[1000000-1].leafKey.asaxt, 9, res);
+
 
   saxt_print(res[0].asaxt);
   saxt_print(res.back().asaxt);
@@ -95,7 +106,7 @@ void test_get_mem(vector<LeafTimeKey>& leafKeys){
 void test_get_st(vector<LeafTimeKey>& leafKeys){
   LeafKey& tofind_leafkey = leafKeys[903000].leafKey;
   vector<LeafKey> res;
-  db->Get_st(leveldb::ReadOptions(), tofind_leafkey.asaxt, res);
+
 //  for(int i=0;i<res.size();i++){
 //    saxt_print(res[i].asaxt);
 //  }
@@ -124,23 +135,26 @@ int main(){
   string dir = "./testdb";
 
   options.create_if_missing = true;
-  leveldb::Status status = leveldb::DB::Open(options, dir, &db);
+  leveldb::Status status = leveldb::DB::Open(options, dir, nullptr, &db);
 
   assert(status.ok());
   test_init(leafKeys);
-
+  sleep(3);
   //一组测试
-//  test_put(leafKeys);
+  t1 = std::chrono::steady_clock::now();
+  test_put(leafKeys);
 //  test_put_multithread(leafKeys);
-  test_rebalance_small(leafKeys);
+//  test_rebalance_small(leafKeys);
 //  test_st_compaction_0(leafKeys);
+  t2 = std::chrono:: steady_clock::now();
+  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>( t2-t1 ).count() <<"ms"<< std::endl;
 
 
 //  test_get_mem(leafKeys);
 //  sleep(10);
 //  test_get_st(leafKeys);
 //
-//  sleep(5);
+  sleep(30);
   out("finished");
-
+  delete db;
 }

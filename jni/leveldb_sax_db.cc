@@ -3,8 +3,15 @@
 //
 
 #include "leveldb_sax_db.h"
+#include "threadPool_2.h"
+#include "leveldb/db.h"
 
 
+static leveldb::DB* db;
+static leveldb::WriteOptions writeOptions;
+static leveldb::ReadOptions readOptions;
+static JavaVM* gs_jvm;
+//static ThreadPool *pool;
 
 JNIEXPORT void JNICALL Java_leveldb_1sax_db_saxt_1from_1ts
     (JNIEnv *env, jobject, jbyteArray ts, jbyteArray saxt_out) {
@@ -37,6 +44,7 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_paa_1saxt_1from_1ts
 
 JNIEXPORT void JNICALL Java_leveldb_1sax_db_open
     (JNIEnv *env, jobject, jstring dbname) {
+//  pool = new ThreadPool(30);
   //把java环境拿到
   env->GetJavaVM(&gs_jvm);
   const char* str;
@@ -71,6 +79,7 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_put
     (JNIEnv *env, jobject, jbyteArray leafTimeKey) {
   LeafTimeKey key;
   env->GetByteArrayRegion(leafTimeKey, 0, sizeof(LeafTimeKey), (jbyte*)&key);
+//  pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, key));
   db->Put(writeOptions, key);
 }
 

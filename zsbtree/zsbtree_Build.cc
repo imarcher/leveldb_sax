@@ -81,6 +81,10 @@ void Zsbtree_Build::finish() {
   }
   for (int i=0;i<nonleafkeys.size() - 1;i++) {
     newVector<NonLeafKey>& nonleafkeys_dep = nonleafkeys[i];
+//    out("i");
+//    out(i);
+//    out(nonleafkeys_dep.size_add());
+//    out(nonleafkeys.size() - 1);
     if (!i) doleaf(nonleafkeys_dep.back_add());
     else dononleaf(nonleafkeys_dep.back_add(), i == 1);
     if (i && i == nonleafkeys.size() - 2 && nonleafkeys_dep.size_add() == 1) {
@@ -92,7 +96,8 @@ void Zsbtree_Build::finish() {
       saxt lsaxt = nonleafkeys_dep.data()->lsaxt;
       saxt rsaxt = nonleafkeys_dep.back_add()->rsaxt;
       build_leaf_and_nonleafkey(nonleafkeys_dep, 0, nonleafkeys_dep.size_add(), get_co_d_from_saxt(lsaxt, rsaxt), lsaxt, rsaxt, i + 1);
-    } else if (leafkeys.size_add() > n){
+    } else if (nonleafkeys_dep.size_add() > n){
+//      out("进入lastbu");
       buildtree_window_last(nonleafkeys_dep, nonleafkeys_dep.size_add(), i + 1);
     }
   }

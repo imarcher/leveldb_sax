@@ -85,7 +85,7 @@ class LEVELDB_EXPORT DB {
   // Returns OK on success, non-OK on failure.
   // Note: consider setting options.sync = true.
   // 要选择一个表插入
-  virtual Status Write(const WriteOptions& options, WriteBatch* updates, int memId) = 0;
+  virtual Status Write(const WriteOptions& options, const LeafTimeKey& key, int memId) = 0;
 
   // If the database contains an entry for "key" store the
   // corresponding value in *value and return OK.

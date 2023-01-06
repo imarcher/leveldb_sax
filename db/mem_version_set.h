@@ -91,6 +91,8 @@ class mem_version_set {
   //这个只有master来控制删除
   void Unref(int id);
 
+  void UnrefAll();
+
  private:
   //版本号和对应的版本
   unordered_map<int, mem_version*> versions;

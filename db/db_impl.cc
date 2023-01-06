@@ -143,7 +143,6 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, const void
       db_lock_(nullptr),
       shutting_down_(false),
       background_work_finished_signal_(&mutex_),
-      imm_(nullptr),
       has_imm_(false),
       logfile_(nullptr),
       logfile_number_(0),
@@ -164,22 +163,25 @@ DBImpl::~DBImpl() {
   while (background_compaction_scheduled_) {
     background_work_finished_signal_.Wait();
   }
+
+  for (auto item: version_map) {
+    item.second->Unref();
+  }
+
   mutex_.Unlock();
 
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
   }
 
+
   delete versions_;
-  if (imm_ != nullptr) imm_->Unref();
+//  if (imm_ != nullptr) imm_->Unref();
 
-  for (auto item: mems) {
-    item->Unref();
-  }
 
-  for(auto item: tmp_batchs) {
-    delete item;
-  }
+  mutex_Mem.Lock();
+  memSet.UnrefAll();
+  mutex_Mem.Unlock();
 
 
   delete_mems(memsTodel.get());
@@ -194,6 +196,7 @@ DBImpl::~DBImpl() {
   if (owns_cache_) {
     delete options_.block_cache;
   }
+
 }
 
 Status DBImpl::NewDB() {
@@ -575,13 +578,15 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 
 void DBImpl::CompactMemTable() {
   mutex_.AssertHeld();
-  assert(imm_ != nullptr);
+//  assert(imm_ != nullptr);
+  assert(imms.size()!=0);
+  MemTable* first_imm = imms.front().first;
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
   Version* base = versions_->current();
   base->Ref();
-  Status s = WriteLevel0Table(imm_, &edit, base);
+  Status s = WriteLevel0Table(first_imm, &edit, base);
   base->Unref();
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
@@ -597,7 +602,7 @@ void DBImpl::CompactMemTable() {
 
 
 
-  //因为im不为null，不会有新的im，这里的im一定对应现在的内存版本
+
   if (s.ok()) {
     // Commit to the new state
 //    imm_->Unref();
@@ -605,9 +610,8 @@ void DBImpl::CompactMemTable() {
     //在这里应该要发消息给master
     //发version的版本号，当前的版本号，加上version edit,不过edit的删除文件要有元文件信息
     //还要发当前内存的current的版本号
-    mutex_Mem.Lock();
-    int amV_id = memSet.CurrentVersionId();
-    mutex_Mem.Unlock();
+
+    int amV_id = imms.front().second;
     Version* nowversion = versions_->current();
     //这个ref只能master来解除
     nowversion->Ref();
@@ -629,8 +633,9 @@ void DBImpl::CompactMemTable() {
     //等待返回接到回复
     free(to_send);
     //
-    imm_ = nullptr;
-    has_imm_.store(false, std::memory_order_release);
+//    imm_ = nullptr;
+    imms.pop_front();
+    if (imms.empty()) has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
   } else {
     RecordBackgroundError(s);
@@ -695,18 +700,18 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
 
 Status DBImpl::TEST_CompactMemTable() {
   // nullptr batch means just wait for earlier writes to be done
-  Status s = Write(WriteOptions(), nullptr, 0);
-  if (s.ok()) {
-    // Wait until the compaction completes
-    MutexLock l(&mutex_);
-    while (imm_ != nullptr && bg_error_.ok()) {
-      background_work_finished_signal_.Wait();
-    }
-    if (imm_ != nullptr) {
-      s = bg_error_;
-    }
-  }
-  return s;
+//  Status s = Write(WriteOptions(), nullptr, 0);
+//  if (s.ok()) {
+//    // Wait until the compaction completes
+//    MutexLock l(&mutex_);
+//    while (!imms.empty() && bg_error_.ok()) {
+//      background_work_finished_signal_.Wait();
+//    }
+//    if (!imms.empty()) {
+//      s = bg_error_;
+//    }
+//  }
+//  return s;
 }
 
 void DBImpl::RecordBackgroundError(const Status& s) {
@@ -725,7 +730,7 @@ void DBImpl::MaybeScheduleCompaction() {
     // DB is being deleted; no more background compactions
   } else if (!bg_error_.ok()) {
     // Already got an error; no more changes
-  } else if (imm_ == nullptr && manual_compaction_ == nullptr &&
+  } else if (imms.empty() && manual_compaction_ == nullptr &&
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
@@ -760,7 +765,7 @@ void DBImpl::BackgroundCall() {
 void DBImpl::BackgroundCompaction() {
   mutex_.AssertHeld();
   //同一时间只有一个线程能运行
-  if (imm_ != nullptr) {
+  if (!imms.empty()) {
     CompactMemTable();
 //    out("success im compaction");
     VersionSet::LevelSummaryStorage tmp;
@@ -986,7 +991,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
   // 发送 versionid, edit->new_files_ edit->deleted_files_Meta 4样东西
   int delsize = edit->deleted_files_Meta.size();
   int addsize = edit->new_files_.size();
-  size_t mallocsize = send_size2+delsize*send_size2_del+addsize*send_size2_add;
+  size_t mallocsize = send_size2+delsize*send_size2_add+addsize*send_size2_add;
   char* to_send = (char*)malloc(mallocsize);
   char* tmp_to_send = to_send;
   tmp_to_send[0] = 1;
@@ -994,6 +999,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
   charcpy(tmp_to_send, &versionid, sizeof(int));
   charcpy(tmp_to_send, &delsize, sizeof(int));
   for(auto metaData: edit->deleted_files_Meta) {
+    charcpy(tmp_to_send, &metaData.number, sizeof(uint64_t));
     charcpy(tmp_to_send, metaData.smallest.user_key().data(), sizeof(saxt_only));
     charcpy(tmp_to_send, metaData.largest.user_key().data(), sizeof(saxt_only));
     charcpy(tmp_to_send, &metaData.startTime, sizeof(ts_time));
@@ -1072,7 +1078,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      out("进入im");
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
-      if (imm_ != nullptr) {
+      if (!imms.empty()) {
         CompactMemTable();
         // Wake up MakeRoomForWrite() if necessary.
         background_work_finished_signal_.SignalAll();
@@ -1163,7 +1169,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
 
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
-//    out("db关了");
+    out("db关了");
     status = Status::IOError("Deleting DB during compaction");
   }
 //  out("完成压缩");
@@ -2495,8 +2501,8 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
 // Convenience methods
 //选表
 Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
-  WriteBatch batch;
-  batch.Put(key);
+//  WriteBatch batch;
+//  batch.Put(key);
   // 找到对应的drange
   // 二分
   int l = 0;
@@ -2510,7 +2516,7 @@ Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
 
   //读写锁
   {
-    boost::shared_lock<boost::shared_mutex> lock1(range_mutex);
+//    boost::shared_lock<boost::shared_mutex> lock1(range_mutex);
 
     //顺序
     int i = 1;
@@ -2525,7 +2531,7 @@ Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
 
 
   memNum_period[l]++;
-  return Write(o, &batch, l);
+  return Write(o, key, l);
 }
 
 
@@ -2555,8 +2561,8 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
-    writers_vec.emplace_back();
-    tmp_batchs.push_back(new WriteBatch());
+    writers_vec_.emplace_back();
+    writers_is.push_back(false);
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
       sum += nonLeafKeys[j++].num;
@@ -2591,10 +2597,11 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
       if (co_d == 8){
         bounds.push_back(*(saxt_only*)l_saxt);
       } else {
-        int mid = (l_saxt[co_d] - last_r_saxt[co_d]) / 2;
+        int mid = (l_saxt[co_d] + last_r_saxt[co_d]) / 2;
+        if (mid == last_r_saxt[co_d]) mid++;
         saxt_only newsaxt;
         memcpy(newsaxt.asaxt, l_saxt, co_d*sizeof(saxt_type));
-        newsaxt.asaxt[co_d] = mid + 1;
+        newsaxt.asaxt[co_d] = mid;
         memset(newsaxt.asaxt+co_d+1, 0, (Bit_cardinality - co_d - 1)*sizeof(saxt_type));
         bounds.push_back(newsaxt);
       }
@@ -2606,40 +2613,64 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   mem_version* newMemVersion = new mem_version(mems, new mems_boundary(bounds));
   memSet.newversion(newMemVersion);
 
+
+//  for(int i=0;i<mems.size();i++) {
+//    saxt_print(mems[i]->Getlsaxt());
+//    saxt_print(mems[i]->Getrsaxt());
+//  }
+//  out("bounds");
+//  for(int i=0;i<mems.size();i++) {
+//    saxt_print(bounds[i].asaxt);
+//  }
+
   if (init_st) {
     out("初始化st");
     for (int memId = 0; memId < mems.size(); memId++) {
-      out(memId);
       while (true) {
-        delete_mems(memsTodel.get());
-        //      out("makeroom_to_st");
+//      out("makeroom_to_st");
         //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
         MutexLock l(&mutex_);
-        if (imm_ != nullptr) {
-          //        out("waitim");
+        if (imms.size()>10) {
+//        out("waitim");
           // We have filled up the current memtable, but the previous
           // one is still being compacted, so we wait.
           Log(options_.info_log, "Current memtable full; waiting...\n");
           background_work_finished_signal_.Wait();
-          //        out("waitoverim");
-        } else if (versions_->NumLevelFiles(0) >=
-                   config::kL0_StopWritesTrigger) {
+//        out("waitoverim");
+        } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
           // There are too many level-0 files.
           Log(options_.info_log, "Too many L0 files; waiting...\n");
           background_work_finished_signal_.Wait();
         } else {
+          // Attempt to switch to a new memtable and trigger compaction of old
+          //重置了log
+//        assert(versions_->PrevLogNumber() == 0);
+//        uint64_t new_log_number = versions_->NewFileNumber();
+//        WritableFile* lfile = nullptr;
+//        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//        if (!s.ok()) {
+//          // Avoid chewing through file number space in a tight loop.
+//          versions_->ReuseFileNumber(new_log_number);
+//          break;
+//        }
+//        delete log_;
+//        delete logfile_;
+//        logfile_ = lfile;
+//        logfile_number_ = new_log_number;
+//        log_ = new log::Writer(lfile);
           //转为im
-          imm_ = mems[memId];
-          has_imm_.store(true, std::memory_order_release);
+
+          MemTable* oldmem = mems[memId];
           // 复制mem的树结构
-          MemTable* newmem = new MemTable(imm_);
+          MemTable* newmem = new MemTable(oldmem);
           // 修改版本
           mutex_Mem.Lock();
           mems[memId] = newmem;
-          memSet.newversion(
-              new mem_version(mems, memSet.CurrentVersion()->boundary));
+          int newid = memSet.newversion(new mem_version(mems, memSet.CurrentVersion()->boundary));
           mutex_Mem.Unlock();
 
+          imms.emplace_back(oldmem, newid);
+          has_imm_.store(true, std::memory_order_release);
           memNum[memId] = 0;
           MaybeScheduleCompaction();
           break;
@@ -2666,7 +2697,7 @@ Status DBImpl::RebalanceDranges() {
     for(int i=0;i<memNum_period.size();i++){
       if (!st[i]){
         unique_lock<mutex> g(write_mutex[i].mu_, try_to_lock);
-        if (g.owns_lock() && writers_vec[i].empty()){
+        if (g.owns_lock() && writers_vec_[i].empty()){
           //获得写锁，发现队列为空
           //就一直锁住
           g.release();
@@ -2701,143 +2732,111 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //  return DB::Delete(options, key);
 }
 
-Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates, int memId) {
+Status DBImpl::Write(const WriteOptions& options, const LeafTimeKey& key, int memId) {
 
   port::Mutex* mutex_i = write_mutex.data() + memId;
   mutex_i->AssertHeld();
 
-  Writer w(mutex_i);
-  w.batch = updates;
-  w.sync = options.sync;
-  w.done = false;
+
+
 // 在前面put锁了
 //  MutexLock l(mutex_i);
-  std::deque<Writer*>& writers_ = writers_vec[memId];
-  writers_.push_back(&w);
-  while (!w.done && &w != writers_.front()) {
-    w.cv.Wait();
-  }
-  if (w.done) {
-    return w.status;
-  }
-  // May temporarily unlock and wait.
-  Status status = MakeRoomForWrite(updates == nullptr, memId);
-  //这个序列号我们是不用的，但也还没改，会有线程不统一的问题
-//  uint64_t last_sequence = versions_->LastSequence();
-  Writer* last_writer = &w;
-  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    WriteBatch* write_batch = BuildBatchGroup(&last_writer, memId);
-//    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
-    int batch_num = WriteBatchInternal::Count(write_batch);
-//    last_sequence += batch_num;
-    int nowNum = memNum[memId];
-    memNum[memId] += batch_num;
-    // Add to log and apply to memtable.  We can release the lock
-    // during this phase since &w is currently responsible for logging
-    // and protects against concurrent loggers and concurrent writes
-    // into mem_.
-    {
-      mutex_i->Unlock();
-      //fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
-//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch), &fileOffset);
-//      bool sync_error = false;
-//      if (status.ok() && options.sync) {
-//        status = logfile_->Sync();
-//        if (!status.ok()) {
-//          sync_error = true;
-//        }
-//      }
-      if (status.ok()) {
-        //里面会有drange内的平衡
-//        out("todoocharu");
-        status = WriteBatchInternal::InsertInto(write_batch, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
-//        out("finishcharu");
-        // 一个batch插入完后，在更新。
+  if (!writers_is[memId]) {
+    writers_is[memId] = true;
 
+    vector<LeafTimeKey> inputs;
+
+    inputs.push_back(key);
+
+    do {
+
+      Status status = MakeRoomForWrite(false, memId);
+      if (status.ok()) {  // nullptr batch is for compactions
+        int nowNum = memNum[memId];
+        memNum[memId] += inputs.size();
+        {
+          mutex_i->Unlock();
+          // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
+          if (status.ok()) {
+            //里面会有drange内的平衡
+            //        out("todoocharu");
+            status = WriteBatchInternal::InsertInto(
+                inputs, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
+            //        out("finishcharu");
+            // 一个batch插入完后，在更新。
+          }
+          mutex_i->Lock();
+        }
       }
-      mutex_i->Lock();
-//      if (sync_error) {
-//        // The state of the log file is indeterminate: the log record we
-//        // just added may or may not show up when the DB is re-opened.
-//        // So we force the DB into a mode where all future writes fail.
-//        RecordBackgroundError(status);
-//      }
-    }
-    if (write_batch == tmp_batchs[memId]) tmp_batchs[memId]->Clear();
 
-//    versions_->SetLastSequence(last_sequence);
+      if (writers_vec_[memId].empty()) {
+        writers_is[memId] = false;
+        mutex_i->Unlock();
+        break;
+      }
+      //如果没有
+
+      inputs = writers_vec_[memId];
+      writers_vec_[memId].clear();
+
+    } while (true);
+
+  } else {
+    writers_vec_[memId].push_back(key);
+    mutex_i->Unlock();
   }
-
-  while (true) {
-    Writer* ready = writers_.front();
-    writers_.pop_front();
-    if (ready != &w) {
-      ready->status = status;
-      ready->done = true;
-      ready->cv.Signal();
-    }
-    if (ready == last_writer) break;
-  }
-
-  // Notify new head of write queue
-  if (!writers_.empty()) {
-    writers_.front()->cv.Signal();
-  }
-
-  //这里是在put锁住的
-  mutex_i->Unlock();
-  return status;
+  return Status();
 }
 
 // REQUIRES: Writer list must be non-empty
 // REQUIRES: First writer must have a non-null batch
 WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer, int memId) {
-  write_mutex[memId].AssertHeld();
-//  assert(!writers_.empty());
-  Writer* first = writers_vec[memId].front();
-  WriteBatch* result = first->batch;
-  assert(result != nullptr);
-
-  size_t size = WriteBatchInternal::ByteSize(first->batch);
-
-  // Allow the group to grow up to a maximum size, but if the
-  // original write is small, limit the growth so we do not slow
-  // down the small write too much.
-  size_t max_size = 35850;
-//  size_t max_size = 1 << 20;
-//  if (size <= (128 << 10)) {
-//    max_size = size + (128 << 10);
+//  write_mutex[memId].AssertHeld();
+////  assert(!writers_.empty());
+//  Writer* first = writers_vec[memId].front();
+//  WriteBatch* result = first->batch;
+//  assert(result != nullptr);
+//
+//  size_t size = WriteBatchInternal::ByteSize(first->batch);
+//
+//  // Allow the group to grow up to a maximum size, but if the
+//  // original write is small, limit the growth so we do not slow
+//  // down the small write too much.
+//  size_t max_size = 35850;
+////  size_t max_size = 1 << 20;
+////  if (size <= (128 << 10)) {
+////    max_size = size + (128 << 10);
+////  }
+//
+//  *last_writer = first;
+//  std::deque<Writer*>::iterator iter = writers_vec[memId].begin();
+//  ++iter;  // Advance past "first"
+//  for (; iter != writers_vec[memId].end(); ++iter) {
+//    Writer* w = *iter;
+//    if (w->sync && !first->sync) {
+//      // Do not include a sync write into a batch handled by a non-sync write.
+//      break;
+//    }
+//
+//    if (w->batch != nullptr) {
+//      size += WriteBatchInternal::ByteSize(w->batch);
+//      if (size > max_size) {
+//        // Do not make batch too big
+//        break;
+//      }
+//
+//      // Append to *result
+//      if (result == first->batch) {
+//        // Switch to temporary batch instead of disturbing caller's batch
+//        result = tmp_batchs[memId];
+//        assert(WriteBatchInternal::Count(result) == 0);
+//        WriteBatchInternal::Append(result, first->batch);
+//      }
+//      WriteBatchInternal::Append(result, w->batch);
+//    }
+//    *last_writer = w;
 //  }
-
-  *last_writer = first;
-  std::deque<Writer*>::iterator iter = writers_vec[memId].begin();
-  ++iter;  // Advance past "first"
-  for (; iter != writers_vec[memId].end(); ++iter) {
-    Writer* w = *iter;
-    if (w->sync && !first->sync) {
-      // Do not include a sync write into a batch handled by a non-sync write.
-      break;
-    }
-
-    if (w->batch != nullptr) {
-      size += WriteBatchInternal::ByteSize(w->batch);
-      if (size > max_size) {
-        // Do not make batch too big
-        break;
-      }
-
-      // Append to *result
-      if (result == first->batch) {
-        // Switch to temporary batch instead of disturbing caller's batch
-        result = tmp_batchs[memId];
-        assert(WriteBatchInternal::Count(result) == 0);
-        WriteBatchInternal::Append(result, first->batch);
-      }
-      WriteBatchInternal::Append(result, w->batch);
-    }
-    *last_writer = w;
-  }
-  return result;
+//  return result;
 }
 
 // REQUIRES: mutex_ is held
@@ -2862,11 +2861,17 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
       write_mutex[memId].Unlock();
+      out("等1ms");
       env_->SleepForMicroseconds(1000);
       allow_delay = false;  // Do not delay a single write more than once
       write_mutex[memId].Lock();
     } else if (!force &&
                (memNum[memId] <= Table_maxnum)) {
+//      if (memNum[memId]>99995){
+//        out("memId");
+//        out(memId);
+//        out(memNum[memId]);
+//      }
       // There is room in current memtable
 //      out("todoput");
       break;
@@ -2876,15 +2881,17 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
 //      out("makeroom_to_st");
       //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
       MutexLock l(&mutex_);
-      if (imm_ != nullptr) {
+      if (imms.size()>10) {
 //        out("waitim");
         // We have filled up the current memtable, but the previous
         // one is still being compacted, so we wait.
+        out("im过多等待");
         Log(options_.info_log, "Current memtable full; waiting...\n");
         background_work_finished_signal_.Wait();
 //        out("waitoverim");
       } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
         // There are too many level-0 files.
+        out("0层st过多等待");
         Log(options_.info_log, "Too many L0 files; waiting...\n");
         background_work_finished_signal_.Wait();
       } else {
@@ -2905,16 +2912,18 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
 //        logfile_number_ = new_log_number;
 //        log_ = new log::Writer(lfile);
         //转为im
-        imm_ = mems[memId];
-        has_imm_.store(true, std::memory_order_release);
+
+        MemTable* oldmem = mems[memId];
         // 复制mem的树结构
-        MemTable* newmem = new MemTable(imm_);
+        MemTable* newmem = new MemTable(oldmem);
         // 修改版本
         mutex_Mem.Lock();
         mems[memId] = newmem;
-        memSet.newversion(new mem_version(mems, memSet.CurrentVersion()->boundary));
+        int newid = memSet.newversion(new mem_version(mems, memSet.CurrentVersion()->boundary));
         mutex_Mem.Unlock();
 
+        imms.push_back({oldmem, newid});
+        has_imm_.store(true, std::memory_order_release);
         memNum[memId] = 0;
         force = false;  // Do not force another compaction if have room
         MaybeScheduleCompaction();
@@ -3006,49 +3015,8 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
 void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
 
-  //todo
-  {
-    MutexLock l(&mutex_);
-    for(auto memId: table_rebalanced) {
-      if (imm_ != nullptr) {
-//        out("waitim");
-        // We have filled up the current memtable, but the previous
-        // one is still being compacted, so we wait.
-        Log(options_.info_log, "Current memtable full; waiting...\n");
-        background_work_finished_signal_.Wait();
-//        out("waitoverim");
-      } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-        // There are too many level-0 files.
-        Log(options_.info_log, "Too many L0 files; waiting...\n");
-        background_work_finished_signal_.Wait();
-      } else {
-        // Attempt to switch to a new memtable and trigger compaction of old
-        //重置了log
-//        assert(versions_->PrevLogNumber() == 0);
-//        uint64_t new_log_number = versions_->NewFileNumber();
-//        WritableFile* lfile = nullptr;
-//        s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-//        if (!s.ok()) {
-//          // Avoid chewing through file number space in a tight loop.
-//          versions_->ReuseFileNumber(new_log_number);
-//          break;
-//        }
-//        delete log_;
-//        delete logfile_;
-//        logfile_ = lfile;
-//        logfile_number_ = new_log_number;
-//        log_ = new log::Writer(lfile);
-        //转为im
-        imm_ = mems[memId];
-        has_imm_.store(true, std::memory_order_release);
-        // 复制mem的树结构
-        mems[memId] = new MemTable(imm_);
-        mems[memId]->Ref();
-        memNum[memId] = 0;
-        MaybeScheduleCompaction();
-      }
-    }
-  }
+  //todo 把im压缩了
+
 
 
   vector<int> memsLeafNum;
