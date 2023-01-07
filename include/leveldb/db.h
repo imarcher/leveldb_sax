@@ -66,7 +66,7 @@ class LEVELDB_EXPORT DB {
   // and a non-OK status on error.
   // Note: consider setting options.sync = true.
   // 顺便选表
-  virtual Status Put(const WriteOptions& options, const LeafTimeKey& key) = 0;
+  virtual Status Put(const WriteOptions& options, LeafTimeKey& key) = 0;
 
   //初始化 给叶子划分为非叶子
   //初始化 按叶子结点划分Dranges, 输入划分后的结果和初始化序列的数量
@@ -85,7 +85,7 @@ class LEVELDB_EXPORT DB {
   // Returns OK on success, non-OK on failure.
   // Note: consider setting options.sync = true.
   // 要选择一个表插入
-  virtual Status Write(const WriteOptions& options, const LeafTimeKey& key, int memId) = 0;
+  virtual Status Write(const WriteOptions& options, LeafTimeKey& key, int memId) = 0;
 
   // If the database contains an entry for "key" store the
   // corresponding value in *value and return OK.

@@ -97,13 +97,14 @@ Slice BlockBuilder::Finish() {
 //}
 
 
-void BlockBuilder::Add(Leaf* leaf, LeafKey* copyleaf) {
+void BlockBuilder::Add(Leaf* leaf) {
   cod co_d = leaf->co_d;
   size_t co_saxt_size = co_d * sizeof(saxt_type);
   size_t noco_saxt_size = saxt_size - co_saxt_size + 8;
+  LeafKey* ls = leaf->leafKeys;
   //把共享的压缩掉
   for(int i=0;i<leaf->num;i++){
-    buffer_.append(((char*)(copyleaf[i].asaxt)) + co_saxt_size, noco_saxt_size);
+    buffer_.append(((char*)(ls[i].asaxt)) + co_saxt_size, noco_saxt_size);
   }
 
 }

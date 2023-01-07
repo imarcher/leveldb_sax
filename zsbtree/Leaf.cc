@@ -3,7 +3,7 @@
 //
 
 #include "Leaf.h"
-
+#include "NonLeafKey.h"
 
 
 Leaf::Leaf(int num, cod co_d, saxt lsaxt, saxt rsaxt, LeafKey *leafKeys) {
@@ -19,10 +19,7 @@ void Leaf::add(LeafKey *leafKeys, int num) {
     this->num += num;
 }
 
-void Leaf::add(LeafKey leafKey) {
-    this->leafKeys[num] = leafKey;
-    num++;
-}
+
 
 void Leaf::setLeafKeys(LeafKey *leafKeys) {
     memcpy(this->leafKeys, leafKeys, sizeof(LeafKey) * num);
@@ -58,4 +55,8 @@ Leaf::Leaf(NonLeafKey& nonLeafKey) {
 void Leaf::sort(LeafKey* dst) {
   mempcpy(dst, leafKeys, sizeof(LeafKey) * num);
   std::sort(dst, dst + num);
+}
+
+void Leaf::sort() {
+  std::sort(leafKeys, leafKeys + num);
 }

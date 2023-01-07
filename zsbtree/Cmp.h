@@ -10,24 +10,28 @@
 #include "globals.h"
 #include <algorithm>
 
+static long long jishu = 0;
+
 //排序用
 static bool LeafKey_cmp(const LeafKey &a, const LeafKey &b);
 
 static bool LeafKey_cmp1(const LeafKey &a, const LeafKey &b);
 
 // <=
-static bool saxt_cmp(saxt a, saxt b, cod co_d) {
+static inline bool saxt_cmp(saxt a, saxt b, cod co_d) {
   int d = co_d;
   for (;d<Bit_cardinality;d++) {
     if (a[d] != b[d]) return a[d] < b[d];
+    jishu++;
   }
   return true;
 }
 
 // <=
-static bool saxt_cmp(saxt a, saxt b) {
+static inline bool saxt_cmp(saxt a, saxt b) {
   for (int d = 0;d<Bit_cardinality;d++) {
     if (a[d] != b[d]) return a[d] < b[d];
+    jishu++;
   }
   return true;
 }

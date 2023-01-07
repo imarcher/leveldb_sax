@@ -1087,6 +1087,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       imm_micros += (env_->NowMicros() - imm_start);
     }
 
+    /* 一百年用不上，但是耗时20%
     //internalkey
     InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
     Slice key = ikey.Encode();
@@ -1108,6 +1109,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         break;
       }
     }
+     */
 
     if (tocompact_flag && leafKey > oldKey) {
 
@@ -1148,6 +1150,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      out("small");
 //      saxt_print(leafKey.asaxt);
       zsbtreeBuild = new ST_Conmpaction(Leaf_maxnum, Leaf_minnum, compact->builder);
+      InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+      Slice key = ikey.Encode();
       compact->current_output()->smallest.DecodeFrom(key);
     }
 //    if (!compact->builder->FileSize()) {
@@ -1160,8 +1164,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if (!tocompact_flag && compact->builder->FileSize() >=
         compact->compaction->MaxOutputFileSize()) {
       out("要压缩");
-      oldKey.Set(leafKey);
+      oldKey = leafKey;
       tocompact_flag = true;
+      InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+      Slice key = ikey.Encode();
       compact->current_output()->largest.DecodeFrom(key);
     }
 
@@ -1174,9 +1180,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   }
 //  out("完成压缩");
   if (status.ok() && compact->builder != nullptr) {
-//    out("压缩清尾");
-//    out("largest");
-//    saxt_print(leafKey.asaxt);
+    out("压缩清尾");
+    out("largest");
+    saxt_print(leafKey.asaxt);
     InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
     Slice key = ikey.Encode();
     compact->current_output()->largest.DecodeFrom(key);
@@ -2500,7 +2506,7 @@ void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
 
 // Convenience methods
 //选表
-Status DBImpl::Put(const WriteOptions& o, const LeafTimeKey& key) {
+Status DBImpl::Put(const WriteOptions& o, LeafTimeKey& key) {
 //  WriteBatch batch;
 //  batch.Put(key);
   // 找到对应的drange
@@ -2561,7 +2567,9 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
-    writers_vec_.emplace_back();
+    writers_vec[0].emplace_back();
+    writers_vec[1].emplace_back();
+    towrite.push_back(0);
     writers_is.push_back(false);
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
@@ -2697,7 +2705,7 @@ Status DBImpl::RebalanceDranges() {
     for(int i=0;i<memNum_period.size();i++){
       if (!st[i]){
         unique_lock<mutex> g(write_mutex[i].mu_, try_to_lock);
-        if (g.owns_lock() && writers_vec_[i].empty()){
+        if (g.owns_lock() && writers_is[i] == false){
           //获得写锁，发现队列为空
           //就一直锁住
           g.release();
@@ -2732,28 +2740,51 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //  return DB::Delete(options, key);
 }
 
-Status DBImpl::Write(const WriteOptions& options, const LeafTimeKey& key, int memId) {
+Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
 
   port::Mutex* mutex_i = write_mutex.data() + memId;
   mutex_i->AssertHeld();
-
-
 
 // 在前面put锁了
 //  MutexLock l(mutex_i);
   if (!writers_is[memId]) {
     writers_is[memId] = true;
 
-    vector<LeafTimeKey> inputs;
+    //插入一个
+    Status status = MakeRoomForWrite(false, memId);
+    if (status.ok()) {  // nullptr batch is for compactions
+      int nowNum = memNum[memId];
+      memNum[memId] += 1;
+      {
+        mutex_i->Unlock();
+        // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
+        if (status.ok()) {
+          //里面会有drange内的平衡
+          //        out("todoocharu");
+          status = WriteBatchInternal::InsertInto(
+              key, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
+          //        out("finishcharu");
+          // 一个batch插入完后，在更新。
+        }
+        mutex_i->Lock();
+      }
+    }
 
-    inputs.push_back(key);
 
-    do {
+    while (true) {
+      Writes_vec& w = writers_vec[towrite[memId]][memId];
+      if (!w.size_) {
+        writers_is[memId] = false;
+        mutex_i->Unlock();
+        break;
+      }
+
+      towrite[memId] = 1 - towrite[memId];
 
       Status status = MakeRoomForWrite(false, memId);
       if (status.ok()) {  // nullptr batch is for compactions
         int nowNum = memNum[memId];
-        memNum[memId] += inputs.size();
+        memNum[memId] += w.size_;
         {
           mutex_i->Unlock();
           // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
@@ -2761,7 +2792,7 @@ Status DBImpl::Write(const WriteOptions& options, const LeafTimeKey& key, int me
             //里面会有drange内的平衡
             //        out("todoocharu");
             status = WriteBatchInternal::InsertInto(
-                inputs, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
+                w, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
             //        out("finishcharu");
             // 一个batch插入完后，在更新。
           }
@@ -2769,20 +2800,18 @@ Status DBImpl::Write(const WriteOptions& options, const LeafTimeKey& key, int me
         }
       }
 
-      if (writers_vec_[memId].empty()) {
-        writers_is[memId] = false;
-        mutex_i->Unlock();
-        break;
-      }
-      //如果没有
-
-      inputs = writers_vec_[memId];
-      writers_vec_[memId].clear();
-
-    } while (true);
+      w.size_ = 0;
+    }
 
   } else {
-    writers_vec_[memId].push_back(key);
+    Writes_vec& w = writers_vec[towrite[memId]][memId];
+    while (w.size_ == 256) {
+      mutex_i->Unlock();
+      env_->SleepForMicroseconds(1000);
+      mutex_i->Lock();
+      w = writers_vec[towrite[memId]][memId];
+    }
+    w.keys[w.size_++] = key;
     mutex_i->Unlock();
   }
   return Status();

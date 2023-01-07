@@ -96,9 +96,11 @@ void zsbtree_table::CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf) {
     //给叶子申请空间
     char* leafp = (char*)malloc(nonLeaf->num * sizeof(Leaf));
     for (int i = 0; i < nonLeaf->num; i++) {
-      nonLeaf->nonLeafKeys[i].num = 0;
-      nonLeaf->nonLeafKeys[i].p = leafp;
-      ((Leaf*)leafp)->set(nonLeaf->nonLeafKeys[i]);
+      NonLeafKey& this_nonLeafKeys = nonLeaf->nonLeafKeys[i];
+      this_nonLeafKeys.num = 0;
+      ((Leaf*)this_nonLeafKeys.p)->sort();
+      this_nonLeafKeys.p = leafp;
+      ((Leaf*)leafp)->set(this_nonLeafKeys);
       leafp += sizeof(Leaf);
     }
   } else {

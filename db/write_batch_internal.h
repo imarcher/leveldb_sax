@@ -37,7 +37,9 @@ class WriteBatchInternal {
 
   static void SetContents(WriteBatch* batch, const Slice& contents);
 
-  static Status InsertInto(const vector<LeafTimeKey>& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet);
+  static Status InsertInto(Writes_vec& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet);
+
+  static Status InsertInto(LeafTimeKey& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet);
 
   static void Append(WriteBatch* dst, const WriteBatch* src);
 };

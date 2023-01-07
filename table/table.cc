@@ -645,6 +645,8 @@ bool Table::ST_Iter::next(LeafKey& res) {
           //只换叶节点
 //          out("叶");
           getSTLeaf();
+          res.Set1(stLeaf.prefix, stLeaf.co_size);
+//          res.setAsaxt(stLeaf.prefix);
 //          out("有stleaf");
 //          out((int)stLeaf.co_d);
 //          saxt_print(stLeaf.prefix);
@@ -672,7 +674,10 @@ bool Table::ST_Iter::next(LeafKey& res) {
       return false;
     }
   }
-  res.Set(stLeaf.prefix, stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
+
+//  res.Set1(stLeaf.prefix, stLeaf.co_size);
+  res.Set2(stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
+//  res.Set(stLeaf.prefix, stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
   return true;
 }
 
@@ -720,6 +725,10 @@ void Table::ST_Iter::getSTNonLeaf() {
 
 Table::ST_Iter::~ST_Iter() {
   for(int i=1;i<st_nonleaf_stack.size();i++) delete st_nonleaf_stack[i];
+}
+
+void Table::ST_Iter::setPrefix(LeafKey& res) {
+  res.Set1(stLeaf.prefix, stLeaf.co_size);
 }
 
 }  // namespace leveldb

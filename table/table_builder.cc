@@ -172,12 +172,12 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
   new_p.reserve(nonLeaf->num);
 
   if (nonLeaf->isleaf) {
-    Leaf* tmpleaf = (Leaf*)malloc(sizeof(Leaf)*nonLeaf->num);
+//    Leaf* tmpleaf = (Leaf*)malloc(sizeof(Leaf)*nonLeaf->num);
     for(int i=0;i<nonLeaf->num;i++){
-      LeafKey* copyleaf = (LeafKey*)(tmpleaf + i);
+//      LeafKey* copyleaf = (LeafKey*)(tmpleaf + i);
       Leaf* aleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
-      aleaf->sort(copyleaf);
-      r->data_block.Add(aleaf, copyleaf);
+//      aleaf->sort(copyleaf);
+      r->data_block.Add(aleaf);
       //取消了手动flush，改成每4kb写入了
       Flush();
 //      out("handle");
@@ -186,7 +186,7 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
       new_p.push_back(r->pending_handle.Get());
 
     }
-    free(tmpleaf);
+//    free(tmpleaf);
   } else {
     for(int i=0;i<nonLeaf->num;i++) {
       NonLeaf* anonLeaf = (NonLeaf*)nonLeaf->nonLeafKeys[i].p;
@@ -261,9 +261,10 @@ void TableBuilder::WriteRawBlock(const Slice& block_contents,
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
     trailer[0] = type;
-    uint32_t crc = crc32c::Value(block_contents.data(), block_contents.size());
-    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block type
-    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
+    //crc
+//    uint32_t crc = crc32c::Value(block_contents.data(), block_contents.size());
+//    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block type
+//    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
     r->status = r->file->Append(Slice(trailer, kBlockTrailerSize));
     if (r->status.ok()) {
       r->offset += block_contents.size() + kBlockTrailerSize;

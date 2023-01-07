@@ -14,7 +14,7 @@ struct TableAndFile {
 };
 
 
-ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
+ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_), vec_size(0){
   ts_time tmpstart = 0x3f3f3f3f3f3f3f3f, tmpend = 0;
   for (auto & files : c->inputs_) {
     for (auto & file : files) {
@@ -28,6 +28,8 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
         Table* t = reinterpret_cast<TableAndFile*>(cache->cache_->Value(handle))->table;
         Table::ST_Iter* stIter = new Table::ST_Iter(t);
         st_iters.insert(stIter);
+        vec_size++;
+        assert(vec_size<=10);
         handles[stIter] = handle;
 //        cache->cache_->Release(handle);
         //更新时间
@@ -39,6 +41,23 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
   c->startTime = tmpstart;
   c->endTime = tmpend;
 //  out("st_iters");
+
+
+
+
+  int i = 0;
+  for(auto item: st_iters) {
+    item->setPrefix(vec[i].first);
+    if (item->next(vec[i].first)) {
+      vec[i].second = item;
+    }
+    else {
+      del(item);
+    }
+    i++;
+  }
+
+  /*
   for(auto item: st_iters) {
     LeafKey leafKey;
     if (item->next(leafKey)) {
@@ -49,11 +68,36 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_){
       del(item);
     }
   }
+   */
 
 }
 
 bool ST_merge::next(LeafKey& leafKey) {
 //  out("进入next");
+
+//
+  if (vec_size) {
+    int res = 0;
+    LeafKey& minLeafKey = vec[0].first;
+    for (int i=1;i<vec_size;i++) {
+      if (minLeafKey > vec[i].first) minLeafKey = vec[i].first, res = i;
+    }
+    leafKey = minLeafKey;
+    if (!vec[res].second->next(vec[res].first)) {
+      del(vec[res].second);
+      vec_size--;
+      for(int i=res;i<vec_size;i++) {
+        vec[i] = vec[i+1];
+      }
+    }
+    return true;
+  }
+  return false;
+
+
+
+
+/*
   if (!heap.empty()){
 //    out("没空");
     leafKey.Set(heap.top().first);
@@ -68,6 +112,7 @@ bool ST_merge::next(LeafKey& leafKey) {
     return true;
   }
   return false;
+  */
 }
 
 

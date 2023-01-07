@@ -30,7 +30,7 @@ static bool l_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d,
   if (isleaf) {
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     leaf.setLsaxt(leafKey.asaxt);
-    leaf.add(leafKey);
+    leaf.add(&leafKey);
     leaf.co_d = nonLeafKey.co_d;
     nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
@@ -48,7 +48,7 @@ static bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d,
   if (isleaf) {
     Leaf &leaf = *((Leaf *)nonLeafKey.p);
     leaf.setRsaxt(leafKey.asaxt);
-    leaf.add(leafKey);
+    leaf.add(&leafKey);
     leaf.co_d = nonLeafKey.co_d;
     nonLeafKey.num++;
     return leaf.num != Leaf_rebuildnum;
@@ -62,7 +62,7 @@ static bool r_Insert_NonLeaf(NonLeafKey &nonLeafKey, LeafKey &leafKey, cod co_d,
 
 
 static inline bool leaf_Insert(Leaf &leaf, LeafKey &leafKey) {
-  leaf.add(leafKey);
+  leaf.add(&leafKey);
   return leaf.num != Leaf_rebuildnum;
 }
 
@@ -78,11 +78,11 @@ static bool nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
     else l = mid + 1;
   }
   int pos = whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafKey.asaxt, nonLeaf.co_d);
-  if (pos!=0) {
-    saxt_print(leafKey.asaxt);
-    saxt_print(nonLeaf.nonLeafKeys[l].lsaxt);
-    saxt_print(nonLeaf.nonLeafKeys[l].rsaxt);
-  }
+//  if (pos!=0) {
+//    saxt_print(leafKey.asaxt);
+//    saxt_print(nonLeaf.nonLeafKeys[l].lsaxt);
+//    saxt_print(nonLeaf.nonLeafKeys[l].rsaxt);
+//  }
   if (pos==0) {
     //里面 直接插入
     if(nonLeaf.isleaf) {
@@ -90,7 +90,8 @@ static bool nonLeaf_Insert(NonLeaf &nonLeaf, LeafKey &leafKey) {
       return leaf_Insert(*(Leaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
     }
     else return nonLeaf_Insert(*(NonLeaf *)(nonLeaf.nonLeafKeys[l].p), leafKey);
-  } else if (pos==-1){
+  }
+  else if (pos==-1){
     //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
     cod preco_d = nonLeaf.nonLeafKeys[l-1].co_d;
     saxt prelsaxt = nonLeaf.nonLeafKeys[l-1].lsaxt;

@@ -49,21 +49,48 @@ void test_put(vector<LeafTimeKey>& leafKeys){
     db->Put(writeOptions, leafKeys[i]);
 //    cout<<"finish:"<<k++<<endl;
   }
+  for(int i=0;i<1000000;i++) {
+    db->Put(writeOptions, leafKeys[i]);
+//    cout<<"finish:"<<k++<<endl;
+  }
+  for(int i=0;i<1000000;i++) {
+    db->Put(writeOptions, leafKeys[i]);
+//    cout<<"finish:"<<k++<<endl;
+  }
+  for(int i=0;i<1000000;i++) {
+    db->Put(writeOptions, leafKeys[i]);
+//    cout<<"finish:"<<k++<<endl;
+  }
+//  for(int i=0;i<1000000;i++) {
+//    db->Put(writeOptions, leafKeys[i]);
+////    cout<<"finish:"<<k++<<endl;
+//  }
+//  for(int i=0;i<1000000;i++) {
+//    db->Put(writeOptions, leafKeys[i]);
+////    cout<<"finish:"<<k++<<endl;
+//  }
   over("put");
 }
 
 
 void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
-  ThreadPool pool(16);
+  ThreadPool *pool = new ThreadPool(10);
   leveldb::WriteOptions writeOptions;
   t1 = std::chrono::steady_clock::now();
   for(int i=0;i<1000000;i++) {
-      pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
+      pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
   }
   for(int i=0;i<1000000;i++) {
-    pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
+    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
   }
+  for(int i=0;i<1000000;i++) {
+    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
+  }
+  for(int i=0;i<1000000;i++) {
+    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[i]));
+  }
+
   over("put_multithread");
 //  ThreadPool pool(16);
 //  for(int i=0;i<10;i++) pool.enqueue(std::bind(&ea::add, &aa));
@@ -154,7 +181,7 @@ int main(){
 //  sleep(10);
 //  test_get_st(leafKeys);
 //
-  sleep(30);
+  sleep(20);
   out("finished");
   delete db;
 }

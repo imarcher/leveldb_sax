@@ -141,6 +141,7 @@ class LEVELDB_EXPORT Table {
    public:
     ST_Iter(Table* table);
     bool next(LeafKey& res);
+    void setPrefix(LeafKey& res);
     ~ST_Iter();
    private:
     inline void getSTLeaf();
