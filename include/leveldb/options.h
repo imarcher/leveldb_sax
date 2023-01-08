@@ -112,8 +112,8 @@ struct LEVELDB_EXPORT Options {
   // compactions and hence longer latency/performance hiccups.
   // Another reason to increase this parameter might be when you are
   // initially populating a large database.
-  //设大一点，设为16m
-  size_t max_file_size = 16 * 1024 * 1024;
+  //设大一点，设为160m
+  size_t max_file_size = 16 * 10 * 1024 * 1024;
 
   // Compress blocks using the specified compression algorithm.  This
   // parameter can be changed dynamically.

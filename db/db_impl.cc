@@ -803,7 +803,7 @@ void DBImpl::BackgroundCompaction() {
   Status status;
   if (c == nullptr) {
     // Nothing to do
-  } else if (!is_manual && c->IsTrivialMove()) {
+  } else if (false && !is_manual && c->IsTrivialMove()) {
     out("直接下移");
     //下一层没有与这个文件范围重叠的，直接移动
     // Move file to next level
@@ -1167,7 +1167,6 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // Close output file if it is big enough
     if (!tocompact_flag && compact->builder->FileSize() >=
         compact->compaction->MaxOutputFileSize()) {
-      out("要压缩");
       oldKey = leafKey;
       tocompact_flag = true;
       InternalKey ikey(Slice((char*)leafKey.asaxt.asaxt, sizeof(saxt_only)), 0, static_cast<ValueType>(0));
@@ -2560,11 +2559,17 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   vector<NonLeafKey> nonLeafKeys;
   newVector<LeafKey> leafKeys_(leafkeys_rep, 0, leafKeysNum);
   leaf_method::buildtree(leafKeys_, nonLeafKeys, Leaf_maxnum, Leaf_minnum);
+//  long long sum = 0;
+//  for(int i=0;i<nonLeafKeys.size();i++){
+//    sum += nonLeafKeys[i].co_d;
+//  }
+//  cout<< (double)sum / nonLeafKeys.size() << " "<<nonLeafKeys.size();
+//  exit(1);
   free(leafkeys_rep);
 
-  int drangesNum = (leafKeysNum - 1) / Table_maxnum + 1;
+  int drangesNum = leafKeysNum / Table_maxnum;
   //这个range的总数。
-  int averageNum = leafKeysNum / drangesNum;
+  int averageNum = leafKeysNum / drangesNum  - Leaf_minnum;
   //创建一个边界版本
 
 
@@ -2579,8 +2584,14 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
     towrite.push_back(0);
     writers_is.push_back(false);
     int sum = 0;
-    while (sum < averageNum && j < nonLeafKeys.size()){
-      sum += nonLeafKeys[j++].num;
+    if (i<drangesNum-1){
+      while (sum < averageNum && j < nonLeafKeys.size()){
+        sum += nonLeafKeys[j++].num;
+      }
+    } else {
+      while (j < nonLeafKeys.size()){
+        sum += nonLeafKeys[j++].num;
+      }
     }
     memNum.push_back(sum);
     memNum_period.push_back(0);
@@ -2811,9 +2822,9 @@ Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
 
   } else {
     Writes_vec& w = writers_vec[towrite[memId]][memId];
-    while (w.size_ == 256) {
+    while (w.size_ == 1024) {
       mutex_i->Unlock();
-      env_->SleepForMicroseconds(1000);
+      env_->SleepForMicroseconds(100000);
       mutex_i->Lock();
       w = writers_vec[towrite[memId]][memId];
     }
@@ -2896,12 +2907,12 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
       write_mutex[memId].Unlock();
-      out("等1ms");
-      env_->SleepForMicroseconds(1000);
+      out("等100ms");
+      env_->SleepForMicroseconds(100000);
       allow_delay = false;  // Do not delay a single write more than once
       write_mutex[memId].Lock();
     } else if (!force &&
-               (memNum[memId] <= Table_maxnum)) {
+               (memNum[memId] <= Table_maxnum - Leaf_minnum)) {
 //      if (memNum[memId]>99995){
 //        out("memId");
 //        out(memId);

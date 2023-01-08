@@ -27,7 +27,7 @@ class ST_merge {
 
   typedef pair<LeafKey, Table::ST_Iter*> PII;
 
-  PII vec[10];
+  PII vec[30];
   unsigned short vec_size;
 //  priority_queue<PII, vector<PII>, greater<PII> > heap;
   TableCache* cache;

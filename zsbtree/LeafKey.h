@@ -49,7 +49,7 @@ typedef struct{
 
 typedef struct Writes_vec{
   Writes_vec(): size_(0){}
-  LeafTimeKey keys[256];
+  LeafTimeKey keys[1024];
   int size_;
 } Writes_vec;
 

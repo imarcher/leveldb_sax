@@ -31,7 +31,7 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_), v
         Table::ST_Iter* stIter = new Table::ST_Iter(t);
         st_iters.insert(stIter);
         vec_size++;
-        assert(vec_size<=10);
+        assert(vec_size<=30);
         handles[stIter] = handle;
 //        cache->cache_->Release(handle);
         //更新时间
