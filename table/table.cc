@@ -63,9 +63,33 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
   Slice stNonLeaf_input;
   //开了空间的
   STNonLeaf* stNonLeaf = new STNonLeaf(real_rootkey->num, stNonLeaf_size);
-  s = file->Read(sTpos->GetOffset(), stNonLeaf_size,
+  s = file->Read(sTpos->GetOffset(), stNonLeaf_size + 1,
                  &stNonLeaf_input, stNonLeaf->rep);
+
+#if HAVE_SNAPPY
+  switch (stNonLeaf_input.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      stNonLeaf->Setrep(stNonLeaf_input.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(stNonLeaf_input.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(stNonLeaf_input.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stNonLeaf->Setrep1(ubuf);
+      stNonLeaf->size = ulength;
+      break;
+  }
+#else
   stNonLeaf->Setrep(stNonLeaf_input.data());
+#endif  // HAVE_SNAPPY
   stNonLeaf->Setisleaf();
 
   if (s.ok()) {
@@ -582,9 +606,31 @@ STLeaf* Table::ST_finder::getSTLeaf(STNonLeaf& nonLeaf, int i) {
   size_t stLeaf_size = sTpos.GetSize();
 //  out("geiSTLeaf");
   STLeaf* stLeaf = new STLeaf(nonLeaf.Getnum(i), stLeaf_size);
-  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size + 1,
                    &slice, stLeaf->rep);
+#if HAVE_SNAPPY
+  switch (slice.data()[stLeaf_size]) {
+    case kNoCompression:
+      stLeaf->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stLeaf->Setrep1(ubuf);
+      break;
+  }
+#else
   stLeaf->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
 //  out("geiSTLeaf完毕");
   return stLeaf;
 }
@@ -599,9 +645,32 @@ STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
 //  out(nonLeaf.Getnum(1));
 //  out((int)nonLeaf.Get_co_d(1));
   STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), stNonLeaf_size);
-  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size + 1,
                    &slice, stNonLeaf->rep);
+#if HAVE_SNAPPY
+  switch (slice.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      stNonLeaf->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stNonLeaf->Setrep1(ubuf);
+      stNonLeaf->size = ulength;
+      break;
+  }
+#else
   stNonLeaf->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   stNonLeaf->Setisleaf();
 //  out(stNonLeaf->Getnum(1));
 //  saxt_print(stNonLeaf->Get_lsaxt(1), stNonLeaf->prefix, stNonLeaf->co_d);
@@ -691,9 +760,31 @@ void Table::ST_Iter::getSTLeaf() {
 //  out((int)stLeaf_size);
   stLeaf.Set(nonLeaf.Getnum(i));
   if (stLeaf.ismmap) stLeaf.Setnewroom(sizeof(Leaf));
-  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size + 1,
                    &slice, stLeaf.rep);
+#if HAVE_SNAPPY
+  switch (slice.data()[stLeaf_size]) {
+    case kNoCompression:
+      stLeaf.Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stLeaf.Setrep1(ubuf);
+      break;
+  }
+#else
   stLeaf.Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   leaftop = -1;
 
 }
@@ -716,9 +807,32 @@ void Table::ST_Iter::getSTNonLeaf() {
     stNonLeaf->size = stNonLeaf_size;
     st_nonleaf_stack.push_back(stNonLeaf);
   }
-  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size + 1,
                    &slice, st_nonleaf_stack[top]->rep);
+#if HAVE_SNAPPY
+  switch (slice.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      st_nonleaf_stack[top]->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      st_nonleaf_stack[top]->Setrep1(ubuf);
+      st_nonleaf_stack[top]->size = ulength;
+      break;
+  }
+#else
   st_nonleaf_stack[top]->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   st_nonleaf_stack[top]->Setisleaf();
   nonleaftops[top] = -1;
 }

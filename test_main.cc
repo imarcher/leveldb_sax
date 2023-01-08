@@ -160,7 +160,7 @@ int main(){
   vector<LeafTimeKey> leafKeys;
   for(int i=0; i < datanum; i ++) {
     leafKeys.emplace_back();
-    fread(leafKeys.back().leafKey.asaxt.asaxt, sizeof(saxt_type), Bit_cardinality, data_file);
+    fread(&leafKeys.back().leafKey, sizeof(LeafKey), 1, data_file);
     if (leafKeys.back().leafKey.asaxt == as) s =true;
   }
   if (!s) out("出现不存在的");
@@ -175,8 +175,8 @@ int main(){
   sleep(3);
   //一组测试
   t1 = std::chrono::steady_clock::now();
-//  test_put(leafKeys);
-  test_put_multithread(leafKeys);
+  test_put(leafKeys);
+//  test_put_multithread(leafKeys);
 ////  test_rebalance_small(leafKeys);
 ////  test_st_compaction_0(leafKeys);
   t2 = std::chrono:: steady_clock::now();

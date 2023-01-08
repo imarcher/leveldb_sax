@@ -98,7 +98,6 @@ inline bool Snappy_Compress(const char* input, size_t length,
   (void)length;
   (void)output;
 #endif  // HAVE_SNAPPY
-
   return false;
 }
 

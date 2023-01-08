@@ -17,6 +17,8 @@ class STNonLeaf {
   STNonLeaf(size_t size);
   void Set(unsigned short num, size_t size);
   void Setrep(const char* newrep);
+  // snappy用
+  void Setrep1(const char* newrep);
   void Setisleaf();
   void Setnewroom(size_t size);
 

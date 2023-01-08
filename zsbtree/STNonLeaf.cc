@@ -58,5 +58,12 @@ void STNonLeaf::Setnewroom(size_t size) {
   ismmap = false;
 }
 
+void STNonLeaf::Setrep1(const char* newrep) {
+  if (!ismmap)
+    delete rep;
+  ismmap = false;
+  rep = const_cast<char*>(newrep);
+}
+
 
 
