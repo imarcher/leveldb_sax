@@ -4,6 +4,8 @@
 
 #include "mem_version_set.h"
 
+#include <utility>
+
 
 namespace leveldb {
 
@@ -34,12 +36,12 @@ void mems_boundary::Unref() {
     delete this;
   }
 }
+mems_boundary::mems_boundary(vector<saxt_only>& bounds1) :refs_(0) {
+    bounds = bounds1;
+}
 
-
-
-
-mem_version::mem_version(vector<MemTable*>& new_mems, mems_boundary* boundary)
-    : refs_(0), mems(new_mems), boundary(boundary) {
+mem_version::mem_version(vector<MemTable*> new_mems, mems_boundary* boundary)
+    : refs_(0), mems(std::move(new_mems)), boundary(boundary) {
   boundary->Ref();
   for (auto item : mems) item->Ref();
 }

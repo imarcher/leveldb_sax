@@ -27,8 +27,8 @@ static void send_master(char* a, size_t size_, const void* gs_jvm) {
 ////    }
 //    jclass cls = env->FindClass("leveldb_sax/db_send");
 //    jmethodID mid = env->GetStaticMethodID(cls, "send_edit", "([B)V");
-//    jbyteArray newArr = env->NewByteArray(sizeof(size_));
-//    env->SetByteArrayRegion(newArr, 0, sizeof(size_), (jbyte*)a);
+//    jbyteArray newArr = env->NewByteArray(size_);
+//    env->SetByteArrayRegion(newArr, 0, size_, (jbyte*)a);
 //    env->CallStaticObjectMethod(cls, mid, newArr);
 ////  if (isAttached) {
 ////    sm_playerVM->DetachCurrentThread();
@@ -46,8 +46,8 @@ static void find_tskey(char* a, size_t size_, char*& out, size_t& size_out, cons
   jclass cls = env->FindClass("leveldb_sax/db_send");
   jmethodID mid = env->GetStaticMethodID(cls, "find_tskey", "([B)[B");
 
-  jbyteArray newArr = env->NewByteArray(sizeof(size_));
-  env->SetByteArrayRegion(newArr, 0, sizeof(size_), (jbyte*)a);
+  jbyteArray newArr = env->NewByteArray(size_);
+  env->SetByteArrayRegion(newArr, 0, size_, (jbyte*)a);
 
 
   jbyteArray resArr = (jbyteArray)(env->CallStaticObjectMethod(cls, mid, newArr));

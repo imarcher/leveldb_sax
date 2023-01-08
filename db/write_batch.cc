@@ -149,17 +149,18 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(Writes_vec& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
+Status WriteBatchInternal::InsertInto(vector<LeafTimeKey>& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
   MemTableInserter inserter(memtable, mutex, memId, versionSet);
   int found = 0;
-  LeafTimeKey *data = b.keys;
-  for(;found<b.size_;found++){
-    inserter.SetTime(data[found].keytime);
+
+  for(auto item: b) {
+    found++;
+    inserter.SetTime(item.keytime);
     //我们添加进table 如果满了，重组
-    if (!inserter.Put(data[found].leafKey)) {
+    if (!inserter.Put(item.leafKey)) {
       out("重组");
-      out(memNum + found + 1);
-      int Nt = memNum + found + 1;
+      out(memNum + found);
+      int Nt = memNum + found;
       int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
 
       inserter.Rebalance(nt, nt/2, Nt);

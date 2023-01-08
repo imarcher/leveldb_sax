@@ -68,7 +68,7 @@ class CondVar {
   explicit CondVar(Mutex* mu) : mu_(mu) { assert(mu != nullptr); }
   ~CondVar() = default;
 
-  CondVar(const CondVar&) = delete;
+  CondVar(const CondVar& a) : mu_(a.mu_){};
   CondVar& operator=(const CondVar&) = delete;
 
   void Wait() {

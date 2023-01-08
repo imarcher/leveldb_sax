@@ -53,12 +53,17 @@ void test_put(vector<LeafTimeKey>& leafKeys){
 
 void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
-  ThreadPool *pool = new ThreadPool(1);
+  ThreadPool pool(4);
   leveldb::WriteOptions writeOptions;
   t1 = std::chrono::steady_clock::now();
-  for(int i=0;i<10000000;i++) {
-      pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[(i + 100000) % 1000000]));
+  int amem1 = 1e6;
+  for(int i=0;i<1e6*2;i++) {
+    for (int j=0;j<2;j++) {
+      pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions,
+                              leafKeys[(i + Table_maxnum * j) % amem1]));
+    }
   }
+
   over("put_multithread");
 //  ThreadPool pool(16);
 //  for(int i=0;i<10;i++) pool.enqueue(std::bind(&ea::add, &aa));
@@ -142,8 +147,8 @@ int main(){
   sleep(3);
   //一组测试
   t1 = std::chrono::steady_clock::now();
-  test_put(leafKeys);
-//  test_put_multithread(leafKeys);
+//  test_put(leafKeys);
+  test_put_multithread(leafKeys);
 ////  test_rebalance_small(leafKeys);
 ////  test_st_compaction_0(leafKeys);
   t2 = std::chrono:: steady_clock::now();

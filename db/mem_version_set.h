@@ -7,6 +7,8 @@
 
 #include <port/port_stdcxx.h>
 
+#include <utility>
+
 #include "memtable.h"
 #include "unordered_map"
 
@@ -36,14 +38,14 @@ class mems_todel {
 //创建这个不用ref
 class mems_boundary {
  public:
-  explicit mems_boundary(vector<saxt_only>& bounds) :refs_(0), bounds(bounds){}
 
+
+  explicit mems_boundary(vector<saxt_only> &bounds1);
   void Ref();
 
   void Unref();
 
   vector<saxt_only> bounds;
-
  private:
   int refs_;
 };
@@ -51,7 +53,7 @@ class mems_boundary {
 //创建这个不用ref
 class mem_version {
  public:
-  mem_version(vector<MemTable*> &new_mems, mems_boundary* boundary);
+  mem_version(vector<MemTable*> new_mems, mems_boundary* boundary);
 
   void Ref();
 

@@ -223,10 +223,10 @@ class DBImpl : public DB {
   //mem中统计一段时间内的插入数量
   vector<int> memNum_period;
   //写队列
-  vector<Writes_vec> writers_vec[2];
+  vector<vector<LeafTimeKey>> writers_vec[2];
   vector<int> towrite;
-
-  vector<bool> writers_is;
+  vector<port::CondVar> write_signal_;
+  bool writers_is[10];
   // im队列
   std::deque<std::pair<MemTable*, int>> imms GUARDED_BY(mutex_);
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
