@@ -40,11 +40,7 @@ typedef struct{
   ts_time keytime;
 } LeafTimeKey;
 
-typedef struct Writes_vec{
-  Writes_vec(): size_(0){}
-  LeafTimeKey keys[256];
-  int size_;
-} Writes_vec;
+
 
 
 

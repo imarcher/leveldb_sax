@@ -54,8 +54,8 @@ typedef unsigned char cod;
 
 
 //一个memtable存的数量
-#define Table_maxnum 100000
-
+#define Table_maxnum 1000000
+#define Init_Table_maxnum 999500
 
 
 //超过这个重构叶结点

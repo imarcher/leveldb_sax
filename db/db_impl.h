@@ -223,10 +223,11 @@ class DBImpl : public DB {
   //mem中统计一段时间内的插入数量
   vector<int> memNum_period;
   //写队列
-  vector<Writes_vec> writers_vec[2];
+  vector<vector<LeafTimeKey>> writers_vec[2];
   vector<int> towrite;
+  vector<port::CondVar> write_signal_;
+  bool writers_is[10];
 
-  vector<bool> writers_is;
   // im队列
   int imm_mun=0;
   std::deque<std::pair<MemTable*, int>> imms GUARDED_BY(mutex_);

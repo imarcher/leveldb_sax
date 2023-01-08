@@ -2563,9 +2563,9 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   leaf_method::buildtree(leafKeys_, nonLeafKeys, Leaf_maxnum, Leaf_minnum);
   free(leafkeys_rep);
 
-  int drangesNum = (leafKeysNum - 1) / Table_maxnum + 1;
+  int drangesNum = leafKeysNum / Table_maxnum;
   //这个range的总数。
-  int averageNum = leafKeysNum / drangesNum;
+  int averageNum = leafKeysNum / drangesNum - Leaf_minnum;
   //创建一个边界版本
 
 
@@ -2575,10 +2575,13 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
+    write_signal_.emplace_back(&write_mutex.back());
     writers_vec[0].emplace_back();
     writers_vec[1].emplace_back();
+    writers_vec[0].back().reserve(2048);
+    writers_vec[1].back().reserve(2048);
     towrite.push_back(0);
-    writers_is.push_back(false);
+    writers_is[i] = false;
     int sum = 0;
     while (sum < averageNum && j < nonLeafKeys.size()){
       sum += nonLeafKeys[j++].num;
@@ -2752,75 +2755,95 @@ Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
   port::Mutex* mutex_i = write_mutex.data() + memId;
   mutex_i->AssertHeld();
 
-// 在前面put锁了
-//  MutexLock l(mutex_i);
-  if (!writers_is[memId]) {
-    writers_is[memId] = true;
 
-    //插入一个
+  if (writers_is[memId]) {
+    //先删除一下没用的表
+    //有空的线程
+    vector<LeafTimeKey>* w = &writers_vec[towrite[memId]][memId];
+    w->push_back(key);
+    delete_mems(memsTodel.get());
+    if (w->size()>=2023) {
+      int id = w->size();
+      write_signal_[memId].Wait();
+      if (id!=2023) {
+        mutex_i->Unlock();
+        return Status();
+      }
+      while (!w->empty()) {
+        towrite[memId] = 1 - towrite[memId];
+        Status status = MakeRoomForWrite(false, memId);
+        assert(status.ok());
+        if (status.ok()) {  // nullptr batch is for compactions
+          int nowNum = memNum[memId];
+          memNum[memId] += w->size();
+          {
+            mutex_i->Unlock();
+            // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
+            if (status.ok()) {
+              //里面会有drange内的平衡
+              //        out("todoocharu");
+              status = WriteBatchInternal::InsertInto(*w, mems[memId], &mutex_Mem,
+                                                      nowNum, memId, &memSet);
+              //        out("finishcharu");
+              // 一个batch插入完后，在更新。
+            }
+            mutex_i->Lock();
+          }
+        }
+//    out(to_string(memId)+"解锁");
+        w->clear();
+        assert(&writers_vec[towrite[memId]][memId] != w);
+        w = &writers_vec[towrite[memId]][memId];
+        if (w->size()>=2023) {
+          write_signal_[memId].SignalAll();
+          mutex_i->Unlock();
+        }
+      }
+      writers_is[memId] = false;
+      mutex_i->Unlock();
+      return Status();
+
+    }
+    mutex_i->Unlock();
+    return Status();
+  }
+
+  vector<LeafTimeKey>* w = &writers_vec[towrite[memId]][memId];
+  writers_is[memId] = true;
+  w->push_back(key);
+  while (!w->empty()) {
+    towrite[memId] = 1 - towrite[memId];
     Status status = MakeRoomForWrite(false, memId);
+    assert(status.ok());
     if (status.ok()) {  // nullptr batch is for compactions
       int nowNum = memNum[memId];
-      memNum[memId] += 1;
+      memNum[memId] += w->size();
       {
         mutex_i->Unlock();
         // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
         if (status.ok()) {
           //里面会有drange内的平衡
           //        out("todoocharu");
-          status = WriteBatchInternal::InsertInto(
-              key, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
+          status = WriteBatchInternal::InsertInto(*w, mems[memId], &mutex_Mem,
+                                                  nowNum, memId, &memSet);
           //        out("finishcharu");
           // 一个batch插入完后，在更新。
         }
         mutex_i->Lock();
       }
     }
-
-
-    while (true) {
-      Writes_vec& w = writers_vec[towrite[memId]][memId];
-      if (!w.size_) {
-        writers_is[memId] = false;
-        mutex_i->Unlock();
-        break;
-      }
-
-      towrite[memId] = 1 - towrite[memId];
-
-      Status status = MakeRoomForWrite(false, memId);
-      if (status.ok()) {  // nullptr batch is for compactions
-        int nowNum = memNum[memId];
-        memNum[memId] += w.size_;
-        {
-          mutex_i->Unlock();
-          // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
-          if (status.ok()) {
-            //里面会有drange内的平衡
-            //        out("todoocharu");
-            status = WriteBatchInternal::InsertInto(
-                w, mems[memId], &mutex_Mem, nowNum, memId, &memSet);
-            //        out("finishcharu");
-            // 一个batch插入完后，在更新。
-          }
-          mutex_i->Lock();
-        }
-      }
-
-      w.size_ = 0;
-    }
-
-  } else {
-    Writes_vec& w = writers_vec[towrite[memId]][memId];
-    while (w.size_ == 256) {
+//    out(to_string(memId)+"解锁");
+    w->clear();
+    assert(&writers_vec[towrite[memId]][memId] != w);
+    w = &writers_vec[towrite[memId]][memId];
+    if (w->size()>=2023) {
+      write_signal_[memId].SignalAll();
       mutex_i->Unlock();
-      env_->SleepForMicroseconds(1000);
-      mutex_i->Lock();
-      w = writers_vec[towrite[memId]][memId];
     }
-    w.keys[w.size_++] = key;
-    mutex_i->Unlock();
   }
+
+  writers_is[memId] = false;
+  mutex_i->Unlock();
   return Status();
 }
 
@@ -2897,12 +2920,12 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
       write_mutex[memId].Unlock();
-      out("等1ms");
-      env_->SleepForMicroseconds(1000);
+      out("等100ms");
+      env_->SleepForMicroseconds(100000);
       allow_delay = false;  // Do not delay a single write more than once
       write_mutex[memId].Lock();
     } else if (!force &&
-               (memNum[memId] <= Table_maxnum)) {
+               (memNum[memId] <= Table_maxnum - Leaf_minnum)) {
 //      if (memNum[memId]>99995){
 //        out("memId");
 //        out(memId);

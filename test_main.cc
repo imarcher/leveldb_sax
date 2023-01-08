@@ -22,7 +22,7 @@ void boost::throw_exception(std::exception const & e){
 
 #define over(a) std::cout<<a<<" finished"<<std::endl
 
-int datanum = 1000 * 1000;
+int datanum = 1e7;
 leveldb::DB* db;
 leveldb::Options options;
 std::chrono::steady_clock::time_point t1;
@@ -40,57 +40,26 @@ void test_init(vector<LeafTimeKey>& leafKeys){
 void test_put(vector<LeafTimeKey>& leafKeys){
   leveldb::WriteOptions writeOptions;
   int k=0;
-  for(int i=0;i<1000000;i++) {
-    db->Put(writeOptions, leafKeys[i]);
-//    cout<<"finish:"<<k++<<endl;
+  int amem = 1e6;
+  int amem1 = 1e7;
+  for(int i=0;i<1e6;i++) {
+    for (int j=0;j<10;j++) {
+      db->Put(writeOptions, leafKeys[(i + amem*j) % amem1]);
+    }
   }
-  over("put============");
-  for(int i=0;i<1000000;i++) {
-    db->Put(writeOptions, leafKeys[i]);
-//    cout<<"finish:"<<k++<<endl;
-  }
-  for(int i=0;i<1000000;i++) {
-    db->Put(writeOptions, leafKeys[i]);
-//    cout<<"finish:"<<k++<<endl;
-  }
-  for(int i=0;i<1000000;i++) {
-    db->Put(writeOptions, leafKeys[i]);
-//    cout<<"finish:"<<k++<<endl;
-  }
-  for(int i=0;i<1000000;i++) {
-    db->Put(writeOptions, leafKeys[i]);
-//    cout<<"finish:"<<k++<<endl;
-  }
-//  for(int i=0;i<1000000;i++) {
-//    db->Put(writeOptions, leafKeys[i]);
-////    cout<<"finish:"<<k++<<endl;
-//  }
-//  for(int i=0;i<1000000;i++) {
-//    db->Put(writeOptions, leafKeys[i]);
-////    cout<<"finish:"<<k++<<endl;
-//  }
+
   over("put");
 }
 
 
 void test_put_multithread(vector<LeafTimeKey>& leafKeys){
 
-  ThreadPool *pool = new ThreadPool(2);
+  ThreadPool *pool = new ThreadPool(1);
   leveldb::WriteOptions writeOptions;
   t1 = std::chrono::steady_clock::now();
-  for(int i=0;i<1000000;i++) {
+  for(int i=0;i<10000000;i++) {
       pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[(i + 100000) % 1000000]));
   }
-  for(int i=0;i<1000000;i++) {
-    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[(i + 100000) % 1000000]));
-  }
-  for(int i=0;i<1000000;i++) {
-    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[(i + 100000) % 1000000]));
-  }
-  for(int i=0;i<1000000;i++) {
-    pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[(i + 100000) % 1000000]));
-  }
-
   over("put_multithread");
 //  ThreadPool pool(16);
 //  for(int i=0;i<10;i++) pool.enqueue(std::bind(&ea::add, &aa));
@@ -113,6 +82,7 @@ void test_st_compaction_0(vector<LeafTimeKey>& leafKeys){
     for(int j=i;j<leafKeys.size();j+=Table_maxnum)
       pool.enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, leafKeys[j]));
   }
+  sleep(10);
 //  leveldb::WriteOptions writeOptions;
 //  db->Put(writeOptions, leafKeys[0]);
 //  db->Put(writeOptions, leafKeys[200000]);
@@ -149,21 +119,15 @@ void test_get_st(vector<LeafTimeKey>& leafKeys){
 int main(){
 
 
-  char * filename = "../../data/saxt1000.bin";
+  char * filename = "../../data/saxt10000.bin";
   FILE * data_file;
   data_file = fopen (filename,"r");
-
-  bool s = false;
-  unsigned char aa[8] = {137, 222 ,248 ,133 ,34 ,8 ,240 ,31 };
-  saxt_only as(aa);
 
   vector<LeafTimeKey> leafKeys;
   for(int i=0; i < datanum; i ++) {
     leafKeys.emplace_back();
     fread(&leafKeys.back().leafKey, sizeof(LeafKey), 1, data_file);
-    if (leafKeys.back().leafKey.asaxt == as) s =true;
   }
-  if (!s) out("出现不存在的");
 
   string dir = "./testdb";
 
@@ -175,19 +139,19 @@ int main(){
   sleep(3);
   //一组测试
   t1 = std::chrono::steady_clock::now();
-  test_put(leafKeys);
+//  test_put(leafKeys);
 //  test_put_multithread(leafKeys);
 ////  test_rebalance_small(leafKeys);
 ////  test_st_compaction_0(leafKeys);
   t2 = std::chrono:: steady_clock::now();
-  std::cout << std::chrono::duration_cast<std::chrono::milliseconds>( t2-t1 ).count() <<"ms"<< std::endl;
+  std::cout <<"一共"<< std::chrono::duration_cast<std::chrono::milliseconds>( t2-t1 ).count() <<"ms"<< std::endl;
 //
 //
 ////  test_get_mem(leafKeys);
 ////  sleep(10);
 ////  test_get_st(leafKeys);
 ////
-  sleep(20);
+  sleep(10);
   out("finished");
   delete db;
 }
