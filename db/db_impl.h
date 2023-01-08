@@ -228,6 +228,7 @@ class DBImpl : public DB {
 
   vector<bool> writers_is;
   // im队列
+  int imm_mun=0;
   std::deque<std::pair<MemTable*, int>> imms GUARDED_BY(mutex_);
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;

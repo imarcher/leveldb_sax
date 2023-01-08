@@ -6,57 +6,33 @@
 
 #include "Cmp.h"
 
-LeafKey::LeafKey(saxt saxt_) {
-    memcpy(asaxt, saxt_, saxt_size);
-}
+LeafKey::LeafKey(saxt_only saxt_) : asaxt(saxt_){}
 
-void LeafKey::setAsaxt(saxt saxt_) {
-    memcpy(asaxt, saxt_, saxt_size);
+void LeafKey::setAsaxt(saxt_only saxt_) {
+    asaxt = saxt_;
 }
 
 LeafKey::LeafKey() {
 
 }
 
-LeafKey::LeafKey(saxt saxt_, void* p) {
-    memcpy(asaxt, saxt_, saxt_size);
-    this->p = p;
-}
+LeafKey::LeafKey(saxt_only saxt_, void* p): asaxt(saxt_), p(p){}
 
-LeafKey::LeafKey(saxt prefix, char* stleafkey, cod co_size, cod noco_size) {
-  memcpy(asaxt, prefix, co_size);
-  memcpy(((char*)asaxt)+co_size, stleafkey, noco_size);
-}
+
 
 
 bool LeafKey::operator<(const LeafKey& leafKey) const {
-  for (int i=0;i<Bit_cardinality;i++){
-    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] < leafKey.asaxt[i];
-    jishu++;
-  }
-  return false;
+  return asaxt < leafKey.asaxt;
 }
 
 bool LeafKey::operator>(const LeafKey& leafKey) const {
-  for (int i=0;i<Bit_cardinality;i++){
-    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] > leafKey.asaxt[i];
-    jishu++;
-  }
-  return false;
+  return asaxt > leafKey.asaxt;
 }
 
 bool LeafKey::operator<=(const LeafKey& leafKey) const {
-  for (int i=0;i<Bit_cardinality;i++){
-    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] < leafKey.asaxt[i];
-    jishu++;
-  }
-  return true;
+  return asaxt <= leafKey.asaxt;
 }
 
 bool LeafKey::operator>=(const LeafKey& leafKey) const {
-  for (int i=0;i<Bit_cardinality;i++){
-    if (asaxt[i] != leafKey.asaxt[i]) return asaxt[i] > leafKey.asaxt[i];
-    jishu++;
-  }
-  return true;
+  return asaxt >= leafKey.asaxt;
 }

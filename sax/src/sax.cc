@@ -189,9 +189,9 @@ enum response saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out) {
 
 
     free(paa);
-    for(int i=0; i<Bit_cardinality; i++) {
+    for(int i=Bit_cardinality-1; i>=0; i--) {
         for(int j=0; j<Segments; j++) {
-          saxt_out[i] |= ((sax_out[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
+          saxt_out[i] |= ((sax_out[j]>>(i)) & 1) << (Segments-j-1);
         }
     }
     free(sax_out);
@@ -245,9 +245,9 @@ enum response paa_saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out, ts_type *paa
   }
 
 
-  for(int i=0; i<Bit_cardinality; i++) {
+  for(int i=Bit_cardinality-1; i>=0; i--) {
     for(int j=0; j<Segments; j++) {
-      saxt_out[i] |= ((sax_out[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
+      saxt_out[i] |= ((sax_out[j]>>(i)) & 1) << (Segments-j-1);
     }
   }
   free(sax_out);
@@ -256,18 +256,18 @@ enum response paa_saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out, ts_type *paa
 
 enum response saxt_from_sax(sax_type *sax_in, saxt_type *saxt_out) {
 
-    for(int i=0; i<Bit_cardinality; i++) {
-        for(int j=0; j<Segments; j++) {
-            saxt_out[i] |= ((sax_in[j]>>(Bit_cardinality-i-1)) & 1) << (Segments-j-1);
-        }
+    for(int i=Bit_cardinality-1; i>=0; i--) {
+      for(int j=0; j<Segments; j++) {
+        saxt_out[i] |= ((sax_in[j]>>(i)) & 1) << (Segments-j-1);
+      }
     }
     return SUCCESS;
 }
 
 enum response sax_from_saxt(sax_type *saxt_in, saxt_type *sax_out) {
     for(int i=0; i<Segments; i++) {
-        for(int j=0; j<Bit_cardinality; j++) {
-            sax_out[i] |= (saxt_in[j]>>(Segments-i-1) & 1) << (Bit_cardinality-j-1);
+        for(int j=Bit_cardinality-1; j>=0; j--) {
+            sax_out[i] |= (saxt_in[j]>>(Segments-i-1) & 1) << (j);
         }
     }
     return SUCCESS;
@@ -329,6 +329,26 @@ void saxt_print(saxt_type *saxt) {
     printf("\n");
 }
 
+void saxt_print(saxt_only saxt) {
+  int i;
+  for (i=0; i < Bit_cardinality; i++) {
+//        printf("%d:\t", i);
+    std::cout<<(int)saxt.asaxt[i]<<" ";
+//        printbin(saxt[i], Segments);
+  }
+  printf("\n");
+}
+
+void leafkey_print(void* saxt) {
+  int i;
+  for (i=0; i < Bit_cardinality*2; i++) {
+//        printf("%d:\t", i);
+    std::cout<<(int)((unsigned char*)saxt)[i]<<" ";
+//        printbin(saxt[i], Segments);
+  }
+  printf("\n");
+}
+
 void saxt_print(saxt_type *saxt, saxt_type *prefix, cod co_d) {
     int i;
     for (i=0; i < co_d; i++) {
@@ -354,8 +374,8 @@ float minidist_paa_to_saxt(ts_type *paa, saxt saxt_, cod co_d) {
     // For each sax record find the break point
 
     for (int i=0; i<Segments; i++) {
-        for(int j=0; j<co_d; j++) {
-          sax[i] |= (saxt_[j]>>(Segments-i-1) & 1) << (co_d-j-1);
+        for(int j=co_d-1; j>=0; j--) {
+          sax[i] |= (saxt_[j]>>(Segments-i-1) & 1) << (j);
         }
         sax_type region = sax[i];
 
@@ -551,41 +571,15 @@ ts_type minidist_paa_to_isax_raw(ts_type *paa, sax_type *sax,
     return distance;
 }
 
-enum response saxt_copy(saxt_type *saxt_out, saxt_type *saxt_in){
-  memcpy(saxt_out, saxt_in, saxt_size);
-  return SUCCESS;
-}
 
 
 
-cod get_co_d_from_saxt(saxt a, saxt b) {
-    int d;
-    for(d=0; d<Bit_cardinality; d++){
-        if (a[d] != b[d]) return d;
-    }
-    return d;
-}
-
-cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d) {
-    int d = pre_d;
-    for(; d<Bit_cardinality; d++){
-        if (a[d] != b[d]) return d;
-    }
-    return d;
-}
 
 
-bool compare_saxt_d(saxt a, saxt b, cod d) {
-    return *(a + d - 1) == *(b + d - 1);
-}
 
-bool compare_saxt(saxt a, saxt b) {
-  int d=0;
-  for(d=0; d<Bit_cardinality; d++){
-    if (a[d] != b[d]) return false;
-  }
-  return true;
-}
+
+
+
 
 
 

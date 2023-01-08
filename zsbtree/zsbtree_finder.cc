@@ -9,7 +9,7 @@ void ZsbTree_finder::root_Get(NonLeaf &nonLeaf) {
     to_find_nonleaf = &nonLeaf;
     return;
   }
-  int pos = whereofKey(nonLeaf.lsaxt, nonLeaf.rsaxt, leafkey, 0);
+  int pos = zsbtreee_insert::whereofKey(nonLeaf.lsaxt, nonLeaf.rsaxt, leafkey);
   if (pos==0) nonLeaf_Get(nonLeaf);
   else if (pos==-1) {
     l_Get_NonLeaf(nonLeaf.nonLeafKeys[0]);
@@ -65,19 +65,19 @@ void ZsbTree_finder::nonLeaf_Get(NonLeaf &nonLeaf) {
   int r=nonLeaf.num-1;
   while (l<r) {
     int mid = (l + r) / 2;
-    if (saxt_cmp(leafkey, nonLeaf.nonLeafKeys[mid].rsaxt, nonLeaf.co_d)) r = mid;
+    if (leafkey <= nonLeaf.nonLeafKeys[mid].rsaxt) r = mid;
     else l = mid + 1;
   }
-  int pos = whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafkey, nonLeaf.co_d);
+  int pos = zsbtreee_insert::whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafkey);
   if (pos==0) {
     //里面
     nonLeaf_Get(*(NonLeaf *)(nonLeaf.nonLeafKeys[l].p));
   } else if (pos==-1){
     //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
     cod preco_d = nonLeaf.nonLeafKeys[l-1].co_d;
-    saxt prelsaxt = nonLeaf.nonLeafKeys[l-1].lsaxt;
+    saxt_only prelsaxt = nonLeaf.nonLeafKeys[l-1].lsaxt;
     cod nextco_d = nonLeaf.nonLeafKeys[l].co_d;
-    saxt nextrsaxt = nonLeaf.nonLeafKeys[l].rsaxt;
+    saxt_only nextrsaxt = nonLeaf.nonLeafKeys[l].rsaxt;
     cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey, nonLeaf.co_d);
     cod co_d2 = get_co_d_from_saxt(leafkey, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
@@ -97,9 +97,9 @@ void ZsbTree_finder::nonLeaf_Get(NonLeaf &nonLeaf) {
   } else {
     //后面有
     cod preco_d = nonLeaf.nonLeafKeys[l].co_d;
-    saxt prelsaxt = nonLeaf.nonLeafKeys[l].lsaxt;
+    saxt_only prelsaxt = nonLeaf.nonLeafKeys[l].lsaxt;
     cod nextco_d = nonLeaf.nonLeafKeys[l+1].co_d;
-    saxt nextrsaxt = nonLeaf.nonLeafKeys[l+1].rsaxt;
+    saxt_only nextrsaxt = nonLeaf.nonLeafKeys[l+1].rsaxt;
     cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey, nonLeaf.co_d);
     cod co_d2 = get_co_d_from_saxt(leafkey, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
@@ -121,26 +121,26 @@ void ZsbTree_finder::nonLeaf_Get(NonLeaf &nonLeaf) {
 
 
 void ZsbTree_finder::find_One(LeafKey* res, int& res_num) {
-  int pos = whereofKey(to_find_nonleaf->lsaxt, to_find_nonleaf->rsaxt, leafkey, 0);
+  int pos = zsbtreee_insert::whereofKey(to_find_nonleaf->lsaxt, to_find_nonleaf->rsaxt, leafkey);
   if (pos==0) {
     NonLeaf& nonLeaf = *to_find_nonleaf;
     int l=0;
     int r=nonLeaf.num-1;
     while (l<r) {
       int mid = (l + r) / 2;
-      if (saxt_cmp(leafkey, nonLeaf.nonLeafKeys[mid].rsaxt, nonLeaf.co_d)) r = mid;
+      if (leafkey < nonLeaf.nonLeafKeys[mid].rsaxt) r = mid;
       else l = mid + 1;
     }
-    pos = whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafkey, nonLeaf.co_d);
+    pos = zsbtreee_insert::whereofKey(nonLeaf.nonLeafKeys[l].lsaxt, nonLeaf.nonLeafKeys[l].rsaxt, leafkey);
     if (pos==0) {
       //里面
       leaf_Get((Leaf*)nonLeaf.nonLeafKeys[l].p, l, res, res_num);
     } else if (pos==-1){
       //前面有 先比相聚度下降程度,再看数量,但目前没有在非叶节点记录这种东西，所以这里直接比相聚度大小
       cod preco_d = nonLeaf.nonLeafKeys[l-1].co_d;
-      saxt prelsaxt = nonLeaf.nonLeafKeys[l-1].lsaxt;
+      saxt_only prelsaxt = nonLeaf.nonLeafKeys[l-1].lsaxt;
       cod nextco_d = nonLeaf.nonLeafKeys[l].co_d;
-      saxt nextrsaxt = nonLeaf.nonLeafKeys[l].rsaxt;
+      saxt_only nextrsaxt = nonLeaf.nonLeafKeys[l].rsaxt;
       cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey, nonLeaf.co_d);
       cod co_d2 = get_co_d_from_saxt(leafkey, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
@@ -160,9 +160,9 @@ void ZsbTree_finder::find_One(LeafKey* res, int& res_num) {
     } else {
       //后面有
       cod preco_d = nonLeaf.nonLeafKeys[l].co_d;
-      saxt prelsaxt = nonLeaf.nonLeafKeys[l].lsaxt;
+      saxt_only prelsaxt = nonLeaf.nonLeafKeys[l].lsaxt;
       cod nextco_d = nonLeaf.nonLeafKeys[l+1].co_d;
-      saxt nextrsaxt = nonLeaf.nonLeafKeys[l+1].rsaxt;
+      saxt_only nextrsaxt = nonLeaf.nonLeafKeys[l+1].rsaxt;
       cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey, nonLeaf.co_d);
       cod co_d2 = get_co_d_from_saxt(leafkey, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
@@ -192,7 +192,7 @@ void ZsbTree_finder::sort() {
     if(i!=oneId) {
       NonLeafKey& key = to_find_nonleaf->nonLeafKeys[i];
       if (key.co_d) {
-        has_cod.emplace_back(minidist_paa_to_saxt(paa, key.lsaxt, key.co_d), key.p);
+        has_cod.emplace_back(minidist_paa_to_saxt(paa, key.lsaxt.asaxt+Bit_cardinality-key.co_d, key.co_d), key.p);
       } else {
         no_has_cod.push_back(key.p);
       }

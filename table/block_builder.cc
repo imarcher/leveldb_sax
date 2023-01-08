@@ -98,59 +98,31 @@ Slice BlockBuilder::Finish() {
 
 
 void BlockBuilder::Add(Leaf* leaf) {
-  cod co_d = leaf->co_d;
-  size_t co_saxt_size = co_d * sizeof(saxt_type);
-  size_t noco_saxt_size = saxt_size - co_saxt_size + 8;
-  LeafKey* ls = leaf->leafKeys;
   //把共享的压缩掉
-  for(int i=0;i<leaf->num;i++){
-    buffer_.append(((char*)(ls[i].asaxt)) + co_saxt_size, noco_saxt_size);
-  }
+  buffer_.append((char*)leaf->leafKeys, sizeof(LeafKey)*leaf->num);
 
 }
 
 void BlockBuilder::Add(NonLeaf* nonLeaf, vector<void*> &new_p) {
-  cod co_d = nonLeaf->co_d;
-  size_t co_saxt_size = co_d * sizeof(saxt_type);
-  size_t noco_saxt_size = saxt_size - co_saxt_size;
-  for(int i=0;i<nonLeaf->num;i++){
-    NonLeafKey* nonLeafKey = nonLeaf->nonLeafKeys + i;
-    STkeyinfo stkeyinfo(nonLeafKey->co_d, nonLeafKey->num);
-    buffer_.append((char*)&stkeyinfo, 2);
-    buffer_.append(((char*)nonLeafKey->lsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append(((char*)nonLeafKey->rsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append((char*)(new_p.data()+i), 8);
-//    out("ADD==================handle");
-//    out(((STpos*)(new_p.data()+i))->GetSize());
-//    out(((STpos*)(new_p.data()+i))->GetOffset());
+  NonLeaf* newnonLeaf = (NonLeaf*)malloc(sizeof(NonLeaf));
+  memcpy(newnonLeaf, nonLeaf, sizeof(NonLeaf));
+  for(int i=0;i<newnonLeaf->num;i++){
+    newnonLeaf->nonLeafKeys[i].p = new_p[i];
   }
-  buffer_.append((char*)&(nonLeaf->isleaf),1);
+  buffer_.append((char*)newnonLeaf->nonLeafKeys, sizeof(NonLeafKey)*newnonLeaf->num);
+  buffer_.append((char*)&newnonLeaf->isleaf,1);
+  free(newnonLeaf);
 }
 
 void BlockBuilder::AddLeaf(NonLeafKey* nonLeafKey) {
-  cod co_d = nonLeafKey->co_d;
-  size_t co_saxt_size = co_d * sizeof(saxt_type);
-  size_t noco_saxt_size = saxt_size - co_saxt_size + 8;
   LeafKey* leafKeys = (LeafKey*)nonLeafKey->p;
   //把共享的压缩掉
-  for(int i=0;i<nonLeafKey->num;i++){
-    buffer_.append(((char*)(leafKeys + i)) + co_saxt_size, noco_saxt_size);
-  }
+  buffer_.append((char*)leafKeys, sizeof(LeafKey)*nonLeafKey->num);
 }
 
 void BlockBuilder::AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf) {
-  cod co_d = nonLeafKey->co_d;
-  size_t co_saxt_size = co_d * sizeof(saxt_type);
-  size_t noco_saxt_size = saxt_size - co_saxt_size;
   NonLeafKey* nonLeafKeys = (NonLeafKey*)nonLeafKey->p;
-  for(int i=0;i<nonLeafKey->num;i++){
-    NonLeafKey* nonLeafKey1 = nonLeafKeys + i;
-    STkeyinfo stkeyinfo(nonLeafKey1->co_d, nonLeafKey1->num);
-    buffer_.append((char*)&stkeyinfo, 2);
-    buffer_.append(((char*)nonLeafKey1->lsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append(((char*)nonLeafKey1->rsaxt) + co_saxt_size, noco_saxt_size);
-    buffer_.append((char *)&(nonLeafKey1->p), 8);
-  }
+  buffer_.append((char*)nonLeafKeys, sizeof(NonLeafKey)*nonLeafKey->num);
   buffer_.append((char*)&isleaf,1);
 }
 

@@ -25,7 +25,8 @@ class BytewiseComparatorImpl : public Comparator {
   const char* Name() const override { return "leveldb.BytewiseComparator"; }
 
   int Compare(const Slice& a, const Slice& b) const override {
-    return a.compare(b);
+//    return a.compare(b);
+    return compare_saxt(a.data(), b.data());
   }
 
   void FindShortestSeparator(std::string* start,

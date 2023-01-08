@@ -11,25 +11,16 @@ class LeafKey {
 public:
 
     LeafKey();
-    LeafKey(saxt saxt_);
-    LeafKey(saxt saxt_, void* p);
-    LeafKey(saxt prefix, char* stleafkey, cod co_size, cod noco_size);
-
-
-    inline void Set(saxt prefix, char* stleafkey, cod co_size, cod noco_size) {
-      memcpy(asaxt, prefix, co_size);
-      memcpy(((char*)asaxt)+co_size, stleafkey, noco_size);
+    LeafKey(saxt_only saxt_);
+    LeafKey(saxt_only saxt_, void* p);
+    LeafKey(saxt_only prefix, char* stleafkey, cod noco_size) {
+      asaxt = prefix;
+      memcpy(this, stleafkey, noco_size);
     }
 
-    inline void Set1(saxt prefix, cod co_size) {
-      memcpy(asaxt, prefix, co_size);
-    }
 
-    inline void Set2(char* stleafkey, cod co_size, cod noco_size) {
-      memcpy(((char*)asaxt)+co_size, stleafkey, noco_size);
-    }
 
-    void setAsaxt(saxt saxt_);
+    void setAsaxt(saxt_only saxt_);
 
     bool operator< (const LeafKey& leafKey) const ;
 
@@ -39,9 +30,8 @@ public:
 
     bool operator>= (const LeafKey& leafKey) const ;
 
-
-    saxt_type asaxt[Bit_cardinality];
     void* p;
+    saxt_only asaxt;
 };
 
 

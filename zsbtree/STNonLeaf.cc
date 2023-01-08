@@ -5,15 +5,8 @@
 #include "STNonLeaf.h"
 
 
-STNonLeaf::STNonLeaf(unsigned short num, cod co_d, size_t size) {
+STNonLeaf::STNonLeaf(unsigned short num, size_t size) {
   this->num = num;
-  this->co_d = co_d;
-  co_size = co_d * sizeof(saxt_type);
-  lkey_size = saxt_size - co_size;
-  s_co_size = lkey_size;
-  pos_size = (lkey_size << 1) + 2;
-  lkey_size += 2;
-  noco_size = pos_size + 8;
   rep = new char[size];
   this->size = size;
   isleaf = false;
@@ -26,15 +19,8 @@ STNonLeaf::STNonLeaf(size_t size) {
   isleaf = false;
 }
 
-void STNonLeaf::Set(unsigned short num, cod co_d, size_t size) {
+void STNonLeaf::Set(unsigned short num, size_t size) {
   this->num = num;
-  this->co_d = co_d;
-  co_size = co_d * sizeof(saxt_type);
-  lkey_size = saxt_size - co_size;
-  s_co_size = lkey_size;
-  pos_size = (lkey_size << 1) + 2;
-  lkey_size += 2;
-  noco_size = pos_size + 8;
   this->size = size;
 }
 
@@ -54,16 +40,17 @@ STNonLeaf::~STNonLeaf() {
 }
 
 cod STNonLeaf::Get_co_d(int i) {
-  return ((STkeyinfo*)(rep + i * noco_size))->GetCo_d();
+  return ((NonLeafKey*)rep)[i].co_d;
 }
 int STNonLeaf::Getnum(int i) {
-  return ((STkeyinfo*)(rep + i * noco_size))->GetNum();
+  return ((NonLeafKey*)rep)[i].num;
 }
-saxt STNonLeaf::Get_lsaxt(int i) { return (saxt)(rep + i * noco_size + 2); }
-saxt STNonLeaf::Get_rsaxt(int i) { return (saxt)(rep + i * noco_size + lkey_size); }
+
+saxt_only STNonLeaf::Get_lsaxt(int i) { return ((NonLeafKey*)rep)[i].lsaxt; }
+saxt_only STNonLeaf::Get_rsaxt(int i) { return ((NonLeafKey*)rep)[i].rsaxt; }
 
 STpos STNonLeaf::Get_pos(int i) {
-  return *((STpos*)(rep + i * noco_size + pos_size));
+  return *((STpos*)(&(((NonLeafKey*)rep)[i].p)));
 }
 
 void STNonLeaf::Setnewroom(size_t size) {
@@ -71,13 +58,5 @@ void STNonLeaf::Setnewroom(size_t size) {
   ismmap = false;
 }
 
-void STNonLeaf::Setprefix(saxt prefix, saxt stleafkey, cod co_size,
-                          cod noco_size) {
-  memcpy(this->prefix, prefix, co_size);
-  memcpy(((char*)(this->prefix))+co_size, stleafkey, noco_size);
-}
-void STNonLeaf::Setprefix(saxt prefix1) {
-  memcpy(prefix, prefix1, saxt_size);
-}
 
 

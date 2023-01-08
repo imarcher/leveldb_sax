@@ -180,9 +180,6 @@ void TableBuilder::Add_dfs(NonLeaf* nonLeaf) {
       r->data_block.Add(aleaf);
       //取消了手动flush，改成每4kb写入了
       Flush();
-//      out("handle");
-//          out(r->pending_handle.GetSize());
-//          out(r->pending_handle.GetOffset());
       new_p.push_back(r->pending_handle.Get());
 
     }

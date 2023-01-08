@@ -23,6 +23,8 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_), v
 //      out("afile");
 //      out(file->number);
 //      out(file->file_size);
+//      saxt_print(file->smallest.user_key().data());
+//      saxt_print(file->largest.user_key().data());
       if (s.ok()) {
 //        out("ok");
         Table* t = reinterpret_cast<TableAndFile*>(cache->cache_->Value(handle))->table;
@@ -44,12 +46,12 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_), v
 
 
 
-
   int i = 0;
   for(auto item: st_iters) {
-    item->setPrefix(vec[i].first);
     if (item->next(vec[i].first)) {
       vec[i].second = item;
+//      out("vec[i].first");
+//      saxt_print(vec[i].first.asaxt);
     }
     else {
       del(item);
@@ -78,11 +80,10 @@ bool ST_merge::next(LeafKey& leafKey) {
 //
   if (vec_size) {
     int res = 0;
-    LeafKey& minLeafKey = vec[0].first;
+    leafKey = vec[0].first;
     for (int i=1;i<vec_size;i++) {
-      if (minLeafKey > vec[i].first) minLeafKey = vec[i].first, res = i;
+      if (leafKey > vec[i].first) leafKey = vec[i].first, res = i;
     }
-    leafKey = minLeafKey;
     if (!vec[res].second->next(vec[res].first)) {
       del(vec[res].second);
       vec_size--;
@@ -90,6 +91,7 @@ bool ST_merge::next(LeafKey& leafKey) {
         vec[i] = vec[i+1];
       }
     }
+
     return true;
   }
   return false;

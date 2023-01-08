@@ -6,32 +6,32 @@
 
 
 
-NonLeafKey::NonLeafKey(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p) {
+NonLeafKey::NonLeafKey(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, void *p) {
     this->num = num;
     this->co_d = co_d;
-    memcpy(this->lsaxt, lsaxt, saxt_size);
-    memcpy(this->rsaxt, rsaxt, saxt_size);
+    this->lsaxt = lsaxt;
+    this->rsaxt = rsaxt;
     this->p = p;
 }
 
 
-void NonLeafKey::setLsaxt(saxt saxt_) {
-    memcpy(lsaxt, saxt_, saxt_size);
+void NonLeafKey::setLsaxt(saxt_only saxt_) {
+    lsaxt = saxt_;
 }
 
-void NonLeafKey::setRsaxt(saxt saxt_) {
-    memcpy(rsaxt, saxt_, saxt_size);
+void NonLeafKey::setRsaxt(saxt_only saxt_) {
+    rsaxt = saxt_;
 }
 
 NonLeafKey::NonLeafKey() {
 
 }
 
-void NonLeafKey::Set(int num, cod co_d, saxt lsaxt, saxt rsaxt, void* p) {
+void NonLeafKey::Set(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, void* p) {
   this->num = num;
   this->co_d = co_d;
-  memcpy(this->lsaxt, lsaxt, saxt_size);
-  memcpy(this->rsaxt, rsaxt, saxt_size);
+  this->lsaxt = lsaxt;
+  this->rsaxt = rsaxt;
   this->p = p;
 }
 

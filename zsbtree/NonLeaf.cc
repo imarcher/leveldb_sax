@@ -6,12 +6,12 @@
 
 
 
-NonLeaf::NonLeaf(int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt, NonLeafKey *nonLeafKeys) {
+NonLeaf::NonLeaf(int num, cod co_d, bool isleaf, saxt_only lsaxt, saxt_only rsaxt, NonLeafKey *nonLeafKeys) {
     this->num = num;
     this->co_d = co_d;
     this->isleaf = isleaf;
-    memcpy(this->lsaxt, lsaxt, saxt_size);
-    memcpy(this->rsaxt, rsaxt, saxt_size);
+    this->lsaxt = lsaxt;
+    this->rsaxt = rsaxt;
     memcpy(this->nonLeafKeys, nonLeafKeys, sizeof(NonLeafKey) * num);
 }
 
@@ -27,12 +27,12 @@ void NonLeaf::add(NonLeafKey *nonLeafKeys, int num) {
 }
 
 
-void NonLeaf::setLsaxt(saxt saxt_) {
-    memcpy(lsaxt, saxt_, saxt_size);
+void NonLeaf::setLsaxt(saxt_only saxt_) {
+    lsaxt = saxt_;
 }
 
-void NonLeaf::setRsaxt(saxt saxt_) {
-    memcpy(rsaxt, saxt_, saxt_size);
+void NonLeaf::setRsaxt(saxt_only saxt_) {
+    rsaxt = saxt_;
 }
 
 

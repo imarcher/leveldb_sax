@@ -560,8 +560,14 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   if (s.ok() && meta.file_size > 0) {
     const Slice min_user_key = meta.smallest.user_key();
     const Slice max_user_key = meta.largest.user_key();
+    out("压缩st0========");
+    out("最大最小");
+    saxt_print(min_user_key.data());
+    saxt_print(max_user_key.data());
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
+      out("level");
+      out(level);
     }
     out("=================filenumber:"+to_string(meta.number));
     out("=================file_size:"+to_string(meta.file_size));
@@ -600,8 +606,8 @@ void DBImpl::CompactMemTable() {
     s = versions_->LogAndApply(&edit, &mutex_);
   }
 
-
-
+  imm_mun++;
+  out("压缩了一个im："+to_string(imm_mun));
 
   if (s.ok()) {
     // Commit to the new state
@@ -798,7 +804,7 @@ void DBImpl::BackgroundCompaction() {
   Status status;
   if (c == nullptr) {
     // Nothing to do
-  } else if (!is_manual && c->IsTrivialMove()) {
+  } else if (false && !is_manual && c->IsTrivialMove()) {
     out("直接下移");
     //下一层没有与这个文件范围重叠的，直接移动
     // Move file to next level
@@ -971,6 +977,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     out("压缩合并输出一个文件");
     out(out.number);
     out(out.file_size);
+    out(level);
     out("最小最大");
     saxt_print((saxt)out.smallest.user_key().data());
     saxt_print((saxt)out.largest.user_key().data());
@@ -1089,7 +1096,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
     /* 一百年用不上，但是耗时20%
     //internalkey
-    InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+    InternalKey ikey(Slice((char*)leafKey.asaxt, sizeof(saxt_only)), 0, static_cast<ValueType>(0));
     Slice key = ikey.Encode();
     //和level+2中很多文件重合了
     if (compact->compaction->ShouldStopBefore(key) &&
@@ -1097,7 +1104,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      out("重合了");
 //      out("largest");
 //      saxt_print(zsbtreeBuild->GetLastLeafKey()->asaxt);
-      InternalKey ikey1(Slice((char*)(zsbtreeBuild->GetLastLeafKey()->asaxt), saxt_size), 0, static_cast<ValueType>(0));
+      InternalKey ikey1(Slice((char*)(zsbtreeBuild->GetLastLeafKey()->asaxt), sizeof(saxt_only)), 0, static_cast<ValueType>(0));
       Slice key1 = ikey1.Encode();
       compact->current_output()->largest.DecodeFrom(key1);
       zsbtreeBuild->finish();
@@ -1114,15 +1121,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if (tocompact_flag && leafKey > oldKey) {
 
       out("压缩文件");
-      out("largest");
-      saxt_print(oldKey.asaxt);
-      saxt_print(leafKey.asaxt);
+//      out("largest");
+//      saxt_print(oldKey.asaxt.asaxt);
+//      saxt_print(leafKey.asaxt.asaxt);
       zsbtreeBuild->finish();
       compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
-      out("zsb层数："+to_string(zsbtreeBuild->nonleafkeys.size()-1));
-      saxt_print(zsbtreeBuild->GetRootKey()->rsaxt);
-      saxt_print((saxt)compact->current_output()->largest.user_key().data());
-      assert(compare_saxt(zsbtreeBuild->GetRootKey()->rsaxt, (saxt)compact->current_output()->largest.user_key().data()));
+
+      assert(zsbtreeBuild->GetRootKey()->rsaxt == saxt_only(compact->current_output()->largest.user_key().data()));
       delete zsbtreeBuild;
       status = FinishCompactionOutputFile(compact);
       if (!status.ok()) {
@@ -1150,7 +1155,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      out("small");
 //      saxt_print(leafKey.asaxt);
       zsbtreeBuild = new ST_Conmpaction(Leaf_maxnum, Leaf_minnum, compact->builder);
-      InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+      InternalKey ikey(Slice((char*)leafKey.asaxt.asaxt, sizeof(saxt_only)), 0, static_cast<ValueType>(0));
       Slice key = ikey.Encode();
       compact->current_output()->smallest.DecodeFrom(key);
     }
@@ -1166,7 +1171,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       out("要压缩");
       oldKey = leafKey;
       tocompact_flag = true;
-      InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+      InternalKey ikey(Slice((char*)leafKey.asaxt.asaxt, sizeof(saxt_only)), 0, static_cast<ValueType>(0));
       Slice key = ikey.Encode();
       compact->current_output()->largest.DecodeFrom(key);
     }
@@ -1181,14 +1186,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //  out("完成压缩");
   if (status.ok() && compact->builder != nullptr) {
     out("压缩清尾");
-    out("largest");
-    saxt_print(leafKey.asaxt);
-    InternalKey ikey(Slice((char*)leafKey.asaxt, saxt_size), 0, static_cast<ValueType>(0));
+//    out("largest");
+//    saxt_print(leafKey.asaxt.asaxt);
+    InternalKey ikey(Slice((char*)leafKey.asaxt.asaxt, sizeof(saxt_only)), 0, static_cast<ValueType>(0));
     Slice key = ikey.Encode();
     compact->current_output()->largest.DecodeFrom(key);
     zsbtreeBuild->finish();
     compact->builder->AddRootKey(zsbtreeBuild->GetRootKey());
-    assert(compare_saxt(zsbtreeBuild->GetRootKey()->rsaxt, (saxt)compact->current_output()->largest.user_key().data()));
+    assert(zsbtreeBuild->GetRootKey()->rsaxt == saxt_only(compact->current_output()->largest.user_key().data()));
     delete zsbtreeBuild;
     status = FinishCompactionOutputFile(compact);
   }
@@ -1217,6 +1222,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
   out("compacted to: "+ (string)versions_->LevelSummary(&tmp));
+
+//  exit(1);
   return status;
 }
 
@@ -1348,7 +1355,7 @@ Status DBImpl::Get(const aquery& aquery1,
     vector<saxt_only>& this_bounds = this_mem_version->boundary->bounds;
     int i = 1;
     for(;i<mems.size();i++){
-      if (!saxt_cmp(this_bounds[i].asaxt, (saxt)aquery1.asaxt))
+      if (this_bounds[i] > aquery1.asaxt)
         break;
     }
     MemTable* this_mem = this_mem_version->mems[i-1];
@@ -1421,7 +1428,7 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
   charcpy(add_info, &aquery1.rep, sizeof(aquery_rep));
   charcpy(add_info, &aquery1.k, sizeof(int));
 
-  ZsbTree_finder Finder((saxt)aquery1.asaxt, (ts_type*)aquery1.paa);
+  ZsbTree_finder Finder(aquery1.asaxt, (ts_type*)aquery1.paa);
   Finder.root_Get(*(to_find_mem->GetRoot()));
 
   //必找的一个点
@@ -1929,7 +1936,7 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
   uint64_t filesize = this_ver->GetSize(st_number);
   Cache::Handle* file_handle = nullptr;
   Table* t = versions_->table_cache_->Get(st_number, filesize, file_handle);
-  Table::ST_finder Finder(t, (saxt)aquery1.asaxt, (ts_type*)aquery1.paa);
+  Table::ST_finder Finder(t, aquery1.asaxt, (ts_type*)aquery1.paa);
 
   Finder.root_Get();
 
@@ -2454,7 +2461,7 @@ Status DBImpl::Get_st(const ReadOptions& options, saxt key, vector<LeafKey>& lea
   {
     mutex_.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
-    LookupKey key1(Slice((char*)key, saxt_size), 0);
+    LookupKey key1(Slice((char*)key, sizeof(saxt_only)), 0);
     s = current->Get(options, key1, leafKeys, &stats);
     have_stat_update = true;
 
@@ -2512,28 +2519,29 @@ Status DBImpl::Put(const WriteOptions& o, LeafTimeKey& key) {
   // 找到对应的drange
   // 二分
   int l = 0;
-//  int r = mems.size()-1;
-//  mutex_Mem.Lock();
-//  while (l < r) {
-//    int mid = (l + r + 1) / 2;
-//    if (saxt_cmp((saxt)bounds[mid].asaxt, (saxt)key.leafKey.asaxt)) l = mid;
-//    else r = mid - 1;
-//  }
+  int r = mems.size()-1;
+
+  while (l < r) {
+    int mid = (l + r + 1) / 2;
+    if (bounds[mid] <= key.leafKey.asaxt) l = mid;
+    else r = mid - 1;
+  }
+  write_mutex[l].Lock();
 
   //读写锁
-  {
-//    boost::shared_lock<boost::shared_mutex> lock1(range_mutex);
-
-    //顺序
-    int i = 1;
-    for(;i<mems.size();i++){
-      if (!saxt_cmp(bounds[i].asaxt, (saxt)key.leafKey.asaxt))
-        break;
-    }
-    l = i - 1;
-    //必须要插入这个表了
-    write_mutex[l].Lock();
-  }
+//  {
+////    boost::shared_lock<boost::shared_mutex> lock1(range_mutex);
+//
+//    //顺序
+//    int i = 1;
+//    for(;i<mems.size();i++){
+//      if (bounds[i] > key.leafKey.asaxt)
+//        break;
+//    }
+//    l = i - 1;
+//    //必须要插入这个表了
+//    write_mutex[l].Lock();
+//  }
 
 
   memNum_period[l]++;
@@ -2563,7 +2571,7 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
 
   //贪心 返回起始位置
   int timeid = 0;
-  saxt last_r_saxt;
+  saxt_only last_r_saxt;
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
@@ -2600,17 +2608,16 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
       bounds.push_back(newsaxt);
     } else {
       //返回第一个不同的中间的数，后面赋值全1和全0
-      saxt l_saxt = newMem->Getlsaxt();
+      saxt_only l_saxt = newMem->Getlsaxt();
       cod co_d = get_co_d_from_saxt(last_r_saxt, l_saxt);
       if (co_d == 8){
-        bounds.push_back(*(saxt_only*)l_saxt);
+        bounds.push_back(l_saxt);
       } else {
-        int mid = (l_saxt[co_d] + last_r_saxt[co_d]) / 2;
-        if (mid == last_r_saxt[co_d]) mid++;
-        saxt_only newsaxt;
-        memcpy(newsaxt.asaxt, l_saxt, co_d*sizeof(saxt_type));
-        newsaxt.asaxt[co_d] = mid;
-        memset(newsaxt.asaxt+co_d+1, 0, (Bit_cardinality - co_d - 1)*sizeof(saxt_type));
+        int mid = (l_saxt.asaxt[Bit_cardinality-1-co_d] + last_r_saxt.asaxt[Bit_cardinality-1-co_d]) / 2;
+        if (mid == last_r_saxt.asaxt[Bit_cardinality-1-co_d]) mid++;
+        saxt_only newsaxt = l_saxt;
+        newsaxt.asaxt[Bit_cardinality-1-co_d] = mid;
+        memset(newsaxt.asaxt, 0, (Bit_cardinality - co_d - 1)*sizeof(saxt_type));
         bounds.push_back(newsaxt);
       }
     }

@@ -13,12 +13,12 @@ class NonLeaf {
 public:
 
 
-    NonLeaf(int num, cod co_d, bool isleaf, saxt lsaxt, saxt rsaxt, NonLeafKey *nonLeafKeys);
+    NonLeaf(int num, cod co_d, bool isleaf, saxt_only lsaxt, saxt_only rsaxt, NonLeafKey *nonLeafKeys);
     //添加一个saxt，p
     void add(NonLeafKey &nonLeafKey);
     void add(NonLeafKey *nonLeafKeys, int num);
-    void setLsaxt(saxt saxt_);
-    void setRsaxt(saxt saxt_);
+    void setLsaxt(saxt_only saxt_);
+    void setRsaxt(saxt_only saxt_);
     //有几个
     int num = 0;
     //相聚度
@@ -26,8 +26,8 @@ public:
     //代表下一个是不是叶子
     bool isleaf;
     //公共前缀
-    saxt_type lsaxt[Bit_cardinality];
-    saxt_type rsaxt[Bit_cardinality];
+    saxt_only lsaxt;
+    saxt_only rsaxt;
     //叶结点中的key元组
     NonLeafKey nonLeafKeys[Leaf_maxnum];
 };
