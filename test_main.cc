@@ -123,9 +123,9 @@ void test_get_mem(vector<LeafTimeKey>& leafKeys){
   vector<LeafKey> res;
 
 
-  saxt_print(res[0].asaxt);
-  saxt_print(res.back().asaxt);
-  saxt_print(leafKeys[1000000-1].leafKey.asaxt);
+  saxt_print(res[0].asaxt.asaxt);
+  saxt_print(res.back().asaxt.asaxt);
+  saxt_print(leafKeys[1000000-1].leafKey.asaxt.asaxt);
   out("size:"+to_string(res.size()));
   over("get_mem");
 }
@@ -153,11 +153,17 @@ int main(){
   FILE * data_file;
   data_file = fopen (filename,"r");
 
+  bool s = false;
+  unsigned char aa[8] = {137, 222 ,248 ,133 ,34 ,8 ,240 ,31 };
+  saxt_only as(aa);
+
   vector<LeafTimeKey> leafKeys;
   for(int i=0; i < datanum; i ++) {
     leafKeys.emplace_back();
-    fread(leafKeys.back().leafKey.asaxt, sizeof(saxt_type), Bit_cardinality, data_file);
+    fread(&leafKeys.back().leafKey, sizeof(LeafKey), 1, data_file);
+    if (leafKeys.back().leafKey.asaxt == as) s =true;
   }
+  if (!s) out("出现不存在的");
 
   string dir = "./testdb";
 
@@ -170,18 +176,18 @@ int main(){
   //一组测试
   t1 = std::chrono::steady_clock::now();
   test_put(leafKeys);
-//  test_put_multithread(leafKeys);
-//  test_rebalance_small(leafKeys);
-//  test_st_compaction_0(leafKeys);
+////  test_put_multithread(leafKeys);
+////  test_rebalance_small(leafKeys);
+////  test_st_compaction_0(leafKeys);
   t2 = std::chrono:: steady_clock::now();
   std::cout << std::chrono::duration_cast<std::chrono::milliseconds>( t2-t1 ).count() <<"ms"<< std::endl;
-
-
-//  test_get_mem(leafKeys);
-//  sleep(10);
-//  test_get_st(leafKeys);
 //
-  sleep(20);
+//
+////  test_get_mem(leafKeys);
+////  sleep(10);
+////  test_get_st(leafKeys);
+////
+  sleep(10);
   out("finished");
   delete db;
 }

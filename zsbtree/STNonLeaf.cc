@@ -9,7 +9,7 @@ STNonLeaf::STNonLeaf(unsigned short num, cod co_d, size_t size) {
   this->num = num;
   this->co_d = co_d;
   co_size = co_d * sizeof(saxt_type);
-  lkey_size = saxt_size - co_size;
+  lkey_size = sizeof(saxt_only) - co_size;
   s_co_size = lkey_size;
   pos_size = (lkey_size << 1) + 2;
   lkey_size += 2;
@@ -30,11 +30,10 @@ void STNonLeaf::Set(unsigned short num, cod co_d, size_t size) {
   this->num = num;
   this->co_d = co_d;
   co_size = co_d * sizeof(saxt_type);
-  lkey_size = saxt_size - co_size;
+  lkey_size = sizeof(saxt_only) - co_size;
   s_co_size = lkey_size;
-  pos_size = (lkey_size << 1) + 2;
-  lkey_size += 2;
-  noco_size = pos_size + 8;
+  noco_size = (lkey_size << 1) + 10;
+  lkey_size += 10;
   this->size = size;
 }
 
@@ -59,11 +58,11 @@ cod STNonLeaf::Get_co_d(int i) {
 int STNonLeaf::Getnum(int i) {
   return ((STkeyinfo*)(rep + i * noco_size))->GetNum();
 }
-saxt STNonLeaf::Get_lsaxt(int i) { return (saxt)(rep + i * noco_size + 2); }
+saxt STNonLeaf::Get_lsaxt(int i) { return (saxt)(rep + i * noco_size + 10); }
 saxt STNonLeaf::Get_rsaxt(int i) { return (saxt)(rep + i * noco_size + lkey_size); }
 
 STpos STNonLeaf::Get_pos(int i) {
-  return *((STpos*)(rep + i * noco_size + pos_size));
+  return *((STpos*)(rep + i * noco_size + 2));
 }
 
 void STNonLeaf::Setnewroom(size_t size) {
@@ -71,13 +70,18 @@ void STNonLeaf::Setnewroom(size_t size) {
   ismmap = false;
 }
 
-void STNonLeaf::Setprefix(saxt prefix, saxt stleafkey, cod co_size,
+void STNonLeaf::Setprefix(saxt_only prefix, saxt stleafkey,
                           cod noco_size) {
-  memcpy(this->prefix, prefix, co_size);
-  memcpy(((char*)(this->prefix))+co_size, stleafkey, noco_size);
+  this->prefix = prefix;
+  memcpy(this->prefix.asaxt, stleafkey, noco_size);
 }
-void STNonLeaf::Setprefix(saxt prefix1) {
-  memcpy(prefix, prefix1, saxt_size);
+void STNonLeaf::Setprefix(saxt_only prefix1) {
+  this->prefix = prefix1;
 }
 
-
+void STNonLeaf::Setrep1(const char* newrep) {
+  if (!ismmap)
+    delete rep;
+  ismmap = false;
+  rep = const_cast<char*>(newrep);
+}

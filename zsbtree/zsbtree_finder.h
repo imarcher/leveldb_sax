@@ -13,8 +13,8 @@
 class ZsbTree_finder{
  public:
   
-  ZsbTree_finder(saxt saxt_, ts_type* paa_) {
-    memcpy(leafkey, saxt_, sizeof(saxt_only));
+  ZsbTree_finder(saxt_only saxt_, ts_type* paa_) {
+    leafkey = saxt_;
     memcpy(paa, paa_, sizeof(ts_type) * Segments);
   }
 
@@ -46,7 +46,7 @@ class ZsbTree_finder{
   vector<dist_p> has_cod;
   vector<void*> no_has_cod;
  private:
-  saxt_type leafkey[Bit_cardinality];
+  saxt_only leafkey;
   ts_type paa[Segments];
   NonLeaf* to_find_nonleaf;
   int oneId;//叶子在非叶结点中的位置

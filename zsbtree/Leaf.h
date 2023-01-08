@@ -17,13 +17,13 @@ class NonLeafKey;
 class Leaf {
 public:
     Leaf();
-    Leaf(int num, cod co_d, saxt lsaxt, saxt rsaxt, LeafKey *leafKeys);
+    Leaf(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, LeafKey *leafKeys);
     Leaf(NonLeafKey& nonLeafKey);
     //添加一个saxt，p
     void add(LeafKey *leafKeys, int num);
     void setLeafKeys(LeafKey *leafKeys);
-    void setLsaxt(saxt saxt_);
-    void setRsaxt(saxt saxt_);
+    void setLsaxt(saxt_only saxt_);
+    void setRsaxt(saxt_only saxt_);
     //先复制然后在复制的内存中排序
     void sort(LeafKey* dst);
     void sort();
@@ -32,8 +32,8 @@ public:
     int num = 0;
     //相聚度
     cod co_d;
-    saxt_type lsaxt[Bit_cardinality];
-    saxt_type rsaxt[Bit_cardinality];
+    saxt_only lsaxt;
+    saxt_only rsaxt;
     //叶结点中的key元组
     LeafKey leafKeys[Leaf_rebuildnum];
 

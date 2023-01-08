@@ -66,8 +66,8 @@ class MemTable {
   inline NonLeaf* GetRoot() { return table_.root; }
 
 
-  inline saxt Getlsaxt() { return table_.root->lsaxt; }
-  inline saxt Getrsaxt() { return table_.root->rsaxt; }
+  inline saxt_only Getlsaxt() { return table_.root->lsaxt; }
+  inline saxt_only Getrsaxt() { return table_.root->rsaxt; }
   inline cod Getcod();
   MemTable* Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt);
   inline int GetleafNum() { return table_.leafNum; }

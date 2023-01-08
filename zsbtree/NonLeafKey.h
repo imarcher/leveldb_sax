@@ -12,18 +12,19 @@
 class NonLeafKey {
 public:
     NonLeafKey();
-    NonLeafKey(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p);
-    void setLsaxt(saxt saxt_);
-    void setRsaxt(saxt saxt_);
-    void Set(int num, cod co_d, saxt lsaxt, saxt rsaxt, void *p);
+    NonLeafKey(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, void *p);
+    void setLsaxt(saxt_only saxt_);
+    void setRsaxt(saxt_only saxt_);
+    void Set(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, void *p);
 
 
 
     int num;
+
     cod co_d;
-    saxt_type lsaxt[Bit_cardinality];
-    saxt_type rsaxt[Bit_cardinality];
     void* p;
+    saxt_only lsaxt;
+    saxt_only rsaxt;
 };
 
 

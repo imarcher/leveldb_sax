@@ -92,8 +92,8 @@ class LEVELDB_EXPORT Table {
  public:
   class ST_finder{
    public:
-    ST_finder(Table* rep, saxt saxt_, ts_type* paa_) : rep_(rep->rep_) {
-      memcpy(leafkey, saxt_, sizeof(saxt_only));
+    ST_finder(Table* rep, saxt_only saxt_, ts_type* paa_) : rep_(rep->rep_) {
+      leafkey = saxt_;
       memcpy(paa, paa_, sizeof(ts_type) * Segments);
     }
 
@@ -129,7 +129,7 @@ class LEVELDB_EXPORT Table {
     vector<pair<float, int>> has_cod;
     vector<int> no_has_cod;
    private:
-    saxt_type leafkey[Bit_cardinality];
+    saxt_only leafkey;
     ts_type paa[Segments];
     STNonLeaf* to_find_nonleaf;
     int oneId;//叶子在非叶结点中的位置
@@ -144,8 +144,8 @@ class LEVELDB_EXPORT Table {
     void setPrefix(LeafKey& res);
     ~ST_Iter();
    private:
-    inline void getSTLeaf();
-    inline void getSTNonLeaf();
+    void getSTLeaf();
+    void getSTNonLeaf();
     Rep* const rep_;
     //栈，要delete除了root
     vector<STNonLeaf*> st_nonleaf_stack;

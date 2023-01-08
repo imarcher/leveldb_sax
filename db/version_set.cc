@@ -744,11 +744,13 @@ class VersionSet::Builder {
       std::vector<FileMetaData*>* files = &v->files_[level];
       if (level > 0 && !files->empty()) {
         // Must not overlap
-//        if (vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
-//                                 f->smallest) >= 0) {
-//          saxt_print((saxt)((*files)[files->size() - 1]->largest.user_key().data()));
-//          saxt_print((saxt)f->smallest.user_key().data());
-//        }
+        if (vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
+                                 f->smallest) >= 0) {
+          out((*files)[files->size() - 1]->number);
+          out(f->number);
+          saxt_print((saxt)((*files)[files->size() - 1]->largest.user_key().data()));
+          saxt_print((saxt)f->smallest.user_key().data());
+        }
 
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
                                     f->smallest) < 0);
@@ -825,6 +827,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
     builder.SaveTo(v);
   }
   Finalize(v);
+
 
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.

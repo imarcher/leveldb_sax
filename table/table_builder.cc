@@ -223,7 +223,6 @@ void TableBuilder::WriteBlock(BlockBuilder* block, STpos* handle) {
   assert(ok());
   Rep* r = rep_;
   Slice raw = block->Finish();
-
   Slice block_contents;
   CompressionType type = r->options.compression;
   // TODO(postrelease): Support more compression options: zlib?
@@ -246,7 +245,6 @@ void TableBuilder::WriteBlock(BlockBuilder* block, STpos* handle) {
       break;
     }
   }
-
   WriteRawBlock(block_contents, type, handle);
   r->compressed_output.clear();
   block->Reset();

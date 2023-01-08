@@ -40,8 +40,8 @@ static NonLeaf* build_tree_from_leaf(newVector<LeafKey> &leafKeys, const int n, 
   if (nonLeafKeys[out_1].size() == 1) {
     return (NonLeaf*)nonLeafKeys[out_1][0].p;
   } else {
-    saxt lsaxt = nonLeafKeys[out_1][0].lsaxt;
-    saxt rsaxt = nonLeafKeys[out_1].back().rsaxt;
+    saxt_only lsaxt = nonLeafKeys[out_1][0].lsaxt;
+    saxt_only rsaxt = nonLeafKeys[out_1].back().rsaxt;
     cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
     return new NonLeaf(nonLeafKeys[out_1].size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys[out_1].data());
   }
@@ -75,8 +75,8 @@ static NonLeaf* build_tree_from_nonleaf(newVector<NonLeafKey> &nonLeafKeys) {
   if (nonLeafKeys_rep[out_1].size() == 1) {
     return (NonLeaf*)nonLeafKeys_rep[out_1][0].p;
   } else {
-    saxt lsaxt = nonLeafKeys_rep[out_1][0].lsaxt;
-    saxt rsaxt = nonLeafKeys_rep[out_1].back().rsaxt;
+    saxt_only lsaxt = nonLeafKeys_rep[out_1][0].lsaxt;
+    saxt_only rsaxt = nonLeafKeys_rep[out_1].back().rsaxt;
     cod co_d = get_co_d_from_saxt(lsaxt, rsaxt);
     return new NonLeaf(nonLeafKeys_rep[out_1].size(), co_d, isleaf, lsaxt, rsaxt, nonLeafKeys_rep[out_1].data());
   }
@@ -180,7 +180,7 @@ class Zsbtree_Build {
 
   void Add(NonLeafKey& nonLeafKey, int dep);
 
-  void Emplace(int num, cod co_d, saxt lsaxt, saxt rsaxt, void* leaf, int dep);
+  void Emplace(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, void* leaf, int dep);
 
   void finish();
 
@@ -199,34 +199,34 @@ class Zsbtree_Build {
   virtual void dononleaf(NonLeafKey* nonLeafKey, bool isleaf) = 0;
  private:
 
-  inline saxt get_saxt_i(newVector<LeafKey> &leafKeys, int i);
+  inline saxt_only get_saxt_i(newVector<LeafKey> &leafKeys, int i);
   inline void build_leaf_and_nonleafkey(newVector<LeafKey> &leafKeys, int id,
-                                        int num, cod co_d, saxt lsaxt, saxt rsaxt);
+                                        int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt);
   inline void build_leaf_and_nonleafkey_two(newVector<LeafKey> &leafKeys, int id,
-                                            int num, cod co_d, saxt lsaxt, saxt rsaxt);
+                                            int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt);
   inline void add_nonleafkey(newVector<LeafKey> &leafKeys, int id,
-                             int num, cod co_d, saxt rsaxt);
+                             int num, cod co_d, saxt_only rsaxt);
   inline void split_nonleafkey(newVector<LeafKey> &leafKeys, int id, int allnum,
-                               int num, cod co_d, saxt rsaxt);
-  inline int getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
-  inline int get_new_end(newVector<LeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
-  inline int get_new_end_1(newVector<LeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
+                               int num, cod co_d, saxt_only rsaxt);
+  inline int getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt_only now_saxt, saxt_only tmplastsaxt);
+  inline int get_new_end(newVector<LeafKey> &leafKeys, int l, int r, saxt_only saxt_, cod co_d);
+  inline int get_new_end_1(newVector<LeafKey> &leafKeys, int l, int r, saxt_only saxt_, cod co_d);
   int buildtree_window(newVector<LeafKey> &leafKeys);
   void buildtree_window_last(newVector<LeafKey> &leafKeys, int allnum);
 
-  inline saxt get_saxt_i(const newVector<NonLeafKey> &leafKeys, int i);
-  inline saxt get_saxt_i_r(const newVector<NonLeafKey> &leafKeys, int i);
+  inline saxt_only get_saxt_i(const newVector<NonLeafKey> &leafKeys, int i);
+  inline saxt_only get_saxt_i_r(const newVector<NonLeafKey> &leafKeys, int i);
   inline void build_leaf_and_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
-                                        int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep);
+                                        int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, int dep);
   inline void build_leaf_and_nonleafkey_two(const newVector<NonLeafKey> &leafKeys, int id,
-                                            int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep);
+                                            int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, int dep);
   inline void add_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
-                             int num, cod co_d, saxt rsaxt, int dep);
+                             int num, cod co_d, saxt_only rsaxt, int dep);
   inline void split_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id, int allnum,
-                               int num, cod co_d, saxt rsaxt, int dep);
-  inline int getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt);
-  inline int get_new_end(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
-  inline int get_new_end_1(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt saxt_, cod co_d);
+                               int num, cod co_d, saxt_only rsaxt, int dep);
+  inline int getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt_only now_saxt, saxt_only tmplastsaxt);
+  inline int get_new_end(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt_only saxt_, cod co_d);
+  inline int get_new_end_1(const newVector<NonLeafKey> &leafKeys, int l, int r, saxt_only saxt_, cod co_d);
   int buildtree_window(const newVector<NonLeafKey> &leafKeys, int dep);
   void buildtree_window_last(const newVector<NonLeafKey> &leafKeys, int allnum, int dep);
 
@@ -235,8 +235,8 @@ class Zsbtree_Build {
     cod co_d;
     int id;
     int num;
-    saxt lsaxt;
-    saxt rsaxt;
+    saxt_only lsaxt;
+    saxt_only rsaxt;
   } method2_node;
 
   int n;

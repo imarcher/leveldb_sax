@@ -6,11 +6,11 @@
 #include "NonLeafKey.h"
 
 
-Leaf::Leaf(int num, cod co_d, saxt lsaxt, saxt rsaxt, LeafKey *leafKeys) {
+Leaf::Leaf(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, LeafKey *leafKeys) {
     this->num = num;
     this->co_d = co_d;
-    memcpy(this->lsaxt, lsaxt, saxt_size);
-    memcpy(this->rsaxt, rsaxt, saxt_size);
+    lsaxt = lsaxt;
+    rsaxt = rsaxt;
     memcpy(this->leafKeys, leafKeys, sizeof(LeafKey) * num);
 }
 
@@ -25,12 +25,12 @@ void Leaf::setLeafKeys(LeafKey *leafKeys) {
     memcpy(this->leafKeys, leafKeys, sizeof(LeafKey) * num);
 }
 
-void Leaf::setLsaxt(saxt saxt_) {
-    memcpy(lsaxt, saxt_, saxt_size);
+void Leaf::setLsaxt(saxt_only saxt_) {
+    lsaxt = saxt_;
 }
 
-void Leaf::setRsaxt(saxt saxt_) {
-    memcpy(rsaxt, saxt_, saxt_size);
+void Leaf::setRsaxt(saxt_only saxt_) {
+    rsaxt = saxt_;
 }
 
 Leaf::Leaf() {
@@ -41,15 +41,15 @@ Leaf::Leaf() {
 void Leaf::set(NonLeafKey& nonLeafKey) {
   num = nonLeafKey.num;
   co_d = nonLeafKey.co_d;
-  memcpy(lsaxt, nonLeafKey.lsaxt, saxt_size);
-  memcpy(rsaxt, nonLeafKey.rsaxt, saxt_size);
+  lsaxt = nonLeafKey.lsaxt;
+  rsaxt = nonLeafKey.rsaxt;
 }
 
 Leaf::Leaf(NonLeafKey& nonLeafKey) {
   num = nonLeafKey.num;
   co_d = nonLeafKey.co_d;
-  memcpy(lsaxt, nonLeafKey.lsaxt, saxt_size);
-  memcpy(rsaxt, nonLeafKey.rsaxt, saxt_size);
+  lsaxt = nonLeafKey.lsaxt;
+  rsaxt = nonLeafKey.rsaxt;
 }
 
 void Leaf::sort(LeafKey* dst) {

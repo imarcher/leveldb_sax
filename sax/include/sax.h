@@ -22,10 +22,13 @@ enum response paa_saxt_from_ts(ts_type *ts_in, saxt_type *saxt_out, ts_type *paa
 
 void sax_print(sax_type *sax, int segments, int bit_cardinality);
 void saxt_print(saxt_type *saxt);
+void saxt_print(saxt_only saxt);
+void leafkey_print(void* saxt);
 void saxt_print(saxt_type *saxt, saxt_type *prefix, cod co_d);
 void printbin(unsigned long long n, int size);
 void serial_printbin (unsigned long long n, int size);
 int compare(const void *a, const void *b);
+//saxt 只有co_d个
 float minidist_paa_to_saxt(ts_type *paa, saxt saxt_, cod co_d);
 float minidist_paa_to_isax(ts_type *paa, sax_type *sax, sax_type *sax_cardinalities,
                            sax_type max_bit_cardinality,
@@ -46,17 +49,30 @@ enum response paa_from_ts(ts_type *ts_in, ts_type *paa_out);
 enum response sax_from_paa (ts_type *paa, sax_type *sax);
 enum response saxt_from_sax(sax_type *sax_in, saxt_type *saxt_out);
 enum response sax_from_saxt(sax_type *saxt_in, saxt_type *sax_out);
-enum response saxt_copy(saxt_type *saxt_out, saxt_type *saxt_in);
+
 
 
 //获得两个saxt的相聚度和公共前缀
-cod get_co_d_from_saxt(saxt a, saxt b);
+static inline cod get_co_d_from_saxt(saxt_only a, saxt_only b) {
+  int d;
+  for(d=Bit_cardinality-1; d>=0; d--){
+    if (a.asaxt[d] != b.asaxt[d]) return Bit_cardinality-1-d;
+  }
+  return Bit_cardinality;
+}
 //获得两个saxt的相聚度和公共前缀,但有比较的起始d
-cod get_co_d_from_saxt(saxt a, saxt b, cod pre_d);
+static inline cod get_co_d_from_saxt(saxt_only a, saxt_only b, cod pre_d) {
+  int d = Bit_cardinality- 1 - pre_d;
+  for(; d>=0; d--){
+    if (a.asaxt[d] != b.asaxt[d]) return Bit_cardinality-1-d;
+  }
+  return Bit_cardinality;
+}
 //比较在第d个段是否相等
-bool compare_saxt_d(saxt a, saxt b, cod d);
-//比较saxt是否相等
-bool compare_saxt(saxt a, saxt b);
+static inline bool compare_saxt_d(saxt_only a, saxt_only b, cod d) {
+  return a.asaxt[Bit_cardinality - 2 + d] == b.asaxt[Bit_cardinality - 2 + d];
+}
+
 
 
 

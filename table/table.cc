@@ -33,7 +33,7 @@ struct Table::Rep {
 
 //  BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
   STNonLeaf* stNonLeaf;
-  saxt_type rsaxt[Bit_cardinality];
+  saxt_only rsaxt;
 };
 
 
@@ -58,17 +58,45 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
 
   //先不读校验码
   NonLeafKey* real_rootkey = (NonLeafKey*)rootkey_input.data();
+  saxt_print(real_rootkey->lsaxt);
+  saxt_print(real_rootkey->rsaxt);
+  out(real_rootkey->num);
+
   STpos* sTpos = (STpos*)&real_rootkey->p;
   size_t stNonLeaf_size = sTpos->GetSize();
   Slice stNonLeaf_input;
   //开了空间的
   STNonLeaf* stNonLeaf = new STNonLeaf(real_rootkey->num, real_rootkey->co_d, stNonLeaf_size);
   stNonLeaf->Setprefix(real_rootkey->lsaxt);
-  s = file->Read(sTpos->GetOffset(), stNonLeaf_size,
+  s = file->Read(sTpos->GetOffset(), stNonLeaf_size + 1,
                  &stNonLeaf_input, stNonLeaf->rep);
-  stNonLeaf->Setrep(stNonLeaf_input.data());
-  stNonLeaf->Setisleaf();
 
+
+#if HAVE_SNAPPY
+  switch (stNonLeaf_input.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      stNonLeaf->Setrep(stNonLeaf_input.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(stNonLeaf_input.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(stNonLeaf_input.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stNonLeaf->Setrep1(ubuf);
+      stNonLeaf->size = ulength;
+      break;
+    }
+#else
+  stNonLeaf->Setrep(stNonLeaf_input.data());
+#endif  // HAVE_SNAPPY
+  stNonLeaf->Setisleaf();
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
@@ -76,7 +104,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     rep->options = options;
     rep->file = file;
     rep->stNonLeaf = stNonLeaf;
-    saxt_copy(rep->rsaxt, real_rootkey->rsaxt);
+    rep->rsaxt = real_rootkey->rsaxt;
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
     *table = new Table(rep);
 //    (*table)->ReadMeta(footer);
@@ -225,8 +253,8 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
 
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, vector<LeafKey>& leafKeys) {
   Status s;
-  saxt key = (saxt)k.data();
-  LeafKey leafKey(key);
+//  saxt key = (saxt)k.data();
+//  LeafKey leafKey(key);
   assert(0);
 //  ST_finder stFinder(this, leafKeys);
 //  stFinder.root_Get(leafKey);
@@ -296,8 +324,8 @@ void Table::ST_finder::root_Get() {
   out(root->isleaf);
   out(root->num);
   out("最大最小");
-  saxt_print(root->prefix);
-  saxt_print(rep_->rsaxt);
+  saxt_print(root->prefix.asaxt);
+  saxt_print(rep_->rsaxt.asaxt);
   out("===========");
 //  for (int i = 0; i < root->num; ++i) {
 //    out("第"+to_string(i)+":");
@@ -308,7 +336,7 @@ void Table::ST_finder::root_Get() {
     to_find_nonleaf = root;
     return;
   }
-  int pos = whereofKey(root->prefix, rep_->rsaxt, leafkey, 0);
+  int pos = zsbtreee_insert::whereofKey(root->prefix, rep_->rsaxt, leafkey);
   if (pos==0) nonLeaf_Get(*root);
   else if (pos==-1) {
     l_Get_NonLeaf(*root, 0);
@@ -369,10 +397,10 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
   int r=nonLeaf.num-1;
   while (l<r) {
     int mid = (l + r) / 2;
-    if (saxt_cmp(leafkey + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+    if (saxt_cmp(leafkey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
     else l = mid + 1;
   }
-  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey + nonLeaf.co_d, nonLeaf.co_d);
+  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
   if (pos==0) {
     //里面
     STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, l);
@@ -383,8 +411,8 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
     saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
     cod nextco_d = nonLeaf.Get_co_d(l);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
       r_Get_NonLeaf(nonLeaf, l-1);
@@ -405,8 +433,8 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
     saxt prelsaxt = nonLeaf.Get_lsaxt(l);
     cod nextco_d = nonLeaf.Get_co_d(l+1);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
       r_Get_NonLeaf(nonLeaf, l);
@@ -427,17 +455,17 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
 void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
   STNonLeaf& nonLeaf = *to_find_nonleaf;
   saxt_only rsaxt;
-  nonLeaf.SetSaxt(rsaxt.asaxt, nonLeaf.Get_rsaxt(nonLeaf.num-1));
-  int pos = whereofKey(nonLeaf.prefix, rsaxt.asaxt, leafkey, 0);
+  nonLeaf.SetSaxt(rsaxt, nonLeaf.Get_rsaxt(nonLeaf.num-1));
+  int pos = zsbtreee_insert::whereofKey(nonLeaf.prefix, rsaxt, leafkey);
   if (pos==0) {
     int l=0;
     int r=nonLeaf.num-1;
     while (l<r) {
       int mid = (l + r) / 2;
-      if (saxt_cmp(leafkey + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+      if (saxt_cmp(leafkey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
       else l = mid + 1;
     }
-    pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey + nonLeaf.co_d, nonLeaf.co_d);
+    pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
     if (pos==0) {
       //里面
       STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
@@ -451,8 +479,8 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
       saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
       cod nextco_d = nonLeaf.Get_co_d(l);
       saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
-      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
-      cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
         // 跟前面
         STLeaf* stLeaf = getSTLeaf(nonLeaf, l-1);
@@ -489,8 +517,8 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
       saxt prelsaxt = nonLeaf.Get_lsaxt(l);
       cod nextco_d = nonLeaf.Get_co_d(l+1);
       saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
-      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey + nonLeaf.co_d, nonLeaf.co_d);
-      cod co_d2 = get_co_d_from_saxt(leafkey + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
         // 跟前面
         STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
@@ -550,8 +578,8 @@ void Table::ST_finder::sort() {
       cod co_d = to_find_nonleaf->Get_co_d(i);
       if (co_d) {
         saxt_only saxtOnly;
-        to_find_nonleaf->SetSaxt(saxtOnly.asaxt, to_find_nonleaf->Get_lsaxt(i));
-        has_cod.emplace_back(minidist_paa_to_saxt(paa, saxtOnly.asaxt, co_d), i);
+        to_find_nonleaf->SetSaxt(saxtOnly, to_find_nonleaf->Get_lsaxt(i));
+        has_cod.emplace_back(minidist_paa_to_saxt(paa, saxtOnly.asaxt + Bit_cardinality - co_d, co_d), i);
       } else {
         no_has_cod.push_back(i);
       }
@@ -588,10 +616,33 @@ STLeaf* Table::ST_finder::getSTLeaf(STNonLeaf& nonLeaf, int i) {
   size_t stLeaf_size = sTpos.GetSize();
 //  out("geiSTLeaf");
   STLeaf* stLeaf = new STLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), stLeaf_size);
-  stLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), nonLeaf.co_size, saxt_size - nonLeaf.co_size);
-  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+  stLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), sizeof(saxt_only) - nonLeaf.co_size);
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size + 1,
                    &slice, stLeaf->rep);
+
+#if HAVE_SNAPPY
+  switch (slice.data()[stLeaf_size]) {
+    case kNoCompression:
+      stLeaf->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stLeaf->Setrep1(ubuf);
+      break;
+  }
+#else
   stLeaf->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
 //  out("geiSTLeaf完毕");
   return stLeaf;
 }
@@ -606,12 +657,37 @@ STNonLeaf* Table::ST_finder::getSTNonLeaf(STNonLeaf& nonLeaf, int i) {
 //  out(nonLeaf.Getnum(1));
 //  out((int)nonLeaf.Get_co_d(1));
   STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), stNonLeaf_size);
-  stNonLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), nonLeaf.co_size, saxt_size - nonLeaf.co_size);
+  stNonLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), sizeof(saxt_only) - nonLeaf.co_size);
 
-  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size + 1,
                    &slice, stNonLeaf->rep);
+
+#if HAVE_SNAPPY
+  switch (slice.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      stNonLeaf->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stNonLeaf->Setrep1(ubuf);
+      stNonLeaf->size = ulength;
+      break;
+  }
+#else
   stNonLeaf->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   stNonLeaf->Setisleaf();
+
 //  out(stNonLeaf->Getnum(1));
 //  saxt_print(stNonLeaf->Get_lsaxt(1), stNonLeaf->prefix, stNonLeaf->co_d);
 //  saxt_print(stNonLeaf->Get_rsaxt(1), stNonLeaf->prefix, stNonLeaf->co_d);
@@ -645,7 +721,7 @@ bool Table::ST_Iter::next(LeafKey& res) {
           //只换叶节点
 //          out("叶");
           getSTLeaf();
-          res.Set1(stLeaf.prefix, stLeaf.co_size);
+          res.Set1(stLeaf.prefix);
 //          res.setAsaxt(stLeaf.prefix);
 //          out("有stleaf");
 //          out((int)stLeaf.co_d);
@@ -674,10 +750,19 @@ bool Table::ST_Iter::next(LeafKey& res) {
       return false;
     }
   }
-
+//  out("leaf");
+//  out((int)stLeaf.co_size);
+//  leafkey_print(stLeaf.Get_rep(leaftop));
 //  res.Set1(stLeaf.prefix, stLeaf.co_size);
-  res.Set2(stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
+  res.Set2(stLeaf.Get_rep(leaftop), stLeaf.noco_size);
 //  res.Set(stLeaf.prefix, stLeaf.Get_rep(leaftop), stLeaf.co_size, stLeaf.noco_size);
+
+//  out("next");
+//  out((int)stLeaf.noco_size);
+//  saxt_print(res.asaxt);
+//  saxt_print(stLeaf.Get_rep(leaftop));
+//  saxt_print(stLeaf.prefix);
+
   return true;
 }
 
@@ -690,11 +775,34 @@ void Table::ST_Iter::getSTLeaf() {
 //  out((int)nonLeaf.co_d);
 //  out((int)nonLeaf.Get_co_d(i));
   stLeaf.Set(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i));
-  stLeaf.Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), nonLeaf.co_size, saxt_size - nonLeaf.co_size);
+  stLeaf.Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), sizeof(saxt_only) - nonLeaf.co_size);
   if (stLeaf.ismmap) stLeaf.Setnewroom(sizeof(Leaf));
-  rep_->file->Read(sTpos.GetOffset(), stLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stLeaf_size + 1,
                    &slice, stLeaf.rep);
+
+#if HAVE_SNAPPY
+  switch (slice.data()[stLeaf_size]) {
+    case kNoCompression:
+      stLeaf.Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      stLeaf.Setrep1(ubuf);
+      break;
+  }
+#else
   stLeaf.Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   leaftop = -1;
 
 }
@@ -709,18 +817,43 @@ void Table::ST_Iter::getSTNonLeaf() {
   if (top < st_nonleaf_stack.size()){
     if (st_nonleaf_stack[top]->ismmap) st_nonleaf_stack[top]->Setnewroom(sizeof(NonLeaf));
     st_nonleaf_stack[top]->Set(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), stNonLeaf_size);
-    st_nonleaf_stack[top]->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), nonLeaf.co_size, saxt_size - nonLeaf.co_size);
+    st_nonleaf_stack[top]->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), sizeof(saxt_only) - nonLeaf.co_size);
   } else {
     STNonLeaf* stNonLeaf = new STNonLeaf(nonLeaf.Getnum(i), nonLeaf.Get_co_d(i), sizeof(NonLeaf));
-    stNonLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), nonLeaf.co_size, saxt_size - nonLeaf.co_size);
+    stNonLeaf->Setprefix(nonLeaf.prefix, nonLeaf.Get_lsaxt(i), sizeof(saxt_only) - nonLeaf.co_size);
     stNonLeaf->size = stNonLeaf_size;
     st_nonleaf_stack.push_back(stNonLeaf);
   }
-  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size,
+  rep_->file->Read(sTpos.GetOffset(), stNonLeaf_size + 1,
                    &slice, st_nonleaf_stack[top]->rep);
+
+#if HAVE_SNAPPY
+  switch (slice.data()[stNonLeaf_size]) {
+    case kNoCompression:
+      st_nonleaf_stack[top]->Setrep(slice.data());
+      break;
+    case kSnappyCompression:
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(slice.data(), stNonLeaf_size, &ulength)) {
+        out("corrupted compressed block contents");
+        exit(2);
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(slice.data(), stNonLeaf_size, ubuf)) {
+        delete[] ubuf;
+        out("corrupted compressed block contents");
+        exit(3);
+      }
+      st_nonleaf_stack[top]->Setrep1(ubuf);
+      st_nonleaf_stack[top]->size = ulength;
+      break;
+  }
+#else
   st_nonleaf_stack[top]->Setrep(slice.data());
+#endif  // HAVE_SNAPPY
   st_nonleaf_stack[top]->Setisleaf();
   nonleaftops[top] = -1;
+
 }
 
 Table::ST_Iter::~ST_Iter() {
@@ -728,7 +861,7 @@ Table::ST_Iter::~ST_Iter() {
 }
 
 void Table::ST_Iter::setPrefix(LeafKey& res) {
-  res.Set1(stLeaf.prefix, stLeaf.co_size);
+  res.Set1(stLeaf.prefix);
 }
 
 }  // namespace leveldb

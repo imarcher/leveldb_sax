@@ -11,7 +11,7 @@
 namespace leveldb {
 
 bool zsbtree_table::Insert(LeafKey& leafKey) {
-  return root_Insert(*root, leafKey);
+  return zsbtreee_insert::root_Insert(*root, leafKey);
 }
 
 //初始化用

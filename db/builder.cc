@@ -33,9 +33,9 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
   TableBuilder* builder = new TableBuilder(options, file);
   //要改的
-  meta->smallest.Set(Slice((char*)mem->Getlsaxt(), saxt_size), 0,
+  meta->smallest.Set(Slice((char*)mem->Getlsaxt().asaxt, sizeof(saxt_only)), 0,
                      static_cast<ValueType>(0));
-  meta->largest.Set(Slice((char*)mem->Getrsaxt(), saxt_size), 0,
+  meta->largest.Set(Slice((char*)mem->Getrsaxt().asaxt, sizeof(saxt_only)), 0,
                      static_cast<ValueType>(0));
   meta->startTime = mem->startTime;
   meta->endTime = mem->endTime;

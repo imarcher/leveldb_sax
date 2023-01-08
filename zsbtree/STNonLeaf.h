@@ -17,16 +17,18 @@ class STNonLeaf {
   STNonLeaf(size_t size);
   void Set(unsigned short num, cod co_d, size_t size);
   void Setrep(const char* newrep);
+  // snappy用
+  void Setrep1(const char* newrep);
   void Setisleaf();
   void Setnewroom(size_t size);
 
-  void Setprefix(saxt prefix, saxt stleafkey, cod co_size, cod noco_size);
-  void Setprefix(saxt prefix1);
+  void Setprefix(saxt_only prefix, saxt stleafkey, cod noco_size);
+  void Setprefix(saxt_only prefix1);
   ~STNonLeaf();
 
-  inline void SetSaxt(saxt dst, saxt saxt_)  {
-    memcpy(dst, prefix, co_size);
-    memcpy(((char*)dst) + co_size, saxt_, s_co_size);
+  inline void SetSaxt(saxt_only& dst, saxt saxt_) {
+    dst = prefix;
+    memcpy(dst.asaxt, saxt_, s_co_size);
   }
 
 
@@ -49,7 +51,7 @@ class STNonLeaf {
   bool isleaf;
   bool ismmap;
   size_t size;
-  saxt_type prefix[Bit_cardinality];
+  saxt_only prefix;
   char* rep;
 };
 

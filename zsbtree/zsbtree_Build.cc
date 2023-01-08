@@ -33,7 +33,7 @@ void Zsbtree_Build::Add(LeafKey& leafkey) {
 
 void Zsbtree_Build::Add(NonLeafKey& nonLeafKey, int dep) {}
 
-void Zsbtree_Build::Emplace(int num, cod co_d, saxt lsaxt, saxt rsaxt,
+void Zsbtree_Build::Emplace(int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt,
                             void* leaf, int dep) {
 //  out("Emplace"+to_string(dep));
 //  out(nonleafkeys[dep].size_add());
@@ -73,8 +73,8 @@ void Zsbtree_Build::Emplace(int num, cod co_d, saxt lsaxt, saxt rsaxt,
 
 void Zsbtree_Build::finish() {
   if (leafkeys.size_add()<=n && !leafkeys.empty_add()){
-    saxt lsaxt = leafkeys.data()->asaxt;
-    saxt rsaxt = leafkeys.back_add()->asaxt;
+    saxt_only lsaxt = leafkeys.data()->asaxt;
+    saxt_only rsaxt = leafkeys.back_add()->asaxt;
     build_leaf_and_nonleafkey(leafkeys, 0, leafkeys.size_add(), get_co_d_from_saxt(lsaxt, rsaxt), lsaxt, rsaxt);
   } else if (leafkeys.size_add() > n){
     buildtree_window_last(leafkeys, leafkeys.size_add());
@@ -93,8 +93,8 @@ void Zsbtree_Build::finish() {
       break;
     }
     if (nonleafkeys_dep.size_add()<=n && !nonleafkeys_dep.empty_add()) {
-      saxt lsaxt = nonleafkeys_dep.data()->lsaxt;
-      saxt rsaxt = nonleafkeys_dep.back_add()->rsaxt;
+      saxt_only lsaxt = nonleafkeys_dep.data()->lsaxt;
+      saxt_only rsaxt = nonleafkeys_dep.back_add()->rsaxt;
       build_leaf_and_nonleafkey(nonleafkeys_dep, 0, nonleafkeys_dep.size_add(), get_co_d_from_saxt(lsaxt, rsaxt), lsaxt, rsaxt, i + 1);
     } else if (nonleafkeys_dep.size_add() > n){
 //      out("进入lastbu");
@@ -112,13 +112,13 @@ NonLeafKey* Zsbtree_Build::GetRootKey() {
 }
 
 
-inline saxt Zsbtree_Build::get_saxt_i(newVector<LeafKey> &leafKeys, int i){
+inline saxt_only Zsbtree_Build::get_saxt_i(newVector<LeafKey> &leafKeys, int i){
   return leafKeys[i].asaxt;
 }
 
 //构造leaf和索引点
 inline void Zsbtree_Build::build_leaf_and_nonleafkey(newVector<LeafKey> &leafKeys, int id,
-                                      int num, cod co_d, saxt lsaxt, saxt rsaxt) {
+                                      int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt) {
 
   //构造nonleaf索引点
   Emplace(num, co_d, lsaxt, rsaxt, leafKeys.data()+id, 0);
@@ -126,12 +126,12 @@ inline void Zsbtree_Build::build_leaf_and_nonleafkey(newVector<LeafKey> &leafKey
 
 //构造leaf和索引点,从中间平分
 inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(newVector<LeafKey> &leafKeys, int id,
-                                          int num, cod co_d, saxt lsaxt, saxt rsaxt) {
+                                          int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt) {
 
   int tmpnum1 = num / 2;
   int tmpnum2 = num - tmpnum1;
   //构造leaf
-  saxt tmpsaxt = leafKeys[id+tmpnum1-1].asaxt;
+  saxt_only tmpsaxt = leafKeys[id+tmpnum1-1].asaxt;
   //构造nonleaf索引点
   Emplace(tmpnum1, get_co_d_from_saxt(lsaxt, tmpsaxt, co_d), lsaxt, tmpsaxt, leafKeys.data()+id, 0);
 
@@ -145,7 +145,7 @@ inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(newVector<LeafKey> &lea
 
 //给一个叶子结点加一些key
 inline void Zsbtree_Build::add_nonleafkey(newVector<LeafKey> &leafKeys, int id,
-                           int num, cod co_d, saxt rsaxt) {
+                           int num, cod co_d, saxt_only rsaxt) {
 
   NonLeafKey *nonLeafKey = nonleafkeys[0].back_add();
   nonLeafKey->co_d = co_d;
@@ -155,32 +155,32 @@ inline void Zsbtree_Build::add_nonleafkey(newVector<LeafKey> &leafKeys, int id,
 
 //给一个叶子结点加一些key,到大于n了，平分
 inline void Zsbtree_Build::split_nonleafkey(newVector<LeafKey> &leafKeys, int id, int allnum,
-                             int num, cod co_d, saxt rsaxt) {
+                             int num, cod co_d, saxt_only rsaxt) {
 
   NonLeafKey *nonLeafKey = nonleafkeys[0].back_add();
   LeafKey* leafs = (LeafKey*)(nonLeafKey->p);
   int tmpnum1 = allnum / 2;
   int tmpnum2 = allnum - tmpnum1;
   //更新前一个点
-  saxt newRsaxt = leafs[tmpnum1-1].asaxt;
+  saxt_only newRsaxt = leafs[tmpnum1-1].asaxt;
   nonLeafKey->num = tmpnum1;
   nonLeafKey->co_d = get_co_d_from_saxt(nonLeafKey->lsaxt, newRsaxt, nonLeafKey->co_d);
 
   nonLeafKey->setRsaxt(newRsaxt);
   //添加后一个点
   int tmpnum3 = tmpnum2 - num;
-  saxt newLsaxt = leafs[tmpnum1].asaxt;
+  saxt_only newLsaxt = leafs[tmpnum1].asaxt;
   Emplace(tmpnum2, get_co_d_from_saxt(newLsaxt, rsaxt, co_d), newLsaxt, rsaxt, leafs+tmpnum1, 0);
 }
 
 //在method2中，遇到大于n的，分一下
-inline int Zsbtree_Build::getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
+inline int Zsbtree_Build::getbestmid(newVector<LeafKey> &leafKeys, int id, int num, cod d1, saxt_only now_saxt, saxt_only tmplastsaxt) {
   int best_mid_id = id+num/2-1;
   int best_cod = d1+d1;
   for (int mid_id = id+m-1;mid_id<id+num-m;mid_id++){
-    saxt tmprsaxt = get_saxt_i(leafKeys, mid_id);
+    saxt_only tmprsaxt = get_saxt_i(leafKeys, mid_id);
     cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-    saxt tmplsaxt = get_saxt_i(leafKeys, mid_id+1);
+    saxt_only tmplsaxt = get_saxt_i(leafKeys, mid_id+1);
     cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
     int tmpd = tmpd2+tmpd1;
     if (tmpd>best_cod) {
@@ -192,7 +192,7 @@ inline int Zsbtree_Build::getbestmid(newVector<LeafKey> &leafKeys, int id, int n
 }
 
 int Zsbtree_Build::get_new_end(newVector<LeafKey>& leafKeys, int l, int r,
-                               saxt saxt_, cod co_d) {
+                               saxt_only saxt_, cod co_d) {
   while(l < r)
   {
     int mid = (l + r)/ 2;
@@ -203,7 +203,7 @@ int Zsbtree_Build::get_new_end(newVector<LeafKey>& leafKeys, int l, int r,
 }
 
 int Zsbtree_Build::get_new_end_1(newVector<LeafKey>& leafKeys, int l, int r,
-                                 saxt saxt_, cod co_d) {
+                                 saxt_only saxt_, cod co_d) {
   while(l < r)
   {
     int mid = (l + r + 1)/ 2;
@@ -218,8 +218,8 @@ int Zsbtree_Build::get_new_end_1(newVector<LeafKey>& leafKeys, int l, int r,
 //批量构建while循环内, 2n个
 int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
   int end = 2 * n - 1;
-  saxt first_saxt = get_saxt_i(leafKeys, 0);
-  saxt last_saxt = get_saxt_i(leafKeys, end);
+  saxt_only first_saxt = get_saxt_i(leafKeys, 0);
+  saxt_only last_saxt = get_saxt_i(leafKeys, end);
   cod window_co_d = get_co_d_from_saxt(first_saxt, last_saxt);
   //method2 begin
   cod d1 = window_co_d + 1;
@@ -230,9 +230,9 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
   int num = 1;
   int id = 0;
   int nextid = id + m - 1;
-  saxt now_saxt = first_saxt;
+  saxt_only now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i(leafKeys, nextid);
+  saxt_only now1_saxt = get_saxt_i(leafKeys, nextid);
   bool mark = true;
   while (true){
     if (mark){
@@ -249,8 +249,8 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
       int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
       num = overid - id + 1;
       if (num <= n) {
-        saxt tmplsaxt = get_saxt_i(leafKeys, id);
-        saxt tmprsaxt = get_saxt_i(leafKeys, overid);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id);
+        saxt_only tmprsaxt = get_saxt_i(leafKeys, overid);
         cod tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, num, tmplsaxt, tmprsaxt});
       } else {
@@ -259,8 +259,8 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
         int tmpnum1 = num / 2;
         int tmpnum2 = num - tmpnum1;
         int id1 = id + tmpnum1;
-        saxt tmplsaxt = get_saxt_i(leafKeys, id);
-        saxt tmprsaxt = get_saxt_i(leafKeys, id1-1);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id);
+        saxt_only tmprsaxt = get_saxt_i(leafKeys, id1-1);
         cod tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, tmpnum1, tmplsaxt, tmprsaxt});
         tmplsaxt = get_saxt_i(leafKeys, id1);
@@ -270,11 +270,11 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
         //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
         //可能的区间 1000000才触发18次，太少了，不如平分
         /*
-                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
                   int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
                   int tmpnum1 = best_mid_id-id+1;
                   int tmpnum2 = num-(best_mid_id-id+1);
-                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
                   cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
                   if (tmpnum1<=n) {
                       d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -283,14 +283,14 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
                       int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
                       int tmpnum1_ = best_mid_id_-id+1;
                       int tmpnum2_ = tmpnum1-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
                       d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
                   }
-                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
                   cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
                   if (tmpnum2<=n) {
                       d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -299,10 +299,10 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
                       int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
                       int tmpnum1_ = best_mid_id_-best_mid_id;
                       int tmpnum2_ = tmpnum2-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
                       d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
                   }
@@ -333,7 +333,7 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
     } else {
       if (i>=new_end) {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -342,20 +342,20 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -364,14 +364,14 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -380,10 +380,10 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -395,7 +395,7 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
         now1_saxt = get_saxt_i(leafKeys, i+1);
       } else {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -404,20 +404,20 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -426,14 +426,14 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -442,10 +442,10 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -472,8 +472,8 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
       continue;
     }
     //前面小范围的
-    saxt re_lsaxt = get_saxt_i(leafKeys, todoid);
-    saxt re_rsaxt = get_saxt_i(leafKeys, anode.id-1);
+    saxt_only re_lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only re_rsaxt = get_saxt_i(leafKeys, anode.id-1);
     if (todonum <= m) {
       if (nonleafkeys[0].empty_add()){
         //只看后面
@@ -492,11 +492,11 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
       } else {
         //要看前面
         cod preco_d = nonleafkeys[0].back_add()->co_d;
-        saxt prelsaxt = nonleafkeys[0].back_add()->lsaxt;
+        saxt_only prelsaxt = nonleafkeys[0].back_add()->lsaxt;
         int prenum = nonleafkeys[0].back_add()->num;
 
         cod nextco_d = anode.co_d;
-        saxt nextrsaxt = anode.rsaxt;
+        saxt_only nextrsaxt = anode.rsaxt;
         int nextnum = anode.num;
         //先对比下降程度
         cod co_d1;
@@ -593,8 +593,8 @@ int Zsbtree_Build::buildtree_window(newVector<LeafKey> &leafKeys) {
 void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int allnum) {
   assert(allnum>n);
   int end = allnum - 1;
-  saxt first_saxt = get_saxt_i(leafKeys, 0);
-  saxt last_saxt = get_saxt_i(leafKeys, end);
+  saxt_only first_saxt = get_saxt_i(leafKeys, 0);
+  saxt_only last_saxt = get_saxt_i(leafKeys, end);
   cod window_co_d = get_co_d_from_saxt(first_saxt, last_saxt);
   //method2 begin
   cod d1 = window_co_d + 1;
@@ -605,9 +605,9 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
   int num = 1;
   int id = 0;
   int nextid = id + m - 1;
-  saxt now_saxt = first_saxt;
+  saxt_only now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i(leafKeys, nextid);
+  saxt_only now1_saxt = get_saxt_i(leafKeys, nextid);
   bool mark = true;
   while (true){
     if (mark){
@@ -624,8 +624,8 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
       int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
       num = overid - id + 1;
       if (num <= n) {
-        saxt tmplsaxt = get_saxt_i(leafKeys, id);
-        saxt tmprsaxt = get_saxt_i(leafKeys, overid);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id);
+        saxt_only tmprsaxt = get_saxt_i(leafKeys, overid);
         cod tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, num, tmplsaxt, tmprsaxt});
       } else {
@@ -634,8 +634,8 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
         int tmpnum1 = num / 2;
         int tmpnum2 = num - tmpnum1;
         int id1 = id + tmpnum1;
-        saxt tmplsaxt = get_saxt_i(leafKeys, id);
-        saxt tmprsaxt = get_saxt_i(leafKeys, id1-1);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id);
+        saxt_only tmprsaxt = get_saxt_i(leafKeys, id1-1);
         cod tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, tmpnum1, tmplsaxt, tmprsaxt});
         tmplsaxt = get_saxt_i(leafKeys, id1);
@@ -645,11 +645,11 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
         //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
         //可能的区间 1000000才触发18次，太少了，不如平分
         /*
-                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
                   int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
                   int tmpnum1 = best_mid_id-id+1;
                   int tmpnum2 = num-(best_mid_id-id+1);
-                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
                   cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
                   if (tmpnum1<=n) {
                       d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -658,14 +658,14 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
                       int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
                       int tmpnum1_ = best_mid_id_-id+1;
                       int tmpnum2_ = tmpnum1-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
                       d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
                   }
-                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
                   cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
                   if (tmpnum2<=n) {
                       d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -674,10 +674,10 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
                       int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
                       int tmpnum1_ = best_mid_id_-best_mid_id;
                       int tmpnum2_ = tmpnum2-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
                       d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
                   }
@@ -708,7 +708,7 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
     } else {
       if (i >= new_end) {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i(leafKeys, i - 1);
+          saxt_only tmpsaxt = get_saxt_i(leafKeys, i - 1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -717,20 +717,20 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i(leafKeys, id1 - 1);
+          saxt_only tmprsaxt = get_saxt_i(leafKeys, id1 - 1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i(leafKeys, i - 1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -739,14 +739,14 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -755,10 +755,10 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -770,7 +770,7 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
         now1_saxt = get_saxt_i(leafKeys, i + 1);
       } else {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i(leafKeys, i - 1);
+          saxt_only tmpsaxt = get_saxt_i(leafKeys, i - 1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -779,20 +779,20 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i(leafKeys, id1 - 1);
+          saxt_only tmprsaxt = get_saxt_i(leafKeys, id1 - 1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i(leafKeys, i - 1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -801,14 +801,14 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -822,10 +822,10 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
 ////                        out(tmpnum2_);
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -852,8 +852,8 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
       continue;
     }
     //前面小范围的
-    saxt re_lsaxt = get_saxt_i(leafKeys, todoid);
-    saxt re_rsaxt = get_saxt_i(leafKeys, anode.id - 1);
+    saxt_only re_lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only re_rsaxt = get_saxt_i(leafKeys, anode.id - 1);
     if (todonum <= m) {
       if (nonleafkeys[0].empty_add()) {
         //只看后面
@@ -875,11 +875,11 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 //                out("Jinru:");
         //要看前面
         cod preco_d = nonleafkeys[0].back_add()->co_d;
-        saxt prelsaxt = nonleafkeys[0].back_add()->lsaxt;
+        saxt_only prelsaxt = nonleafkeys[0].back_add()->lsaxt;
         int prenum = nonleafkeys[0].back_add()->num;
 
         cod nextco_d = anode.co_d;
-        saxt nextrsaxt = anode.rsaxt;
+        saxt_only nextrsaxt = anode.rsaxt;
         int nextnum = anode.num;
         //先对比下降程度
         cod co_d1;
@@ -984,16 +984,16 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
   int todonum = allnum - todoid;
   if (todonum > n) {
     //直接平分打包
-    saxt lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only lsaxt = get_saxt_i(leafKeys, todoid);
     build_leaf_and_nonleafkey_two(leafKeys, todoid, todonum, window_co_d, lsaxt, last_saxt);
   } else if (todonum > m && todonum <= n) {
     //直接打包
-    saxt lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only lsaxt = get_saxt_i(leafKeys, todoid);
     build_leaf_and_nonleafkey(leafKeys, todoid, todonum, window_co_d, lsaxt, last_saxt);
   } else if (todonum > 0) {
     if (!nonleafkeys[0].empty_add()) {
       //跟前面合
-      saxt prelsaxt = nonleafkeys[0].back_add()->lsaxt;
+      saxt_only prelsaxt = nonleafkeys[0].back_add()->lsaxt;
       int prenum = nonleafkeys[0].back_add()->num;
       int tmpnum = prenum + todonum;
       cod co_d1;
@@ -1013,29 +1013,29 @@ void Zsbtree_Build::buildtree_window_last(newVector<LeafKey> &leafKeys, int alln
 }
 
 
-inline saxt Zsbtree_Build::get_saxt_i(const newVector<NonLeafKey> &leafKeys, int i){
+inline saxt_only Zsbtree_Build::get_saxt_i(const newVector<NonLeafKey> &leafKeys, int i){
   return leafKeys[i].lsaxt;
 }
 
-inline saxt Zsbtree_Build::get_saxt_i_r(const newVector<NonLeafKey> &leafKeys, int i){
+inline saxt_only Zsbtree_Build::get_saxt_i_r(const newVector<NonLeafKey> &leafKeys, int i){
   return leafKeys[i].rsaxt;
 }
 
 
 //构造leaf和索引点
 inline void Zsbtree_Build::build_leaf_and_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
-                                      int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep) {
+                                      int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, int dep) {
 
   Emplace(num, co_d, lsaxt, rsaxt, leafKeys.data()+id, dep);
 }
 
 //构造leaf和索引点,从中间平分
 inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(const newVector<NonLeafKey> &leafKeys, int id,
-                                          int num, cod co_d, saxt lsaxt, saxt rsaxt, int dep) {
+                                          int num, cod co_d, saxt_only lsaxt, saxt_only rsaxt, int dep) {
   int tmpnum1 = num / 2;
   int tmpnum2 = num - tmpnum1;
   //构造leaf
-  saxt tmpsaxt = leafKeys[id+tmpnum1-1].rsaxt;
+  saxt_only tmpsaxt = leafKeys[id+tmpnum1-1].rsaxt;
   //构造nonleaf索引点
   Emplace(tmpnum1, get_co_d_from_saxt(lsaxt, tmpsaxt, co_d), lsaxt, tmpsaxt, leafKeys.data()+id, dep);
   //第二个叶
@@ -1047,7 +1047,7 @@ inline void Zsbtree_Build::build_leaf_and_nonleafkey_two(const newVector<NonLeaf
 
 //给一个叶子结点加一些key
 inline void Zsbtree_Build::add_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id,
-                           int num, cod co_d, saxt rsaxt, int dep) {
+                           int num, cod co_d, saxt_only rsaxt, int dep) {
   NonLeafKey *nonLeafKey = nonleafkeys[dep].back_add();
   nonLeafKey->co_d = co_d;
   nonLeafKey->num += num;
@@ -1056,31 +1056,31 @@ inline void Zsbtree_Build::add_nonleafkey(const newVector<NonLeafKey> &leafKeys,
 
 //给一个叶子结点加一些key,到大于n了，平分
 inline void Zsbtree_Build::split_nonleafkey(const newVector<NonLeafKey> &leafKeys, int id, int allnum,
-                             int num, cod co_d, saxt rsaxt, int dep) {
+                             int num, cod co_d, saxt_only rsaxt, int dep) {
 
   NonLeafKey *nonLeafKey = nonleafkeys[dep].back_add();
   NonLeafKey *leafs = (NonLeafKey *)(nonLeafKey->p);
   int tmpnum1 = allnum / 2;
   int tmpnum2 = allnum - tmpnum1;
   //更新前一个点
-  saxt newRsaxt = leafs[tmpnum1-1].rsaxt;
+  saxt_only newRsaxt = leafs[tmpnum1-1].rsaxt;
   nonLeafKey->num = tmpnum1;
   nonLeafKey->co_d = get_co_d_from_saxt(nonLeafKey->lsaxt, newRsaxt, nonLeafKey->co_d);
   nonLeafKey->setRsaxt(newRsaxt);
   //添加后一个点
   int tmpnum3 = tmpnum2 - num;
-  saxt newLsaxt = leafs[tmpnum1].lsaxt;
+  saxt_only newLsaxt = leafs[tmpnum1].lsaxt;
   Emplace(tmpnum2, get_co_d_from_saxt(newLsaxt, rsaxt, co_d), newLsaxt, rsaxt, leafs+tmpnum1, dep);
 }
 
 //在method2中，遇到大于n的，分一下
-inline int Zsbtree_Build::getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt now_saxt, saxt tmplastsaxt) {
+inline int Zsbtree_Build::getbestmid(const newVector<NonLeafKey> &leafKeys, int id, int num, cod d1, saxt_only now_saxt, saxt_only tmplastsaxt) {
   int best_mid_id = id+num/2-1;
   int best_cod = d1+d1;
   for (int mid_id = id+m-1;mid_id<id+num-m;mid_id++){
-    saxt tmprsaxt = get_saxt_i_r(leafKeys, mid_id);
+    saxt_only tmprsaxt = get_saxt_i_r(leafKeys, mid_id);
     cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
-    saxt tmplsaxt = get_saxt_i(leafKeys, mid_id+1);
+    saxt_only tmplsaxt = get_saxt_i(leafKeys, mid_id+1);
     cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
     int tmpd = tmpd2+tmpd1;
     if (tmpd>best_cod) {
@@ -1093,7 +1093,7 @@ inline int Zsbtree_Build::getbestmid(const newVector<NonLeafKey> &leafKeys, int 
 
 
 int Zsbtree_Build::get_new_end(const newVector<NonLeafKey>& leafKeys, int l, int r,
-                               saxt saxt_, cod co_d) {
+                               saxt_only saxt_, cod co_d) {
   while(l < r)
   {
     int mid = (l + r + 1)/ 2;
@@ -1104,7 +1104,7 @@ int Zsbtree_Build::get_new_end(const newVector<NonLeafKey>& leafKeys, int l, int
 }
 
 int Zsbtree_Build::get_new_end_1(const newVector<NonLeafKey>& leafKeys, int l,
-                                 int r, saxt saxt_, cod co_d) {
+                                 int r, saxt_only saxt_, cod co_d) {
   while(l < r)
   {
     int mid = (l + r + 1)/ 2;
@@ -1118,8 +1118,8 @@ int Zsbtree_Build::get_new_end_1(const newVector<NonLeafKey>& leafKeys, int l,
 //批量构建while循环内, 2n个
 int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int dep) {
   int end = 2 * n - 1;
-  saxt first_saxt = get_saxt_i(leafKeys, 0);
-  saxt last_saxt = get_saxt_i_r(leafKeys, end);
+  saxt_only first_saxt = get_saxt_i(leafKeys, 0);
+  saxt_only last_saxt = get_saxt_i_r(leafKeys, end);
   cod window_co_d = get_co_d_from_saxt(first_saxt, last_saxt);
   //method2 begin
   cod d1 = window_co_d + 1;
@@ -1131,9 +1131,9 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
   int num = 1;
   int id = 0;
   int nextid = id + m - 1;
-  saxt now_saxt = first_saxt;
+  saxt_only now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i_r(leafKeys, nextid);
+  saxt_only now1_saxt = get_saxt_i_r(leafKeys, nextid);
   bool mark = true;
   while (true){
     if (mark){
@@ -1151,7 +1151,7 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
       int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
       num = overid - id + 1;
       if (num <= n) {
-        saxt tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        saxt_only tmprsaxt = get_saxt_i_r(leafKeys, overid);
         cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, num, now_saxt, tmprsaxt});
       } else {
@@ -1160,21 +1160,21 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
         int tmpnum1 = num / 2;
         int tmpnum2 = num - tmpnum1;
         int id1 = id + tmpnum1;
-        saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+        saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
         cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-        saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
         tmprsaxt = get_saxt_i_r(leafKeys, overid);
         tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
         //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
         //可能的区间 1000000才触发18次，太少了，不如平分
         /*
-                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
                   int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
                   int tmpnum1 = best_mid_id-id+1;
                   int tmpnum2 = num-(best_mid_id-id+1);
-                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
                   cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
                   if (tmpnum1<=n) {
                       d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1183,14 +1183,14 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
                       int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
                       int tmpnum1_ = best_mid_id_-id+1;
                       int tmpnum2_ = tmpnum1-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
                       d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
                   }
-                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
                   cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
                   if (tmpnum2<=n) {
                       d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1199,10 +1199,10 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
                       int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
                       int tmpnum1_ = best_mid_id_-best_mid_id;
                       int tmpnum2_ = tmpnum2-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
                       d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
                   }
@@ -1233,7 +1233,7 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
     } else {
       if (i>=new_end) {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i_r(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i_r(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -1242,20 +1242,20 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1264,14 +1264,14 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1280,10 +1280,10 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -1295,7 +1295,7 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
         now1_saxt = get_saxt_i_r(leafKeys, i+1);
       } else {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i_r(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i_r(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -1304,20 +1304,20 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1326,14 +1326,14 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1342,10 +1342,10 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -1372,8 +1372,8 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
       continue;
     }
     //前面小范围的
-    saxt re_lsaxt = get_saxt_i(leafKeys, todoid);
-    saxt re_rsaxt = get_saxt_i_r(leafKeys, anode.id-1);
+    saxt_only re_lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only re_rsaxt = get_saxt_i_r(leafKeys, anode.id-1);
     if (todonum <= m) {
       if (nonleafkeys[dep].empty_add()){
         //只看后面
@@ -1392,7 +1392,7 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
       } else {
         //要看前面
         cod preco_d = nonleafkeys[dep].back_add()->co_d;
-        saxt prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
+        saxt_only prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
         int prenum = nonleafkeys[dep].back_add()->num;
 
         cod nextco_d = anode.co_d;
@@ -1492,8 +1492,8 @@ int Zsbtree_Build::buildtree_window(const newVector<NonLeafKey> &leafKeys, int d
 void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys, int allnum, int dep) {
   assert(allnum>n);
   int end = allnum - 1;
-  saxt first_saxt = get_saxt_i(leafKeys, 0);
-  saxt last_saxt = get_saxt_i_r(leafKeys, end);
+  saxt_only first_saxt = get_saxt_i(leafKeys, 0);
+  saxt_only last_saxt = get_saxt_i_r(leafKeys, end);
   cod window_co_d = get_co_d_from_saxt(first_saxt, last_saxt);
   //method2 begin
   cod d1 = window_co_d + 1;
@@ -1503,9 +1503,9 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
   int num = 1;
   int id = 0;
   int nextid = id + m - 1;
-  saxt now_saxt = first_saxt;
+  saxt_only now_saxt = first_saxt;
   //跟第n/2个比
-  saxt now1_saxt = get_saxt_i_r(leafKeys, nextid);
+  saxt_only now1_saxt = get_saxt_i_r(leafKeys, nextid);
   bool mark = true;
   while (true){
     if (mark){
@@ -1523,7 +1523,7 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
       int overid = get_new_end_1(leafKeys, nextid, new_end-1, now1_saxt, d1);
       num = overid - id + 1;
       if (num <= n) {
-        saxt tmprsaxt = get_saxt_i_r(leafKeys, overid);
+        saxt_only tmprsaxt = get_saxt_i_r(leafKeys, overid);
         cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, num, now_saxt, tmprsaxt});
       } else {
@@ -1532,21 +1532,21 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
         int tmpnum1 = num / 2;
         int tmpnum2 = num - tmpnum1;
         int id1 = id + tmpnum1;
-        saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+        saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
         cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-        saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+        saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
         tmprsaxt = get_saxt_i_r(leafKeys, overid);
         tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
         d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
         //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
         //可能的区间 1000000才触发18次，太少了，不如平分
         /*
-                  saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+                  saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
                   int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
                   int tmpnum1 = best_mid_id-id+1;
                   int tmpnum2 = num-(best_mid_id-id+1);
-                  saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+                  saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
                   cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
                   if (tmpnum1<=n) {
                       d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1555,14 +1555,14 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
                       int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
                       int tmpnum1_ = best_mid_id_-id+1;
                       int tmpnum2_ = tmpnum1-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
                       d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
                   }
-                  saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+                  saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
                   cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
                   if (tmpnum2<=n) {
                       d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1571,10 +1571,10 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
                       int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
                       int tmpnum1_ = best_mid_id_-best_mid_id;
                       int tmpnum2_ = tmpnum2-tmpnum1_;
-                      saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+                      saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
                       cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
                       d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-                      saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+                      saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
                       cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
                       d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
                   }
@@ -1605,7 +1605,7 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
     } else {
       if (i>=new_end) {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i_r(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i_r(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -1614,20 +1614,20 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案，可能有3个就再分
           //可能的区间 1000000才触发18次，太少了，不如平分
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1636,14 +1636,14 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1652,10 +1652,10 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -1667,7 +1667,7 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
         now1_saxt = get_saxt_i_r(leafKeys, i+1);
       } else {
         if (num <= n) {
-          saxt tmpsaxt = get_saxt_i_r(leafKeys, i-1);
+          saxt_only tmpsaxt = get_saxt_i_r(leafKeys, i-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmpsaxt, d1);
           d1Arr.push_back({tmpd, id, num, now_saxt, tmpsaxt});
         } else {
@@ -1676,20 +1676,20 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
           int tmpnum1 = num / 2;
           int tmpnum2 = num - tmpnum1;
           int id1 = id + tmpnum1;
-          saxt tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
+          saxt_only tmprsaxt = get_saxt_i_r(leafKeys, id1-1);
           cod tmpd = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id, tmpnum1, now_saxt, tmprsaxt});
-          saxt tmplsaxt = get_saxt_i(leafKeys, id1);
+          saxt_only tmplsaxt = get_saxt_i(leafKeys, id1);
           tmprsaxt = get_saxt_i_r(leafKeys, i-1);
           tmpd = get_co_d_from_saxt(tmplsaxt, tmprsaxt, d1);
           d1Arr.push_back({tmpd, id1, tmpnum2, tmplsaxt, tmprsaxt});
           //找d+2代码，遍历中间每一个，寻找d最大的方案
           //可能的区间
-//                    saxt tmplastsaxt = get_saxt_i(leafKeys, i-1);
+//                    saxt_only tmplastsaxt = get_saxt_i(leafKeys, i-1);
 //                    int best_mid_id = getbestmid(leafKeys, n, m, id, num, d1, now_saxt, tmplastsaxt);
 //                    int tmpnum1 = best_mid_id-id+1;
 //                    int tmpnum2 = num-(best_mid_id-id+1);
-//                    saxt tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
+//                    saxt_only tmprsaxt = get_saxt_i(leafKeys, best_mid_id);
 //                    cod tmpd1 = get_co_d_from_saxt(now_saxt, tmprsaxt, d1);
 //                    if (tmpnum1<=n) {
 //                        d1Arr.push_back({tmpd1, id, tmpnum1, now_saxt, tmprsaxt});
@@ -1698,14 +1698,14 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, id, tmpnum1, tmpd1, now_saxt, tmprsaxt);
 //                        int tmpnum1_ = best_mid_id_-id+1;
 //                        int tmpnum2_ = tmpnum1-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(now_saxt, tmprsaxt_, tmpd1);
 //                        d1Arr.push_back({tmpd1_, id, tmpnum1_, now_saxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmprsaxt, tmpd1);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmprsaxt});
 //                    }
-//                    saxt tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
+//                    saxt_only tmplsaxt = get_saxt_i(leafKeys, best_mid_id+1);
 //                    cod tmpd2 = get_co_d_from_saxt(tmplsaxt, tmplastsaxt, d1);
 //                    if (tmpnum2<=n) {
 //                        d1Arr.push_back({tmpd2, best_mid_id+1, tmpnum2, tmplsaxt, tmplastsaxt});
@@ -1714,10 +1714,10 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
 //                        int best_mid_id_ = getbestmid(leafKeys, n, m, best_mid_id+1, tmpnum2, tmpd2, tmplsaxt, tmplastsaxt);
 //                        int tmpnum1_ = best_mid_id_-best_mid_id;
 //                        int tmpnum2_ = tmpnum2-tmpnum1_;
-//                        saxt tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
+//                        saxt_only tmprsaxt_ = get_saxt_i(leafKeys, best_mid_id_);
 //                        cod tmpd1_ = get_co_d_from_saxt(tmplsaxt, tmprsaxt_, tmpd2);
 //                        d1Arr.push_back({tmpd1_, best_mid_id+1, tmpnum1_, tmplsaxt, tmprsaxt_});
-//                        saxt tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
+//                        saxt_only tmplsaxt_ = get_saxt_i(leafKeys, best_mid_id_+1);
 //                        cod tmpd2_ = get_co_d_from_saxt(tmplsaxt_, tmplastsaxt, tmpd2);
 //                        d1Arr.push_back({tmpd2_, best_mid_id_+1, tmpnum2_, tmplsaxt_, tmplastsaxt});
 //                    }
@@ -1744,8 +1744,8 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
       continue;
     }
     //前面小范围的
-    saxt re_lsaxt = get_saxt_i(leafKeys, todoid);
-    saxt re_rsaxt = get_saxt_i_r(leafKeys, anode.id-1);
+    saxt_only re_lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only re_rsaxt = get_saxt_i_r(leafKeys, anode.id-1);
     if (todonum <= m) {
       if (nonleafkeys[dep].empty_add()){
         //只看后面
@@ -1764,7 +1764,7 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
       } else {
         //要看前面
         cod preco_d = nonleafkeys[dep].back_add()->co_d;
-        saxt prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
+        saxt_only prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
         int prenum = nonleafkeys[dep].back_add()->num;
 
         cod nextco_d = anode.co_d;
@@ -1855,16 +1855,16 @@ void Zsbtree_Build::buildtree_window_last(const newVector<NonLeafKey> &leafKeys,
   int todonum = allnum - todoid;
   if (todonum > n) {
     //直接平分打包
-    saxt lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only lsaxt = get_saxt_i(leafKeys, todoid);
     build_leaf_and_nonleafkey_two(leafKeys, todoid, todonum, window_co_d, lsaxt, last_saxt, dep);
   } else if (todonum > m && todonum <= n) {
     //直接打包
-    saxt lsaxt = get_saxt_i(leafKeys, todoid);
+    saxt_only lsaxt = get_saxt_i(leafKeys, todoid);
     build_leaf_and_nonleafkey(leafKeys, todoid, todonum, window_co_d, lsaxt, last_saxt, dep);
   } else if (todonum > 0) {
     if (!nonleafkeys[dep].empty_add()) {
       //跟前面合
-      saxt prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
+      saxt_only prelsaxt = nonleafkeys[dep].back_add()->lsaxt;
       int prenum = nonleafkeys[dep].back_add()->num;
       int tmpnum = prenum + todonum;
       cod co_d1;
