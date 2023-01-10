@@ -12,7 +12,7 @@ STNonLeaf::STNonLeaf(unsigned short num, cod co_d, size_t size) {
   lkey_size = sizeof(saxt_only) - co_size;
   s_co_size = lkey_size;
   pos_size = (lkey_size << 1) + 2;
-  lkey_size += 2;
+  lkey_size += 10;
   noco_size = pos_size + 8;
   rep = new char[size];
   this->size = size;

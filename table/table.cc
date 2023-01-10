@@ -387,6 +387,8 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
 //  out("查看每一个范围=================");
 //  for(int i=0;i<nonLeaf.num;i++){
 //    out("最大最小");
+//    saxt_print(nonLeaf.Get_lsaxt(i));
+//    saxt_print(nonLeaf.Get_rsaxt(i));
 //  }
 //  out("查看每一个范围结束=================");
   if (nonLeaf.isleaf) {
@@ -396,11 +398,16 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
   int l=0;
   int r=nonLeaf.num-1;
   while (l<r) {
+//    out("选择");
     int mid = (l + r) / 2;
-    if (saxt_cmp(leafkey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+//    out((int)nonLeaf.co_d);
+//    saxt_print(nonLeaf.Get_lsaxt(mid));
+//    saxt_print(nonLeaf.Get_rsaxt(mid));
+    if (saxt_cmp(leafkey.asaxt, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
     else l = mid + 1;
+//    out(to_string(l)+" "+to_string(r));
   }
-  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+  int pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt, nonLeaf.co_d);
   if (pos==0) {
     //里面
     STNonLeaf* stNonLeaf = getSTNonLeaf(nonLeaf, l);
@@ -411,8 +418,8 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
     saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
     cod nextco_d = nonLeaf.Get_co_d(l);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt , nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
       r_Get_NonLeaf(nonLeaf, l-1);
@@ -433,8 +440,8 @@ bool Table::ST_finder::nonLeaf_Get(STNonLeaf& nonLeaf) {
     saxt prelsaxt = nonLeaf.Get_lsaxt(l);
     cod nextco_d = nonLeaf.Get_co_d(l+1);
     saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
-    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+    cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt, nonLeaf.co_d);
+    cod co_d2 = get_co_d_from_saxt(leafkey.asaxt, nextrsaxt, nonLeaf.co_d);
     if ((preco_d - co_d1) < (nextco_d - co_d2)) {
       // 跟前面
       r_Get_NonLeaf(nonLeaf, l);
@@ -462,10 +469,10 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
     int r=nonLeaf.num-1;
     while (l<r) {
       int mid = (l + r) / 2;
-      if (saxt_cmp(leafkey.asaxt + nonLeaf.co_d, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
+      if (saxt_cmp(leafkey.asaxt, nonLeaf.Get_rsaxt(mid), nonLeaf.co_d)) r = mid;
       else l = mid + 1;
     }
-    pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
+    pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt, nonLeaf.co_d);
     if (pos==0) {
       //里面
       if (nonLeaf.Getnum(l)==0) {
@@ -483,8 +490,8 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
       saxt prelsaxt = nonLeaf.Get_lsaxt(l-1);
       cod nextco_d = nonLeaf.Get_co_d(l);
       saxt nextrsaxt = nonLeaf.Get_rsaxt(l);
-      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
         // 跟前面
         STLeaf* stLeaf = getSTLeaf(nonLeaf, l-1);
@@ -521,8 +528,8 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
       saxt prelsaxt = nonLeaf.Get_lsaxt(l);
       cod nextco_d = nonLeaf.Get_co_d(l+1);
       saxt nextrsaxt = nonLeaf.Get_rsaxt(l+1);
-      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
-      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt + nonLeaf.co_d, nextrsaxt, nonLeaf.co_d);
+      cod co_d1 = get_co_d_from_saxt(prelsaxt, leafkey.asaxt, nonLeaf.co_d);
+      cod co_d2 = get_co_d_from_saxt(leafkey.asaxt, nextrsaxt, nonLeaf.co_d);
       if ((preco_d - co_d1) < (nextco_d - co_d2)) {
         // 跟前面
         STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
@@ -597,15 +604,16 @@ void Table::ST_finder::sort() {
 }
 
 cod Table::ST_finder::get_co_d_from_saxt(saxt a, saxt b, cod pre_d) {
-  int d = 0;
-  for(; d<Bit_cardinality - pre_d; d++){
-    if (a[d] != b[d]) return d;
+  int d = Bit_cardinality - 1 - pre_d;
+  for(; d>=0; d--){
+    if (a[d] != b[d]) return Bit_cardinality - 1 - d;
   }
-  return pre_d + d;
+  return Bit_cardinality;
 }
 
 bool Table::ST_finder::saxt_cmp(saxt a, saxt b, cod co_d) {
-  for (int d = 0;d<Bit_cardinality - co_d;d++) {
+  int d = Bit_cardinality - 1 - co_d;
+  for (;d>=0; d--) {
     if (a[d] != b[d]) return a[d] < b[d];
   }
   return true;

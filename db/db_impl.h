@@ -157,6 +157,8 @@ class DBImpl : public DB {
   void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   static void BGWork(void* db);
   static void BGWork_IM(void* db, std::pair<MemTable*, int> aim);
+  static void BGWork_Get_am(void* db, const aquery &aquery1, query_heap *res_heap, MemTable* to_find_mem);
+  static void BGWork_Get_st(void* db, const aquery &aquery1, query_heap *res_heap, uint64_t st_number, Version* this_ver);
   void BackgroundCall();
   void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void CleanupCompaction(CompactionState* compact)

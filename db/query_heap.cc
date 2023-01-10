@@ -20,7 +20,7 @@ bool query_heap::push(ares& ares_) {
 
 void query_heap::get(vector<ares>& res) {
   res.reserve(res_heap.size());
-  for (int i = 0; i < res_heap.size(); i++) {
+  if (!res_heap.empty()) {
     res.push_back(res_heap.top());
     res_heap.pop();
   }
@@ -49,4 +49,5 @@ void query_heap::wait() {
   std::unique_lock<std::mutex> l(mu_);
   cv.wait(l);
 }
+
 }

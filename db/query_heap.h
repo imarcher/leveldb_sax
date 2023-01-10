@@ -43,13 +43,9 @@ class query_heap {
 
   float top() const;
 
-  inline void readLock() { mutex_.lock_shared(); }
+  inline void Lock() { mu_.lock(); }
 
-  inline void readUnlock() { mutex_.unlock_shared(); }
-
-  inline void writeLock() { mutex_.lock_upgrade(); }
-
-  inline void writeUnlock() { mutex_.unlock_upgrade(); }
+  inline void Unlock() { mu_.unlock(); }
 
 
   inline void subUse() { use--; }
@@ -68,7 +64,6 @@ class query_heap {
   bool isfinish();
 
  private:
-  boost::shared_mutex mutex_;
   int k;
   priority_queue<ares> res_heap;
   int use;   // 有多少个表没做完第一个叶结点

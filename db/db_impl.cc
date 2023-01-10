@@ -626,6 +626,7 @@ void DBImpl::CompactMemTable(std::pair<MemTable*, int> aim) {
     //这个ref只能master来解除
     nowversion->Ref();
     version_map[++versionid] = nowversion;
+    out(versionid);
     // 发送 versionid, amV_id, edit.new_files_ 3样东西
     char* to_send = (char*)malloc(send_size1);
     char* tmp_to_send = to_send;
@@ -1358,8 +1359,6 @@ Status DBImpl::Get(const aquery& aquery1,
                    bool is_use_am, int am_version_id, int st_version_id, const vector<uint64_t>& st_number,
                    vector<ares>& results) {
 
-  int tableNum = st_number.size();
-
   if (is_use_am) {
     //有am，先查am，因为可以剪枝
     mutex_Mem.Lock();
@@ -1388,17 +1387,21 @@ Status DBImpl::Get(const aquery& aquery1,
         res_heap->v2_mutex = &mutex_;
       }
 
-      std::thread athread(std::bind(&DBImpl::Get_am, this, aquery1, res_heap, this_mem));
+      res_heap->Lock();;
+
+      std::thread athread(&DBImpl::BGWork_Get_am, this, aquery1, res_heap, this_mem);
       athread.detach();
 
       for (auto j : st_number) {
-        std::thread sthread(std::bind(&DBImpl::Get_st, this, aquery1, res_heap, j, res_heap->vv2));
+        std::thread sthread(&DBImpl::BGWork_Get_st, this, aquery1, res_heap, j, res_heap->vv2);
         sthread.detach();
       }
+
 
       //等待结果
       res_heap->wait();
       res_heap->get(results);
+      res_heap->Unlock();
 
       return Status();
     } else {
@@ -1418,18 +1421,31 @@ Status DBImpl::Get(const aquery& aquery1,
     res_heap->v2_mutex = &mutex_;
   }
 
+  res_heap->Lock();;
+
   for (auto j : st_number) {
-    std::thread sthread(std::bind(&DBImpl::Get_st, this, aquery1, res_heap, j, res_heap->vv2));
+    std::thread sthread(&DBImpl::BGWork_Get_st, this, aquery1, res_heap, j, res_heap->vv2);
     sthread.detach();
   }
 
 
   res_heap->wait();
   res_heap->get(results);
-
+  res_heap->Unlock();
 
   return Status();
 }
+
+void DBImpl::BGWork_Get_am(void* db, const aquery& aquery1,
+                           query_heap* res_heap, MemTable* to_find_mem) {
+  reinterpret_cast<DBImpl*>(db)->Get_am(aquery1, res_heap, to_find_mem);
+}
+void DBImpl::BGWork_Get_st(void* db, const aquery& aquery1,
+                           query_heap* res_heap, uint64_t st_number,
+                           Version* this_ver) {
+  reinterpret_cast<DBImpl*>(db)->Get_st(aquery1, res_heap, st_number, this_ver);
+}
+
 
 void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
                     MemTable* to_find_mem) {
@@ -1448,120 +1464,131 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
 
   //必找的一个点
   Finder.find_One(res_leafkeys, res_leafkeys_num);
-  //策略
-  if (lookupi == 0) {
-    int to_find_num = 1;
-    get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-    res_p_num = res_leafkeys_num;
-    for (int i=0;i<res_p_num;i++) {
-      res_heap->readLock();
-      float top = res_heap->top();
-      int need = res_heap->need();
-      res_heap->readUnlock();
-      if (need == 0 && top < res_p[i].first) break;
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &to_find_num, sizeof(int));
-      charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
+
+//  for(int i=0;i<res_leafkeys_num;i++) {
+//    saxt_print(res_leafkeys[i].asaxt);
+//  }
+//
+//  exit(1);
+
+  if (res_leafkeys_num) {
+    //策略
+    if (lookupi == 0) {
+      int to_find_num = 1;
+      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+      res_p_num = res_leafkeys_num;
+      for (int i=0;i<res_p_num;i++) {
+        res_heap->Lock();
+        float top = res_heap->top();
+        int need = res_heap->need();
+        res_heap->Unlock();
+        if (need == 0 && top < res_p[i].first) break;
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &to_find_num, sizeof(int));
+        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
+        }
+        res_heap->Unlock();
+        free(out);
       }
-      res_heap->writeUnlock();
-      free(out);
     }
-  } else if (lookupi == 1) {
-    // 一部分 k个
-    int to_find_num = aquery1.k;
-    get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-    res_p_num = res_leafkeys_num;
-    for (int i=0;i<res_p_num;i+=to_find_num) {
-      int endi = min(i + to_find_num-1, res_p_num - 1);
-      res_heap->readLock();
+    else if (lookupi == 1) {
+      // 一部分 k个
+      int to_find_num = aquery1.k;
+      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+      res_p_num = res_leafkeys_num;
+      for (int i=0;i<res_p_num;i+=to_find_num) {
+        int endi = min(i + to_find_num-1, res_p_num - 1);
+        res_heap->Lock();;
+        float top = res_heap->top();
+        int need = res_heap->need();
+        res_heap->Unlock();
+        bool isbreak = false;
+        if (need == 0) {
+          if (top < res_p[endi].first) {
+            int l=i,r=endi;
+            while(l<r) {
+              int mid = (l+r)/2;
+              if(top < res_p[mid].first) r = mid;
+              else l = mid + 1;
+            }
+            endi = l-1;
+            isbreak = true;
+          }
+        }
+        int findsize = endi - i + 1;
+        if (!findsize) break;
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &findsize, sizeof(int));
+        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
+        }
+        res_heap->Unlock();
+        free(out);
+        if (isbreak) break;
+      }
+    }
+    else if (lookupi == 2){
+      // 直接查一个叶
+      res_heap->Lock();;
       float top = res_heap->top();
       int need = res_heap->need();
-      res_heap->readUnlock();
-      bool isbreak = false;
+      res_heap->Unlock();
+      int endi = res_leafkeys_num - 1;
       if (need == 0) {
         if (top < res_p[endi].first) {
-          int l=i,r=endi;
+          int l=0,r=endi;
           while(l<r) {
             int mid = (l+r)/2;
             if(top < res_p[mid].first) r = mid;
             else l = mid + 1;
           }
           endi = l-1;
-          isbreak = true;
         }
       }
-      int findsize = endi - i + 1;
-      if (!findsize) break;
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &findsize, sizeof(int));
-      for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
-      }
-      res_heap->writeUnlock();
-      free(out);
-      if (isbreak) break;
-    }
-  } else if (lookupi == 2){
-    // 直接查一个叶
-    res_heap->readLock();
-    float top = res_heap->top();
-    int need = res_heap->need();
-    res_heap->readUnlock();
-    int endi = res_leafkeys_num - 1;
-    if (need == 0) {
-      if (top < res_p[endi].first) {
-        int l=0,r=endi;
-        while(l<r) {
-          int mid = (l+r)/2;
-          if(top < res_p[mid].first) r = mid;
-          else l = mid + 1;
+      int findsize = endi + 1;
+      if (findsize) {
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &findsize, sizeof(int));
+        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
         }
-        endi = l-1;
+        res_heap->Unlock();
+        free(out);
       }
-    }
-    int findsize = endi + 1;
-    if (findsize) {
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &findsize, sizeof(int));
-      for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
-      }
-      res_heap->writeUnlock();
-      free(out);
     }
   }
 
@@ -1569,366 +1596,376 @@ void DBImpl::Get_am(const aquery& aquery1, query_heap* res_heap,
   bool isover = false;
 
   //必找的一个点找完后，
-  res_heap->writeLock();
+  res_heap->Lock();;
   res_heap->subUse();
   res_heap->isfinish();
   int need1 = res_heap->need();
   if (!need1) {
     isdel = res_heap->subOver();
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     free(res_leafkeys);
     free(res_p);
     free(info);
     if (isdel) delete res_heap;
     return;
   }
-  res_heap->writeUnlock();
+  res_heap->Unlock();
 
   // 找非叶结点上的其他结点
   Finder.sort();
   for (auto & kk : Finder.has_cod){
 
-    res_heap->writeLock();
+    res_heap->Lock();;
     float top = res_heap->top();
     int need = res_heap->need();
     if (!need) {
       isdel = res_heap->subOver();
-      res_heap->writeUnlock();
+      res_heap->Unlock();
       free(res_leafkeys);
       free(res_p);
       free(info);
       if (isdel) delete res_heap;
       return;
     }
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     Finder.find_One(res_leafkeys, res_leafkeys_num, (Leaf*)kk.second);
-    //策略
-    if (lookupi == 0) {
-      int to_find_num = 1;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i++) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &to_find_num, sizeof(int));
-        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+
+    if (res_leafkeys_num) {
+      //策略
+      if (lookupi == 0) {
+        int to_find_num = 1;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i++) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &to_find_num, sizeof(int));
+          charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 1) {
-      // 一部分 k个
-      int to_find_num = aquery1.k;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i+=to_find_num) {
-        int endi = min(i + to_find_num-1, res_p_num - 1);
-        int findsize = endi - i + 1;
-        if (!findsize) break;
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 1) {
+        // 一部分 k个
+        int to_find_num = aquery1.k;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i+=to_find_num) {
+          int endi = min(i + to_find_num-1, res_p_num - 1);
+          int findsize = endi - i + 1;
+          if (!findsize) break;
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 2){
-      // 直接查一个叶
-      int endi = res_leafkeys_num - 1;
-      int findsize = endi + 1;
-      if (findsize) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 2){
+        // 直接查一个叶
+        int endi = res_leafkeys_num - 1;
+        int findsize = endi + 1;
+        if (findsize) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
     }
   }
 
   for (auto & kk : Finder.no_has_cod){
 
-    res_heap->writeLock();
+    res_heap->Lock();;
     float top = res_heap->top();
     int need = res_heap->need();
     if (!need) {
       isdel = res_heap->subOver();
-      res_heap->writeUnlock();
+      res_heap->Unlock();
       free(res_leafkeys);
       free(res_p);
       free(info);
       if (isdel) delete res_heap;
       return;
     }
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     Finder.find_One(res_leafkeys, res_leafkeys_num, (Leaf*)kk);
-    //策略
-    if (lookupi == 0) {
-      int to_find_num = 1;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i++) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &to_find_num, sizeof(int));
-        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+
+    if (res_leafkeys_num) {
+      //策略
+      if (lookupi == 0) {
+        int to_find_num = 1;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i++) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &to_find_num, sizeof(int));
+          charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 1) {
-      // 一部分 k个
-      int to_find_num = aquery1.k;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i+=to_find_num) {
-        int endi = min(i + to_find_num-1, res_p_num - 1);
-        int findsize = endi - i + 1;
-        if (!findsize) break;
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 1) {
+        // 一部分 k个
+        int to_find_num = aquery1.k;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i+=to_find_num) {
+          int endi = min(i + to_find_num-1, res_p_num - 1);
+          int findsize = endi - i + 1;
+          if (!findsize) break;
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 2){
-      // 直接查一个叶
-      int endi = res_leafkeys_num - 1;
-      int findsize = endi + 1;
-      if (findsize) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 2){
+        // 直接查一个叶
+        int endi = res_leafkeys_num - 1;
+        int findsize = endi + 1;
+        if (findsize) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
     }
   }
 
-  res_heap->writeLock();
+  res_heap->Lock();;
   isdel = res_heap->subOver();
-  res_heap->writeUnlock();
+  res_heap->Unlock();
 
   free(res_leafkeys);
   free(res_p);
@@ -1957,134 +1994,146 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
 
   //必找的一个点
   Finder.find_One(res_leafkeys, res_leafkeys_num);
-  //策略
-  if (lookupi == 0) {
-    int to_find_num = 1;
-    get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-    res_p_num = res_leafkeys_num;
-    for (int i=0;i<res_p_num;i++) {
-      res_heap->readLock();
-      float top = res_heap->top();
-      int need = res_heap->need();
-      res_heap->readUnlock();
-      if (need == 0 && top < res_p[i].first) break;
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &to_find_num, sizeof(int));
-      charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
+
+//  for(int i=0;i<res_leafkeys_num;i++) {
+//    saxt_print(res_leafkeys[i].asaxt);
+//  }
+//
+//  exit(1);
+
+  if (res_leafkeys_num) {
+    //策略
+    if (lookupi == 0) {
+      int to_find_num = 1;
+      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+      res_p_num = res_leafkeys_num;
+      for (int i=0;i<res_p_num;i++) {
+        res_heap->Lock();;
+        float top = res_heap->top();
+        int need = res_heap->need();
+        res_heap->Unlock();
+        if (need == 0 && top < res_p[i].first) break;
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &to_find_num, sizeof(int));
+        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
+        }
+        res_heap->Unlock();
+        free(out);
       }
-      res_heap->writeUnlock();
-      free(out);
     }
-  } else if (lookupi == 1) {
-    // 一部分 k个
-    int to_find_num = aquery1.k;
-    get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-    res_p_num = res_leafkeys_num;
-    for (int i=0;i<res_p_num;i+=to_find_num) {
-      int endi = min(i + to_find_num-1, res_p_num - 1);
-      res_heap->readLock();
+    else if (lookupi == 1) {
+      // 一部分 k个
+      int to_find_num = aquery1.k;
+      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+      res_p_num = res_leafkeys_num;
+      for (int i=0;i<res_p_num;i+=to_find_num) {
+        int endi = min(i + to_find_num-1, res_p_num - 1);
+        res_heap->Lock();
+        float top = res_heap->top();
+        int need = res_heap->need();
+        res_heap->Unlock();
+        bool isbreak = false;
+        if (need == 0) {
+          if (top < res_p[endi].first) {
+            int l=i,r=endi;
+            while(l<r) {
+              int mid = (l+r)/2;
+              if(top < res_p[mid].first) r = mid;
+              else l = mid + 1;
+            }
+            endi = l-1;
+            isbreak = true;
+          }
+        }
+        int findsize = endi - i + 1;
+        if (!findsize) break;
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &findsize, sizeof(int));
+        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
+        }
+        res_heap->Unlock();
+        free(out);
+        if (isbreak) break;
+      }
+    }
+    else if (lookupi == 2){
+      // 直接查一个叶
+      res_heap->Lock();
       float top = res_heap->top();
       int need = res_heap->need();
-      res_heap->readUnlock();
-      bool isbreak = false;
+      res_heap->Unlock();
+      int endi = res_leafkeys_num - 1;
       if (need == 0) {
         if (top < res_p[endi].first) {
-          int l=i,r=endi;
+          int l=0,r=endi;
           while(l<r) {
             int mid = (l+r)/2;
             if(top < res_p[mid].first) r = mid;
             else l = mid + 1;
           }
           endi = l-1;
-          isbreak = true;
         }
       }
-      int findsize = endi - i + 1;
-      if (!findsize) break;
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &findsize, sizeof(int));
-      for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
-      }
-      res_heap->writeUnlock();
-      free(out);
-      if (isbreak) break;
-    }
-  } else if (lookupi == 2){
-    // 直接查一个叶
-    res_heap->readLock();
-    float top = res_heap->top();
-    int need = res_heap->need();
-    res_heap->readUnlock();
-    int endi = res_leafkeys_num - 1;
-    if (need == 0) {
-      if (top < res_p[endi].first) {
-        int l=0,r=endi;
-        while(l<r) {
-          int mid = (l+r)/2;
-          if(top < res_p[mid].first) r = mid;
-          else l = mid + 1;
+      int findsize = endi + 1;
+      if (findsize) {
+        //否则send
+        char* tmpinfo = add_info;
+        charcpy(tmpinfo, &need, sizeof(int));
+        charcpy(tmpinfo, &top, sizeof(float));
+        charcpy(tmpinfo, &findsize, sizeof(int));
+        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+        size_t out_size;
+        char* out;
+        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+        find_tskey(info, to_find_size, out, out_size, db_jvm);
+        ares* ares_out = (ares*) out;
+        // 写堆
+        res_heap->Lock();;;
+        for (int j=0;j<out_size;j++) {
+          if (!res_heap->push(ares_out[j])) break;
         }
-        endi = l-1;
+        res_heap->Unlock();
+        free(out);
       }
-    }
-    int findsize = endi + 1;
-    if (findsize) {
-      //否则send
-      char* tmpinfo = add_info;
-      charcpy(tmpinfo, &need, sizeof(int));
-      charcpy(tmpinfo, &top, sizeof(float));
-      charcpy(tmpinfo, &findsize, sizeof(int));
-      for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-      size_t out_size;
-      char* out;
-      size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-      find_tskey(info, to_find_size, out, out_size, db_jvm);
-      ares* ares_out = (ares*) out;
-      // 写堆
-      res_heap->writeLock();
-      for (int j=0;j<out_size;j++) {
-        if (!res_heap->push(ares_out[j])) break;
-      }
-      res_heap->writeUnlock();
-      free(out);
     }
   }
+
 
   bool isdel = false;
   bool isover = false;
 
   //必找的一个点找完后，
-  res_heap->writeLock();
+  res_heap->Lock();;;
   res_heap->subUse();
   res_heap->isfinish();
   int need1 = res_heap->need();
   if (!need1) {
     isdel = res_heap->subOver();
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     versions_->table_cache_->cache_->Release(file_handle);
     free(res_leafkeys);
     free(res_p);
@@ -2092,18 +2141,18 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
     if (isdel) delete res_heap;
     return;
   }
-  res_heap->writeUnlock();
+  res_heap->Unlock();
 
   // 找非叶结点上的其他结点
   Finder.sort();
   for (auto & kk : Finder.has_cod){
 
-    res_heap->writeLock();
+    res_heap->Lock();
     float top = res_heap->top();
     int need = res_heap->need();
     if (!need) {
       isdel = res_heap->subOver();
-      res_heap->writeUnlock();
+      res_heap->Unlock();
       versions_->table_cache_->cache_->Release(file_handle);
       free(res_leafkeys);
       free(res_p);
@@ -2111,176 +2160,181 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
       if (isdel) delete res_heap;
       return;
     }
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     Finder.find_One(res_leafkeys, res_leafkeys_num, kk.second);
-    //策略
-    if (lookupi == 0) {
-      int to_find_num = 1;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i++) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &to_find_num, sizeof(int));
-        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+
+    if (res_leafkeys_num) {
+      //策略
+      if (lookupi == 0) {
+        int to_find_num = 1;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i++) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &to_find_num, sizeof(int));
+          charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 1) {
-      // 一部分 k个
-      int to_find_num = aquery1.k;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i+=to_find_num) {
-        int endi = min(i + to_find_num-1, res_p_num - 1);
-        int findsize = endi - i + 1;
-        if (!findsize) break;
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 1) {
+        // 一部分 k个
+        int to_find_num = aquery1.k;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i+=to_find_num) {
+          int endi = min(i + to_find_num-1, res_p_num - 1);
+          int findsize = endi - i + 1;
+          if (!findsize) break;
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 2){
-      // 直接查一个叶
-      int endi = res_leafkeys_num - 1;
-      int findsize = endi + 1;
-      if (findsize) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 2){
+        // 直接查一个叶
+        int endi = res_leafkeys_num - 1;
+        int findsize = endi + 1;
+        if (findsize) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
     }
   }
 
   for (auto & kk : Finder.no_has_cod){
 
-    res_heap->writeLock();
+    res_heap->Lock();;;
     float top = res_heap->top();
     int need = res_heap->need();
     if (!need) {
       isdel = res_heap->subOver();
-      res_heap->writeUnlock();
+      res_heap->Unlock();
       versions_->table_cache_->cache_->Release(file_handle);
       free(res_leafkeys);
       free(res_p);
@@ -2288,171 +2342,176 @@ void DBImpl::Get_st(const aquery& aquery1, query_heap* res_heap,
       if (isdel) delete res_heap;
       return;
     }
-    res_heap->writeUnlock();
+    res_heap->Unlock();
     Finder.find_One(res_leafkeys, res_leafkeys_num, kk);
-    //策略
-    if (lookupi == 0) {
-      int to_find_num = 1;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i++) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &to_find_num, sizeof(int));
-        charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+
+    if (res_leafkeys_num) {
+      //策略
+      if (lookupi == 0) {
+        int to_find_num = 1;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i++) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &to_find_num, sizeof(int));
+          charcpy(tmpinfo, &res_p[i].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*);
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 1) {
-      // 一部分 k个
-      int to_find_num = aquery1.k;
-      get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
-      res_p_num = res_leafkeys_num;
-      for (int i=0;i<res_p_num;i+=to_find_num) {
-        int endi = min(i + to_find_num-1, res_p_num - 1);
-        int findsize = endi - i + 1;
-        if (!findsize) break;
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 1) {
+        // 一部分 k个
+        int to_find_num = aquery1.k;
+        get_dist_and_sort((ts_type*)aquery1.paa, res_leafkeys, res_leafkeys_num, res_p);
+        res_p_num = res_leafkeys_num;
+        for (int i=0;i<res_p_num;i+=to_find_num) {
+          int endi = min(i + to_find_num-1, res_p_num - 1);
+          int findsize = endi - i + 1;
+          if (!findsize) break;
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=i;j<=endi;j++) charcpy(tmpinfo, &res_p[j].second, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          //push
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        //push
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
-    } else if (lookupi == 2){
-      // 直接查一个叶
-      int endi = res_leafkeys_num - 1;
-      int findsize = endi + 1;
-      if (findsize) {
-        //否则send
-        char* tmpinfo = add_info;
-        charcpy(tmpinfo, &need, sizeof(int));
-        charcpy(tmpinfo, &top, sizeof(float));
-        charcpy(tmpinfo, &findsize, sizeof(int));
-        for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
-        size_t out_size;
-        char* out;
-        size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
-        find_tskey(info, to_find_size, out, out_size, db_jvm);
-        ares* ares_out = (ares*) out;
-        // 写堆
-        res_heap->writeLock();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
+      else if (lookupi == 2){
+        // 直接查一个叶
+        int endi = res_leafkeys_num - 1;
+        int findsize = endi + 1;
+        if (findsize) {
+          //否则send
+          char* tmpinfo = add_info;
+          charcpy(tmpinfo, &need, sizeof(int));
+          charcpy(tmpinfo, &top, sizeof(float));
+          charcpy(tmpinfo, &findsize, sizeof(int));
+          for (int j=0;j<=endi;j++) charcpy(tmpinfo, &res_leafkeys[j].p, sizeof(void*));
+          size_t out_size;
+          char* out;
+          size_t to_find_size = sizeof(aquery_rep) + sizeof(int)*3 + sizeof(float) + sizeof(void*) * findsize;
+          find_tskey(info, to_find_size, out, out_size, db_jvm);
+          ares* ares_out = (ares*) out;
+          // 写堆
+          res_heap->Lock();;;
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          for (int j=0;j<out_size;j++) {
+            if (!res_heap->push(ares_out[j])) break;
+          }
+          res_heap->isfinish();
+          need = res_heap->need();
+          if (!need) {
+            isdel = res_heap->subOver();
+            res_heap->Unlock();
+            versions_->table_cache_->cache_->Release(file_handle);
+            free(res_leafkeys);
+            free(res_p);
+            free(info);
+            free(out);
+            if (isdel) delete res_heap;
+            return;
+          }
+          top = res_heap->top();
+          res_heap->Unlock();
           free(out);
-          if (isdel) delete res_heap;
-          return;
         }
-        for (int j=0;j<out_size;j++) {
-          if (!res_heap->push(ares_out[j])) break;
-        }
-        res_heap->isfinish();
-        need = res_heap->need();
-        if (!need) {
-          isdel = res_heap->subOver();
-          res_heap->writeUnlock();
-          versions_->table_cache_->cache_->Release(file_handle);
-          free(res_leafkeys);
-          free(res_p);
-          free(info);
-          free(out);
-          if (isdel) delete res_heap;
-          return;
-        }
-        top = res_heap->top();
-        res_heap->writeUnlock();
-        free(out);
       }
     }
   }
 
-  res_heap->writeLock();
+  res_heap->Lock();
   isdel = res_heap->subOver();
-  res_heap->writeUnlock();
+  res_heap->Unlock();
 
   versions_->table_cache_->cache_->Release(file_handle);
   free(res_leafkeys);
@@ -2671,7 +2730,6 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   mems_boundary* newb = new mems_boundary(bounds);
   mem_version* newMemVersion = new mem_version(mems, newb);
   memSet->newversion(newMemVersion);
-  out("版本");
 //  for(int i=0;i<mems.size();i++) {
 //    saxt_print(mems[i]->Getlsaxt());
 //    saxt_print(mems[i]->Getrsaxt());
@@ -2684,6 +2742,7 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   if (init_st) {
     out("初始化st");
     for (int memId = 0; memId < mems.size(); memId++) {
+//      sleep(1);
       while (true) {
         MutexLock l(&mutex_);
         if (imms_isdoing[memId]) {
@@ -3141,6 +3200,7 @@ void DBImpl::UnRef_st(int unref_version_id) {
   version_map.erase(unref_version_id);
   mutex_.Unlock();
 }
+
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

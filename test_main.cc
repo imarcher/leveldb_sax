@@ -54,7 +54,7 @@ void test_put(vector<LeafTimeKey>& leafKeys){
 static void test_put_multithread_unit(vector<LeafTimeKey>& leafKeys, leveldb::DB* db1){
   leveldb::WriteOptions writeOptions;
   int amem1 = 1e6;
-  for(int i=0;i<1e6*5;i++) {
+  for(int i=0;i<1e6*2;i++) {
       db->Put(writeOptions, leafKeys[i % amem1]);
   }
   over("put");
@@ -109,30 +109,34 @@ void test_st_compaction_0(vector<LeafTimeKey>& leafKeys){
   over("st_compaction_0");
 }
 
-void test_get_mem(vector<LeafTimeKey>& leafKeys){
-  vector<LeafKey> res;
+void test_get_am(vector<LeafTimeKey>& leafKeys){
+  // 145 235
+  saxt_only key = leafKeys[40000].leafKey.asaxt;
+  saxt_print(key);
+  aquery_rep aqueryRep;
+  aquery aquery1;
+  aquery1.asaxt = key;
+  aquery1.k = 64;
+  vector<uint64_t> st_numbers;
+  vector<ares> res;
+  db->Get(aquery1, true, 1, 1, st_numbers, res);
 
 
-  saxt_print(res[0].asaxt.asaxt);
-  saxt_print(res.back().asaxt.asaxt);
-  saxt_print(leafKeys[1000000-1].leafKey.asaxt.asaxt);
-  out("size:"+to_string(res.size()));
-  over("get_mem");
+//  out("size:"+to_string(res.size()));
+  over("get_am");
 }
 
 void test_get_st(vector<LeafTimeKey>& leafKeys){
-  LeafKey& tofind_leafkey = leafKeys[903000].leafKey;
-  vector<LeafKey> res;
-
-//  for(int i=0;i<res.size();i++){
-//    saxt_print(res[i].asaxt);
-//  }
-  out("找到的最小和最大==========");
-  out("size:"+to_string(res.size()));
-  saxt_print(res[0].asaxt);
-  saxt_print(res.back().asaxt);
-  out("要找的");
-  saxt_print(tofind_leafkey.asaxt);
+  saxt_only key = leafKeys[40000].leafKey.asaxt;
+  saxt_print(key);
+  aquery_rep aqueryRep;
+  aquery aquery1;
+  aquery1.asaxt = key;
+  aquery1.k = 64;
+  vector<uint64_t> st_numbers;
+  st_numbers.push_back(4);
+  vector<ares> res;
+  db->Get(aquery1, false, 1, 2, st_numbers, res);
   over("get_st");
 }
 
@@ -180,7 +184,7 @@ int main(){
   //一组测试
   t1 = std::chrono::steady_clock::now();
 //  test_put(leafKeys);
-  test_put_multithread(leafKeys_input);
+//  test_put_multithread(leafKeys_input);
 //  test_rebalance_small(leafKeys, 0);
 //  test_rebalance_small_multithread(leafKeys);
 ////  test_st_compaction_0(leafKeys);
@@ -188,11 +192,11 @@ int main(){
   std::cout <<"一共"<< std::chrono::duration_cast<std::chrono::milliseconds>( t2-t1 ).count() <<"ms==========================================="<< std::endl;
 //
 //
-////  test_get_mem(leafKeys);
-////  sleep(10);
-////  test_get_st(leafKeys);
+
+//  test_get_am(leafKeys_input[0]);
+//  test_get_st(leafKeys);
 ////
-  sleep(30);
+  sleep(10);
   out("finished");
   delete db;
 }
