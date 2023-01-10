@@ -77,10 +77,12 @@ JNIEXPORT void JNICALL Java_leveldb_1sax_db_init
 
 JNIEXPORT void JNICALL Java_leveldb_1sax_db_put
     (JNIEnv *env, jobject, jbyteArray leafTimeKey) {
-  LeafTimeKey key;
-  env->GetByteArrayRegion(leafTimeKey, 0, sizeof(LeafTimeKey), (jbyte*)&key);
+  size_t size = env->GetArrayLength(leafTimeKey);
+  LeafTimeKey *key = (LeafTimeKey*)malloc(size);
+  env->GetByteArrayRegion(leafTimeKey, 0, size, (jbyte*)&key);
 //  pool->enqueue(std::bind(&leveldb::DB::Put, db, writeOptions, key));
-  db->Put(writeOptions, key);
+  int num = size / sizeof(LeafTimeKey);
+  for(int i=0;i<num;i++) db->Put(writeOptions, key[i]);
 }
 
 JNIEXPORT jbyteArray JNICALL Java_leveldb_1sax_db_Get
