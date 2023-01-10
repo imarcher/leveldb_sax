@@ -97,11 +97,11 @@ Slice BlockBuilder::Finish() {
 //}
 
 
-void BlockBuilder::Add(Leaf* leaf) {
+void BlockBuilder::Add(Leaf* leaf, LeafKey* copyleaf) {
   cod co_d = leaf->co_d;
   size_t co_saxt_size = co_d * sizeof(saxt_type);
   size_t noco_saxt_size = sizeof(saxt_only) - co_saxt_size + 8;
-  LeafKey* ls = leaf->leafKeys;
+
   //把共享的压缩掉
   for(int i=0;i<leaf->num;i++){
 //    out("leaf");
@@ -109,7 +109,7 @@ void BlockBuilder::Add(Leaf* leaf) {
 //    saxt_print(ls[i].asaxt);
 //    saxt_print(ls+i);
 //    leafkey_print(ls+i);
-    buffer_.append((char*)(ls+i), noco_saxt_size);
+    buffer_.append(((char*)(copyleaf + i)), noco_saxt_size);
   }
 //  exit(1);
 }

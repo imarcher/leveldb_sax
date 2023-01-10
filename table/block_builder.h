@@ -33,7 +33,7 @@ class BlockBuilder {
   void AddLeaf(NonLeafKey* nonLeafKey);
   void AddNonLeaf(NonLeafKey* nonLeafKey, bool isleaf);
 
-  void Add(Leaf* leaf);
+  void Add(Leaf* leaf, LeafKey* copyleaf);
 
   void Add(NonLeaf* nonLeaf, vector<void*> &new_p);
 

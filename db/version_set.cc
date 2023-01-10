@@ -738,6 +738,10 @@ class VersionSet::Builder {
   }
 
   void MaybeAddFile(Version* v, int level, FileMetaData* f) {
+//    out(f->number);
+//    out(level);
+//    saxt_print(f->smallest.user_key().data());
+//    saxt_print(f->largest.user_key().data());
     if (levels_[level].deleted_files.count(f->number) > 0) {
       // File is deleted: do nothing
     } else {
@@ -846,29 +850,30 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
   }
 
   // Unlock during expensive MANIFEST log write
+  //写日志，才能重启
   {
-    mu->Unlock();
+//    mu->Unlock();
 
     // Write new record to MANIFEST log
-    if (s.ok()) {
-      std::string record;
-      edit->EncodeTo(&record);
-      s = descriptor_log_->AddRecord(record);
-      if (s.ok()) {
-        s = descriptor_file_->Sync();
-      }
-      if (!s.ok()) {
-        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
-      }
-    }
+//    if (s.ok()) {
+//      std::string record;
+//      edit->EncodeTo(&record);
+//      s = descriptor_log_->AddRecord(record);
+//      if (s.ok()) {
+//        s = descriptor_file_->Sync();
+//      }
+//      if (!s.ok()) {
+//        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
+//      }
+//    }
+//
+//    // If we just created a new descriptor file, install it by writing a
+//    // new CURRENT file that points to it.
+//    if (s.ok() && !new_manifest_file.empty()) {
+//      s = SetCurrentFile(env_, dbname_, manifest_file_number_);
+//    }
 
-    // If we just created a new descriptor file, install it by writing a
-    // new CURRENT file that points to it.
-    if (s.ok() && !new_manifest_file.empty()) {
-      s = SetCurrentFile(env_, dbname_, manifest_file_number_);
-    }
-
-    mu->Lock();
+//    mu->Lock();
   }
 
   // Install the new version

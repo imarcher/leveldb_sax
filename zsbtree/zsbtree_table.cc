@@ -23,11 +23,16 @@ void zsbtree_table::BuildTree(newVector<NonLeafKey>& nonLeafKeys) {
 
 zsbtree_table_mem zsbtree_table::Rebalance(int tmp_leaf_maxnum,
                                            int tmp_leaf_minnum, int Nt) {
+//  out("rebanlance");
   vector<LeafKey> sortleafKeys;
   sortleafKeys.reserve(Nt);
+//  out("dfs1");
   //从root开始dfs
   Rebalance_dfs(root, sortleafKeys);
+//  out("dfs");
+//  assert(sortleafKeys.size()==Nt);
   newVector<LeafKey> new_sortleafKeys(sortleafKeys);
+
   int leafNum;
   return {build_tree_from_leaf(new_sortleafKeys, tmp_leaf_maxnum,
                                tmp_leaf_minnum, leafNum),
@@ -40,12 +45,19 @@ void zsbtree_table::Rebalance_dfs(NonLeaf* nonLeaf,
   if (nonLeaf->isleaf) {
     //遍历子结点
     for (int i = 0; i < nonLeaf->num; i++) {
+//      out("leaf");
       Leaf* tmpleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
       if (tmpleaf->num) {
+//        out(tmpleaf->num);
+//        saxt_print(tmpleaf->lsaxt);
+//        saxt_print(tmpleaf->leafKeys[0].asaxt);
+//        saxt_print(tmpleaf->rsaxt);
+
         auto dst = sortleafKeys.data() + sortleafKeys.size();
         sortleafKeys.resize(sortleafKeys.size() + tmpleaf->num);
         tmpleaf->sort(dst);
       }
+//      out("完成leaf");
     }
   } else {
     //遍历子结点
@@ -75,6 +87,22 @@ void zsbtree_table::LoadNonLeafKeys_dfs(NonLeaf* nonLeaf,
   }
 }
 
+bool test_dfs(NonLeaf* nonLeaf) {
+  if (nonLeaf->isleaf) {
+    for (int i = 0; i < nonLeaf->num; i++) {
+      Leaf* tmpleaf = (Leaf*)nonLeaf->nonLeafKeys[i].p;
+      assert(tmpleaf->lsaxt<tmpleaf->rsaxt);
+      assert(nonLeaf->nonLeafKeys[i].num==0);
+      assert(tmpleaf->num==0);
+    }
+  } else {
+    //遍历子结点
+    for (int i = 0; i < nonLeaf->num; i++) {
+      test_dfs((NonLeaf*)nonLeaf->nonLeafKeys[i].p);
+    }
+  }
+}
+
 zsbtree_table::zsbtree_table() {}
 
 zsbtree_table::zsbtree_table(zsbtree_table& im) {
@@ -82,6 +110,7 @@ zsbtree_table::zsbtree_table(zsbtree_table& im) {
   //先申请内存
   root = (NonLeaf*)malloc(sizeof(NonLeaf));
   CopyTree_dfs(root, im.root);
+//  test_dfs(root);
   iscopy = true;
 }
 
@@ -96,11 +125,10 @@ void zsbtree_table::CopyTree_dfs(NonLeaf* nonLeaf, NonLeaf* copyNonLeaf) {
     //给叶子申请空间
     char* leafp = (char*)malloc(nonLeaf->num * sizeof(Leaf));
     for (int i = 0; i < nonLeaf->num; i++) {
-      NonLeafKey& this_nonLeafKeys = nonLeaf->nonLeafKeys[i];
-      this_nonLeafKeys.num = 0;
-      ((Leaf*)this_nonLeafKeys.p)->sort();
-      this_nonLeafKeys.p = leafp;
-      ((Leaf*)leafp)->set(this_nonLeafKeys);
+      nonLeaf->nonLeafKeys[i].num = 0;
+      nonLeaf->nonLeafKeys[i].p = leafp;
+      ((Leaf*)leafp)->set(nonLeaf->nonLeafKeys[i]);
+      assert(((Leaf*)leafp)->num==0);
       leafp += sizeof(Leaf);
     }
   } else {

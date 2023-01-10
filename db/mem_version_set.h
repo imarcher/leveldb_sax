@@ -12,6 +12,7 @@
 #include "memtable.h"
 #include "unordered_map"
 
+
 namespace leveldb {
 
 
@@ -39,14 +40,17 @@ class mems_todel {
 class mems_boundary {
  public:
 
-
   explicit mems_boundary(vector<saxt_only> &bounds1);
+
+  vector<saxt_only> Get();
+
   void Ref();
 
   void Unref();
 
-  vector<saxt_only> bounds;
  private:
+  int size;
+  saxt_only* bounds_;
   int refs_;
 };
 
@@ -61,17 +65,20 @@ class mem_version {
 
   void Unref();
 
+  vector<MemTable*> Get();
+
   ~mem_version();
 
+  int size;
   //这个版本的mems
-  vector<MemTable*> mems;
+  MemTable** mems;
   mems_boundary* boundary;
- private:
+// private:
   int refs_;
 
 };
 
-
+// 存稳定的可查的版本
 class mem_version_set {
  public:
   mem_version_set();
@@ -87,19 +94,22 @@ class mem_version_set {
   // 表满了会， 大重组会, 会上报
   int newversion(mem_version* memVersion);
 
-  //小重组不改版本号，不上报
-  void newversion_small(MemTable* newMem, int memId);
+  int newversion(MemTable* newMem, int memId);
+
+  //小重组不改版本号，不上报, 但会重新传建包含重组表的所有版本，
+  void newversion_small(MemTable* newMem, MemTable* oldMem, int memId);
 
   //这个只有master来控制删除
   void Unref(int id);
 
   void UnrefAll();
 
+  void test_ref();
+
  private:
   //版本号和对应的版本
   unordered_map<int, mem_version*> versions;
   int currentid;
-  mem_version* currentversion;
 };
 
 

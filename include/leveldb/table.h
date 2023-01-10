@@ -144,7 +144,7 @@ class LEVELDB_EXPORT Table {
     void setPrefix(LeafKey& res);
     ~ST_Iter();
    private:
-    void getSTLeaf();
+    bool getSTLeaf();
     void getSTNonLeaf();
     Rep* const rep_;
     //栈，要delete除了root

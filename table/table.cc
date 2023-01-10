@@ -468,6 +468,10 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
     pos = whereofKey(nonLeaf.Get_lsaxt(l), nonLeaf.Get_rsaxt(l), leafkey.asaxt + nonLeaf.co_d, nonLeaf.co_d);
     if (pos==0) {
       //里面
+      if (nonLeaf.Getnum(l)==0) {
+        res_num = 0;
+        return;
+      }
       STLeaf* stLeaf = getSTLeaf(nonLeaf, l);
       oneId = l;
       leaf_Get(*stLeaf, res);
@@ -566,6 +570,10 @@ void Table::ST_finder::find_One(LeafKey* res, int& res_num) {
 }
 
 void Table::ST_finder::find_One(LeafKey* res, int& res_num, int id) {
+  if (to_find_nonleaf->Getnum(id)==0) {
+    res_num = 0;
+    return;
+  }
   STLeaf* stLeaf = getSTLeaf(*to_find_nonleaf, id);
   leaf_Get(*stLeaf, res);
   res_num = stLeaf->num;
@@ -720,7 +728,7 @@ bool Table::ST_Iter::next(LeafKey& res) {
         if (++nonleaftops[top] < st_nonleaf_stack[top]->num) {
           //只换叶节点
 //          out("叶");
-          getSTLeaf();
+          if(!getSTLeaf()) continue;
           res.Set1(stLeaf.prefix);
 //          res.setAsaxt(stLeaf.prefix);
 //          out("有stleaf");
@@ -766,9 +774,12 @@ bool Table::ST_Iter::next(LeafKey& res) {
   return true;
 }
 
-void Table::ST_Iter::getSTLeaf() {
+bool Table::ST_Iter::getSTLeaf() {
   STNonLeaf &nonLeaf = *st_nonleaf_stack[top];
   int i = nonleaftops[top];
+  if (nonLeaf.Getnum(i)==0) {
+    return false;
+  }
   Slice slice;
   STpos sTpos = nonLeaf.Get_pos(i);
   size_t stLeaf_size = sTpos.GetSize();
@@ -804,7 +815,7 @@ void Table::ST_Iter::getSTLeaf() {
   stLeaf.Setrep(slice.data());
 #endif  // HAVE_SNAPPY
   leaftop = -1;
-
+  return true;
 }
 
 void Table::ST_Iter::getSTNonLeaf() {

@@ -116,12 +116,13 @@ namespace {
 class MemTableInserter : public WriteBatch::Handler {
  public:
 //  SequenceNumber sequence_;
-  MemTable*& mem_;
+  MemTable* mem_;
+  vector<MemTable*>& mems;
   port::Mutex* mutex_;
   mem_version_set* versionSet;
   int memId;
-  MemTableInserter(MemTable*& mem, port::Mutex* mutex, int memId, mem_version_set* versionSet)
-      : mem_(mem), mutex_(mutex), memId(memId), versionSet(versionSet){}
+  MemTableInserter(vector<MemTable*>& mems, port::Mutex* mutex, int memId, mem_version_set* versionSet)
+      : mem_(mems[memId]), mems(mems), mutex_(mutex), memId(memId), versionSet(versionSet){}
 
   bool Put(LeafKey& key) override {
     return mem_->Add(key);
@@ -134,11 +135,16 @@ class MemTableInserter : public WriteBatch::Handler {
 
 
   void Rebalance(int tmp_leaf_maxnum, int tmp_leaf_minnum, int Nt) override {
-    MemTable *oldmem = mem_;
+    out("叶子最大:"+to_string(tmp_leaf_maxnum));
+    out("重组数量"+to_string(Nt));
+    MemTable* oldmem = mem_;
     MemTable *newmem = oldmem->Rebalance(tmp_leaf_maxnum, tmp_leaf_minnum, Nt);
-    MutexLock l(mutex_);
-    mem_ = newmem;
-    versionSet->newversion_small(mem_, memId);
+    out("重组==");
+    mutex_->Lock();
+    versionSet->newversion_small(newmem, oldmem, memId);
+    mems[memId] = newmem;
+    mutex_->Unlock();
+    mem_ = mems[memId];
   }
 
 
@@ -149,7 +155,8 @@ class MemTableInserter : public WriteBatch::Handler {
 };
 }  // namespace
 
-Status WriteBatchInternal::InsertInto(vector<LeafTimeKey>& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
+Status WriteBatchInternal::InsertInto(vector<LeafTimeKey>& b, vector<MemTable*>& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
+//  out("插入"+to_string(memId));
   MemTableInserter inserter(memtable, mutex, memId, versionSet);
   int found = 0;
 
@@ -158,32 +165,33 @@ Status WriteBatchInternal::InsertInto(vector<LeafTimeKey>& b, MemTable*& memtabl
     inserter.SetTime(item.keytime);
     //我们添加进table 如果满了，重组
     if (!inserter.Put(item.leafKey)) {
-      out("重组");
-      out(memNum + found);
+      out("重组"+to_string(memId));
+//      out(memNum + found);
       int Nt = memNum + found;
       int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
 
       inserter.Rebalance(nt, nt/2, Nt);
+      out(to_string(memId)+"重组成功");
     }
   }
   return Status();
 }
 
-Status WriteBatchInternal::InsertInto(LeafTimeKey& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
-  MemTableInserter inserter(memtable, mutex, memId, versionSet);
-  int found = 1;
-  inserter.SetTime(b.keytime);
-  //我们添加进table 如果满了，重组
-  if (!inserter.Put(b.leafKey)) {
-    out("重组");
-    out(memNum + found);
-    int Nt = memNum + found;
-    int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
-    inserter.Rebalance(nt, nt/2, Nt);
-  }
-
-  return Status();
-}
+//Status WriteBatchInternal::InsertInto(LeafTimeKey& b, MemTable*& memtable, port::Mutex* mutex, int memNum, int memId, mem_version_set* versionSet) {
+//  MemTableInserter inserter(memtable, mutex, memId, versionSet);
+//  int found = 1;
+//  inserter.SetTime(b.keytime);
+//  //我们添加进table 如果满了，重组
+//  if (!inserter.Put(b.leafKey)) {
+////    out("重组");
+////    out(memNum + found);
+//    int Nt = memNum + found;
+//    int nt = max(Nt * Leaf_maxnum / Table_maxnum, Leaf_maxnum_rebalance);
+//    inserter.Rebalance(nt, nt/2, Nt);
+//  }
+//
+//  return Status();
+//}
 
 void WriteBatchInternal::SetContents(WriteBatch* b, const Slice& contents) {
   assert(contents.size() >= kHeader);

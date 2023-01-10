@@ -20,13 +20,13 @@ ST_merge::ST_merge(VersionSet* ver, Compaction* c) : cache(ver->table_cache_), v
     for (auto & file : files) {
       Cache::Handle* handle = nullptr;
       Status s = cache->FindTable(file->number, file->file_size, &handle);
-//      out("afile");
-//      out(file->number);
-//      out(file->file_size);
-//      saxt_print(file->smallest.user_key().data());
-//      saxt_print(file->largest.user_key().data());
+      out("afile");
+      out(file->number);
+      out(file->file_size);
+      saxt_print(file->smallest.user_key().data());
+      saxt_print(file->largest.user_key().data());
       if (s.ok()) {
-//        out("ok");
+        out("ok");
         Table* t = reinterpret_cast<TableAndFile*>(cache->cache_->Value(handle))->table;
         Table::ST_Iter* stIter = new Table::ST_Iter(t);
         st_iters.insert(stIter);

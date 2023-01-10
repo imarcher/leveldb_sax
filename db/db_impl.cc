@@ -149,12 +149,15 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, const void
       log_(nullptr),
       seed_(0),
       versionid(0),
+      memSet(new mem_version_set()),
       db_jvm(db_jvm),
 //      tmp_batch_(new WriteBatch),
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
-                               &internal_comparator_)){}
+                               &internal_comparator_)) {
+  pool = new ThreadPool(pool_size);
+}
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
@@ -180,7 +183,8 @@ DBImpl::~DBImpl() {
 
 
   mutex_Mem.Lock();
-  memSet.UnrefAll();
+  memSet->UnrefAll();
+  delete memSet;
   mutex_Mem.Unlock();
 
 
@@ -528,8 +532,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 }
 
-Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
-                                Version* base) {
+Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit) {
   mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   //这里 InternalKey 先放着，后面要去掉顺序号再改
@@ -560,17 +563,15 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   if (s.ok() && meta.file_size > 0) {
     const Slice min_user_key = meta.smallest.user_key();
     const Slice max_user_key = meta.largest.user_key();
-    out("压缩st0========");
-    out("最大最小");
-    saxt_print(min_user_key.data());
-    saxt_print(max_user_key.data());
+    Version* base = versions_->current();
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
-      out("level");
-      out(level);
     }
-    out("=================filenumber:"+to_string(meta.number));
-    out("=================file_size:"+to_string(meta.file_size));
+    out("压缩st0==================\nfilenumber:"+to_string(meta.number)
+        +"\nfile_size:"+to_string(meta.file_size) + "\nlevel:" + to_string(level)
+        +"\n最小最大:");
+    saxt_print(min_user_key.data());
+    saxt_print(max_user_key.data());
     edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
                   meta.largest, meta.startTime, meta.endTime);
   }
@@ -582,18 +583,18 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   return s;
 }
 
-void DBImpl::CompactMemTable() {
-  mutex_.AssertHeld();
+void DBImpl::CompactMemTable(std::pair<MemTable*, int> aim) {
+
+  MutexLock l(&mutex_);
 //  assert(imm_ != nullptr);
-  assert(imms.size()!=0);
-  MemTable* first_imm = imms.front().first;
+  MemTable* first_imm = aim.first;
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
-  Version* base = versions_->current();
-  base->Ref();
-  Status s = WriteLevel0Table(first_imm, &edit, base);
-  base->Unref();
+//  Version* base = versions_->current();
+//  base->Ref();
+  Status s = WriteLevel0Table(first_imm, &edit);
+//  base->Unref();
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
@@ -606,8 +607,6 @@ void DBImpl::CompactMemTable() {
     s = versions_->LogAndApply(&edit, &mutex_);
   }
 
-
-
   if (s.ok()) {
     // Commit to the new state
 //    imm_->Unref();
@@ -615,8 +614,14 @@ void DBImpl::CompactMemTable() {
     //在这里应该要发消息给master
     //发version的版本号，当前的版本号，加上version edit,不过edit的删除文件要有元文件信息
     //还要发当前内存的current的版本号
+    mutex_Mem.Lock();
+    int memId = aim.second;
+    int amV_id = memSet->newversion(mems[memId], memId);
+    mems[memId]->Unref();
+//    for(auto item:mems) assert(item->refs_>0);
+    mutex_Mem.Unlock();
+    imms_isdoing[memId] = false;
 
-    int amV_id = imms.front().second;
     Version* nowversion = versions_->current();
     //这个ref只能master来解除
     nowversion->Ref();
@@ -639,12 +644,14 @@ void DBImpl::CompactMemTable() {
     free(to_send);
     //
 //    imm_ = nullptr;
-    imms.pop_front();
-    if (imms.empty()) has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
+    VersionSet::LevelSummaryStorage tmp;
+    out("im压缩文件号："+to_string(metaData.number)+" compacted to: "+ (string)versions_->LevelSummary(&tmp));
   } else {
     RecordBackgroundError(s);
   }
+  // 如果有新的表要插入，要唤醒
+  background_work_finished_signal_.SignalAll();
 }
 
 void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
@@ -748,6 +755,10 @@ void DBImpl::BGWork(void* db) {
   reinterpret_cast<DBImpl*>(db)->BackgroundCall();
 }
 
+void DBImpl::BGWork_IM(void* db, std::pair<MemTable*, int> aim) {
+  reinterpret_cast<DBImpl*>(db)->CompactMemTable(aim);
+}
+
 void DBImpl::BackgroundCall() {
   MutexLock l(&mutex_);
   assert(background_compaction_scheduled_);
@@ -771,10 +782,10 @@ void DBImpl::BackgroundCompaction() {
   mutex_.AssertHeld();
   //同一时间只有一个线程能运行
   if (!imms.empty()) {
-    CompactMemTable();
+    pool->enqueue(&DBImpl::BGWork_IM, this, imms.front());
 //    out("success im compaction");
-    VersionSet::LevelSummaryStorage tmp;
-    out("compacted to: "+ (string)versions_->LevelSummary(&tmp));
+    imms.pop_front();
+    if (imms.empty()) has_imm_.store(false, std::memory_order_release);
     return;
   }
   out("进入压缩合并");
@@ -803,12 +814,17 @@ void DBImpl::BackgroundCompaction() {
   Status status;
   if (c == nullptr) {
     // Nothing to do
-  } else if (false && !is_manual && c->IsTrivialMove()) {
-    out("直接下移");
+  } else if (!is_manual && c->IsTrivialMove()) {
     //下一层没有与这个文件范围重叠的，直接移动
     // Move file to next level
     assert(c->num_input_files(0) == 1);
     FileMetaData* f = c->input(0, 0);
+    out("直接下移");
+    out(f->number);
+    out(c->level());
+    out(f->file_size);
+    saxt_print(f->smallest.user_key().data());
+    saxt_print(f->largest.user_key().data());
     c->edit()->RemoveFile(c->level(), f->number, f->file_size, f->smallest,
                           f->largest, f->startTime, f->endTime);
     c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest,
@@ -1085,9 +1101,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
       if (!imms.empty()) {
-        CompactMemTable();
+        pool->enqueue(&DBImpl::BGWork_IM, this, imms.front());
+        imms.pop_front();
+        if (imms.empty()) has_imm_.store(false, std::memory_order_release);
         // Wake up MakeRoomForWrite() if necessary.
-        background_work_finished_signal_.SignalAll();
       }
       mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
@@ -1346,11 +1363,11 @@ Status DBImpl::Get(const aquery& aquery1,
   if (is_use_am) {
     //有am，先查am，因为可以剪枝
     mutex_Mem.Lock();
-    mem_version* this_mem_version = memSet.OldVersion(am_version_id);
+    mem_version* this_mem_version = memSet->OldVersion(am_version_id);
     this_mem_version->Ref();
     mutex_Mem.Unlock();
     //顺序 选表
-    vector<saxt_only>& this_bounds = this_mem_version->boundary->bounds;
+    vector<saxt_only> this_bounds = this_mem_version->boundary->Get();
     int i = 1;
     for(;i<mems.size();i++){
       if (this_bounds[i] > aquery1.asaxt)
@@ -2517,29 +2534,29 @@ Status DBImpl::Put(const WriteOptions& o, LeafTimeKey& key) {
   // 找到对应的drange
   // 二分
   int l = 0;
-  int r = mems.size()-1;
-
-  while (l < r) {
-    int mid = (l + r + 1) / 2;
-    if (bounds[mid] <= key.leafKey.asaxt) l = mid;
-    else r = mid - 1;
-  }
-  port::Mutex* mutex_i = write_mutex.data() + l;
-  mutex_i->Lock();
+//  int r = mems.size()-1;
+//
+//  while (l < r) {
+//    int mid = (l + r + 1) / 2;
+//    if (bounds[mid] <= key.leafKey.asaxt) l = mid;
+//    else r = mid - 1;
+//  }
+//  port::Mutex* mutex_i = write_mutex.data() + l;
+//  mutex_i->Lock();
 
   //读写锁
 //  {
 ////    boost::shared_lock<boost::shared_mutex> lock1(range_mutex);
-//
-//    //顺序
-//    int i = 1;
-//    for(;i<mems.size();i++){
-//      if (bounds[i] > key.leafKey.asaxt)
-//        break;
-//    }
-//    l = i - 1;
-//    //必须要插入这个表了
-//    write_mutex[l].Lock();
+
+    //顺序
+    int i = 1;
+    for(;i<mems.size();i++){
+      if (bounds[i] > key.leafKey.asaxt)
+        break;
+    }
+    l = i - 1;
+    //必须要插入这个表了
+    write_mutex[l].Lock();
 //  }
 
 
@@ -2579,16 +2596,25 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
   //贪心 返回起始位置
   int timeid = 0;
   saxt_only last_r_saxt;
+  write_mutex.reserve(drangesNum);
+  write_signal_.reserve(drangesNum);
+  writers_vec[0].reserve(drangesNum);
+  writers_vec[1].reserve(drangesNum);
+  mems.reserve(drangesNum);
+  memNum.reserve(drangesNum);
+  memNum_period.reserve(drangesNum);
+  bounds.reserve(drangesNum);
   for (int i = 0, j = 0; i < drangesNum; ++i) {
     int start = j;
     write_mutex.emplace_back();
     write_signal_.emplace_back(&write_mutex.back());
     writers_vec[0].emplace_back();
     writers_vec[1].emplace_back();
-    writers_vec[0].back().reserve(2048);
-    writers_vec[1].back().reserve(2048);
-    towrite.push_back(0);
+    writers_vec[0].back().reserve(8192);
+    writers_vec[1].back().reserve(8192);
+    towrite[i] = 0;
     writers_is[i] = false;
+    imms_isdoing[i] = false;
     int sum = 0;
     if (i<drangesNum-1){
       while (sum < averageNum && j < nonLeafKeys.size()){
@@ -2637,15 +2663,15 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
       }
 
     }
+
     last_r_saxt = newMem->Getrsaxt();
   }
+
   free(times_rep);
-
   mems_boundary* newb = new mems_boundary(bounds);
-
   mem_version* newMemVersion = new mem_version(mems, newb);
-  memSet.newversion(newMemVersion);
-
+  memSet->newversion(newMemVersion);
+  out("版本");
 //  for(int i=0;i<mems.size();i++) {
 //    saxt_print(mems[i]->Getlsaxt());
 //    saxt_print(mems[i]->Getrsaxt());
@@ -2659,19 +2685,20 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
     out("初始化st");
     for (int memId = 0; memId < mems.size(); memId++) {
       while (true) {
-//      out("makeroom_to_st");
-        //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
         MutexLock l(&mutex_);
-        if (imms.size()>10) {
+        if (imms_isdoing[memId]) {
 //        out("waitim");
           // We have filled up the current memtable, but the previous
           // one is still being compacted, so we wait.
+          out("当前表的范围有im在处理，等待===============");
           Log(options_.info_log, "Current memtable full; waiting...\n");
           background_work_finished_signal_.Wait();
 //        out("waitoverim");
         } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
           // There are too many level-0 files.
+          out("0层st过多等待");
           Log(options_.info_log, "Too many L0 files; waiting...\n");
+          MaybeScheduleCompaction();
           background_work_finished_signal_.Wait();
         } else {
           // Attempt to switch to a new memtable and trigger compaction of old
@@ -2695,13 +2722,12 @@ Status DBImpl::Init(LeafTimeKey* leafKeys, int leafKeysNum) {
           MemTable* oldmem = mems[memId];
           // 复制mem的树结构
           MemTable* newmem = new MemTable(oldmem);
+          newmem->Ref();
           // 修改版本
-          mutex_Mem.Lock();
           mems[memId] = newmem;
-          int newid = memSet.newversion(new mem_version(mems, memSet.CurrentVersion()->boundary));
-          mutex_Mem.Unlock();
-
-          imms.emplace_back(oldmem, newid);
+//          for(auto item:mems) assert(item->refs_>0);
+          imms.emplace_back(oldmem, memId);
+          imms_isdoing[memId] = true;
           has_imm_.store(true, std::memory_order_release);
           memNum[memId] = 0;
           MaybeScheduleCompaction();
@@ -2768,64 +2794,32 @@ Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
 
   port::Mutex* mutex_i = write_mutex.data() + memId;
   mutex_i->AssertHeld();
-
+//  out("Write"+to_string(memId));
 
   if (writers_is[memId]) {
+//    out("进数组"+to_string(memId));
     //先删除一下没用的表
     //有空的线程
     vector<LeafTimeKey>* w = &writers_vec[towrite[memId]][memId];
     w->push_back(key);
     delete_mems(memsTodel.get());
-    if (w->size()>=2023) {
+    if (w->size()>=8100) {
       int id = w->size();
+//      out(to_string(memId)+"进入"+to_string(id));
       write_signal_[memId].Wait();
-      if (id!=2023) {
-        mutex_i->Unlock();
-        return Status();
-      }
-      while (!w->empty()) {
-        towrite[memId] = 1 - towrite[memId];
-        Status status = MakeRoomForWrite(false, memId);
-        assert(status.ok());
-        if (status.ok()) {  // nullptr batch is for compactions
-          int nowNum = memNum[memId];
-          memNum[memId] += w->size();
-          {
-            mutex_i->Unlock();
-            // fileOffset拿到后就可以构造leafkey，把前8位用来做位于一个record的位次，最多256个
-            if (status.ok()) {
-              //里面会有drange内的平衡
-              //        out("todoocharu");
-              status = WriteBatchInternal::InsertInto(*w, mems[memId], &mutex_Mem,
-                                                      nowNum, memId, &memSet);
-              //        out("finishcharu");
-              // 一个batch插入完后，在更新。
-            }
-            mutex_i->Lock();
-          }
-        }
-//    out(to_string(memId)+"解锁");
-        w->clear();
-        assert(&writers_vec[towrite[memId]][memId] != w);
-        w = &writers_vec[towrite[memId]][memId];
-        if (w->size()>=2023) {
-          write_signal_[memId].SignalAll();
-          mutex_i->Unlock();
-        }
-      }
-      writers_is[memId] = false;
+//      out("解锁"+to_string(memId)+"进入"+to_string(id));
       mutex_i->Unlock();
       return Status();
-
     }
     mutex_i->Unlock();
     return Status();
   }
-
+//  out("不进数组"+to_string(memId));
   vector<LeafTimeKey>* w = &writers_vec[towrite[memId]][memId];
   writers_is[memId] = true;
   w->push_back(key);
   while (!w->empty()) {
+    assert(mems[memId]->refs_>0);
     towrite[memId] = 1 - towrite[memId];
     Status status = MakeRoomForWrite(false, memId);
     assert(status.ok());
@@ -2838,8 +2832,8 @@ Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
         if (status.ok()) {
           //里面会有drange内的平衡
           //        out("todoocharu");
-          status = WriteBatchInternal::InsertInto(*w, mems[memId], &mutex_Mem,
-                                                  nowNum, memId, &memSet);
+          status = WriteBatchInternal::InsertInto(*w, mems, &mutex_Mem,
+                                                  nowNum, memId, memSet);
           //        out("finishcharu");
           // 一个batch插入完后，在更新。
         }
@@ -2850,9 +2844,14 @@ Status DBImpl::Write(const WriteOptions& options,LeafTimeKey& key, int memId) {
     w->clear();
     assert(&writers_vec[towrite[memId]][memId] != w);
     w = &writers_vec[towrite[memId]][memId];
-    if (w->size()>=2023) {
+    if (w->size()>=8100) {
+//      out("要解锁1"+to_string(memId));
       write_signal_[memId].SignalAll();
+      writers_is[memId] = false;
+//      out("要解锁2"+to_string(memId));
       mutex_i->Unlock();
+//      out("出去解锁223"+to_string(memId));
+      return Status();
     }
   }
 
@@ -2935,8 +2934,8 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
       // this delay hands over some CPU to the compaction thread in
       // case it is sharing the same core as the writer.
       write_mutex[memId].Unlock();
-      out("等100ms");
-      env_->SleepForMicroseconds(100000);
+      out("st0太多，等1ms======================");
+      env_->SleepForMicroseconds(1000);
       allow_delay = false;  // Do not delay a single write more than once
       write_mutex[memId].Lock();
     } else if (!force &&
@@ -2953,11 +2952,11 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
 //      out("makeroom_to_st");
       //上锁，因为im是共享的,目前只有一个，只要表满了，就进入一个共享了
       MutexLock l(&mutex_);
-      if (imms.size()>10) {
+      if (imms_isdoing[memId]) {
 //        out("waitim");
         // We have filled up the current memtable, but the previous
         // one is still being compacted, so we wait.
-        out("im过多等待");
+        out("当前表的范围有im在处理，等待===============");
         Log(options_.info_log, "Current memtable full; waiting...\n");
         background_work_finished_signal_.Wait();
 //        out("waitoverim");
@@ -2988,13 +2987,12 @@ Status DBImpl::MakeRoomForWrite(bool force, int memId) {
         MemTable* oldmem = mems[memId];
         // 复制mem的树结构
         MemTable* newmem = new MemTable(oldmem);
+        newmem->Ref();
         // 修改版本
-        mutex_Mem.Lock();
         mems[memId] = newmem;
-        int newid = memSet.newversion(new mem_version(mems, memSet.CurrentVersion()->boundary));
-        mutex_Mem.Unlock();
 
-        imms.push_back({oldmem, newid});
+        imms.emplace_back(oldmem, memId);
+        imms_isdoing[memId] = true;
         has_imm_.store(true, std::memory_order_release);
         memNum[memId] = 0;
         force = false;  // Do not force another compaction if have room
@@ -3133,7 +3131,7 @@ void DBImpl::RebalanceDranges(vector<int>& table_rebalanced) {
 
 void DBImpl::UnRef_am(int unref_version_id) {
   mutex_Mem.Lock();
-  memSet.Unref(unref_version_id);
+  memSet->Unref(unref_version_id);
   mutex_Mem.Unlock();
 }
 
@@ -3165,11 +3163,13 @@ Status DB::Open(const Options& options, const std::string& dbname, const void* d
   *dbptr = nullptr;
 
   DBImpl* impl = new DBImpl(options, dbname, db_jvm);
+  out("声明");
   impl->mutex_.Lock();
   VersionEdit edit;
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
   Status s = impl->Recover(&edit, &save_manifest);
+  out("解决日志");
   if (s.ok() && !impl->mems.size()) {
     // Create new log and a corresponding memtable.
     uint64_t new_log_number = impl->versions_->NewFileNumber();

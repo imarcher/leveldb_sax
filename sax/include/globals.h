@@ -56,6 +56,9 @@ typedef unsigned char cod;
 //一个memtable存的数量
 #define Table_maxnum 500000
 
+// 压缩im的线程数，一般与表数量一致
+#define pool_size 2
+
 
 //超过这个重构叶结点
 static const int Leaf_rebuildnum = Leaf_maxnum * 1.5;

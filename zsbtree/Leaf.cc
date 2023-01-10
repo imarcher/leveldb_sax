@@ -43,6 +43,9 @@ void Leaf::set(NonLeafKey& nonLeafKey) {
   co_d = nonLeafKey.co_d;
   lsaxt = nonLeafKey.lsaxt;
   rsaxt = nonLeafKey.rsaxt;
+//  out("set");
+//  saxt_print(lsaxt);
+//  saxt_print(rsaxt);
 }
 
 Leaf::Leaf(NonLeafKey& nonLeafKey) {

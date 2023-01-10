@@ -327,7 +327,7 @@ add_library(leveldbj SHARED jni/leveldb_sax_db.cc jni/leveldb_sax_db.h)
 target_link_libraries(leveldbj leveldb)
 
 add_executable(test_main
-        "test_main.cc" "threadPool_2.h"
+        "test_main.cc"
         )
 target_link_libraries(test_main leveldb)
 

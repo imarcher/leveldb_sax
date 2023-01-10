@@ -25,6 +25,7 @@
 #include "mem_version_set.h"
 #include "boost/thread/shared_mutex.hpp"
 #include "query_heap.h"
+#include "threadPool_2.h"
 
 namespace leveldb {
 
@@ -137,13 +138,13 @@ class DBImpl : public DB {
   // Compact the in-memory write buffer to disk.  Switches to a new
   // log-file/memtable and writes a new descriptor iff successful.
   // Errors are recorded in bg_error_.
-  void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void CompactMemTable(std::pair<MemTable*, int> aim) EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status RecoverLogFile(uint64_t log_number, bool last_log, bool* save_manifest,
                         VersionEdit* edit, SequenceNumber* max_sequence)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
+  Status WriteLevel0Table(MemTable* mem, VersionEdit* edit)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status MakeRoomForWrite(bool force /* compact even if there is room? */
@@ -155,6 +156,7 @@ class DBImpl : public DB {
 
   void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   static void BGWork(void* db);
+  static void BGWork_IM(void* db, std::pair<MemTable*, int> aim);
   void BackgroundCall();
   void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void CleanupCompaction(CompactionState* compact)
@@ -215,7 +217,7 @@ class DBImpl : public DB {
   //边界
   vector<saxt_only> bounds;
   //内存版本
-  mem_version_set memSet;
+  mem_version_set* memSet;
   //表
   vector<MemTable*> mems;
   //mem中现有的key数量
@@ -224,10 +226,12 @@ class DBImpl : public DB {
   vector<int> memNum_period;
   //写队列
   vector<vector<LeafTimeKey>> writers_vec[2];
-  vector<int> towrite;
+  int towrite[10];
   vector<port::CondVar> write_signal_;
   bool writers_is[10];
   // im队列
+  ThreadPool* pool;
+  bool imms_isdoing[10];
   std::deque<std::pair<MemTable*, int>> imms GUARDED_BY(mutex_);
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;

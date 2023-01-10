@@ -90,11 +90,11 @@ class MemTable {
 
 
 //  KeyComparator comparator_;
-  int refs_;
+//  int refs_;
   mems_todel* memsTodel;
 
  public:
-
+  int refs_;
   //维护两个时间戳
   ts_time startTime;
   ts_time endTime;
