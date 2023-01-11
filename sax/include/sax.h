@@ -70,7 +70,7 @@ static inline cod get_co_d_from_saxt(saxt_only a, saxt_only b, cod pre_d) {
 }
 //比较在第d个段是否相等
 static inline bool compare_saxt_d(saxt_only a, saxt_only b, cod d) {
-  return a.asaxt[Bit_cardinality - 2 + d] == b.asaxt[Bit_cardinality - 2 + d];
+  return a.asaxt[Bit_cardinality - d] == b.asaxt[Bit_cardinality - d];
 }
 
 
